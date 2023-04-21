@@ -1,6 +1,7 @@
 from pytest import approx
-from matrix import Position, Matrix
 from sympy.abc import x, y
+
+from matrix import Position, Matrix, simplify
 
 
 def test_position_add():
@@ -60,30 +61,27 @@ def test_walk_0():
 
 def test_walk_1():
     m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
-    assert m.walk([1, 0], 1) == m(1, 1)
+    assert m.walk([1, 0], 1) == m(x, y)
 
 
 def test_walk_axis():
     m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
-    assert m.walk([1, 0], 3).simplify() == (m(1, 1) * m(2, 1) * m(3, 1)).simplify()
-    assert (
-        m.walk([0, 1], 5).simplify()
-        == (m(1, 1) * m(1, 2) * m(1, 3) * m(1, 4) * m(1, 5)).simplify()
+    assert simplify(m.walk([1, 0], 3, [1, 1])) == simplify(m(1, 1) * m(2, 1) * m(3, 1))
+    assert simplify(m.walk([0, 1], 5, [1, 1])) == simplify(
+        m(1, 1) * m(1, 2) * m(1, 3) * m(1, 4) * m(1, 5)
     )
 
 
 def test_walk_diagonal():
     m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
-    assert (
-        m.walk([1, 1], 4).simplify()
-        == (m(1, 1) * m(2, 2) * m(3, 3) * m(4, 4)).simplify()
+    assert simplify(m.walk([1, 1], 4, [1, 1])) == simplify(
+        m(1, 1) * m(2, 2) * m(3, 3) * m(4, 4)
     )
-    assert m.walk([3, 2], 3).simplify() == (m(1, 1) * m(4, 3) * m(7, 5)).simplify()
+    assert simplify(m.walk([3, 2], 3, [1, 1])) == simplify(m(1, 1) * m(4, 3) * m(7, 5))
 
 
 def test_walk_different_start():
     m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
-    assert (
-        m.walk([3, 2], 3, [5, 7]).simplify()
-        == (m(5, 7) * m(8, 9) * m(11, 11)).simplify()
+    assert simplify(m.walk([3, 2], 3, [5, 7])) == simplify(
+        m(5, 7) * m(8, 9) * m(11, 11)
     )

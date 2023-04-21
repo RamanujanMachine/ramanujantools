@@ -32,7 +32,7 @@ class Matrix(sp.Matrix):
         p, q = self * vector
         return p / q
 
-    def walk(self, direction, iterations, start=[1, 1]):
+    def walk(self, direction, iterations, start=[x, y]):
         direction = Position(direction)
         position = Position(start)
         retval = Matrix.eye(2)
@@ -40,3 +40,7 @@ class Matrix(sp.Matrix):
             retval *= self(*position)
             position += direction
         return retval
+
+
+def simplify(matrix: Matrix):
+    return sp.simplify(matrix)
