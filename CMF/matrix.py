@@ -42,5 +42,6 @@ class Matrix(sp.Matrix):
         return simplify(retval)
 
 
-def simplify(matrix: Matrix):
-    return sp.simplify(matrix)
+def simplify(matrix: Matrix) -> Matrix:
+    matrix.simplify()
+    return matrix
