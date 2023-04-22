@@ -28,5 +28,7 @@ class CMF:
         m = self.trajectory_matrix(trajectory)
         return m.walk(trajectory, iterations // sum(trajectory), start)
 
-    def limit(self, trajectory, iterations, start=[1,1], vector=Matrix([[0], [1]])) -> sp.Float:
+    def limit(
+        self, trajectory, iterations, start=[1, 1], vector=Matrix([[0], [1]])
+    ) -> sp.Float:
         return self.walk(trajectory, iterations, start).limit(vector)
