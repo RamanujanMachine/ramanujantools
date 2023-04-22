@@ -1,3 +1,4 @@
+import sympy as sp
 from sympy.abc import x, y
 
 from matrix import Matrix, simplify
@@ -26,3 +27,6 @@ class CMF:
     def walk(self, trajectory, iterations, start=[1, 1]) -> Matrix:
         m = self.trajectory_matrix(trajectory)
         return m.walk(trajectory, iterations // sum(trajectory), start)
+
+    def limit(self, trajectory, iterations, start=[1,1], vector=Matrix([[0], [1]])) -> sp.Float:
+        return self.walk(trajectory, iterations, start).limit(vector)

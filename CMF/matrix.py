@@ -30,7 +30,7 @@ class Matrix(sp.Matrix):
 
     def limit(self, vector=sp.Matrix([[0], [1]])):
         p, q = self * vector
-        return p / q
+        return sp.Float(p / q)
 
     def walk(self, trajectory, iterations, start=[x, y]):
         trajectory = Position(trajectory)
