@@ -1,8 +1,7 @@
 import sympy as sp
 from sympy.abc import x, y
 
-from matrix import Matrix
-from cmf import CMF
+from cmf import Matrix, CMF
 
 
 def linear_condition(f, fbar) -> bool:
@@ -44,7 +43,7 @@ def My(f, fbar) -> Matrix:
     return Matrix([[fbar, b(f, fbar)], [1, f]])
 
 
-def ffbar(f, fbar) -> CMF:
+def construct(f, fbar) -> CMF:
     assert linear_condition(f, fbar), (
         "given f and fbar do not satisfy the linear condition! f="
         + str(f)

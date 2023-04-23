@@ -1,10 +1,7 @@
 from pytest import raises
 from sympy.abc import x, y
 
-from matrix import Matrix, simplify
-from cmf import CMF
-import known_cmfs
-
+from cmf import Matrix, simplify, CMF, known_cmfs
 
 def test_non_conserving_throws():
     m = Matrix([[x, x + 17], [y * x, y * 3 - x + 5]])

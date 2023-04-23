@@ -2,10 +2,8 @@ from pytest import approx
 from math import e, pi, log
 from scipy.special import zeta
 
-from matrix import Matrix
-from cmf import CMF
-import known_cmfs
-from known_cmfs import c0, c1, c2, c3
+from cmf import Matrix, CMF, known_cmfs
+from cmf.known_cmfs import c0, c1, c2, c3
 
 
 def test_cmf_e():

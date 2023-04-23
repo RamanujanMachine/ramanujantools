@@ -1,4 +1,6 @@
 *.py[cod]
 *.un~
 *.swp
+*.egg-info
+build
 __pycache__

@@ -1,7 +1,7 @@
 import sympy as sp
 from sympy.abc import x, y
 
-from matrix import Matrix, simplify
+from cmf import Matrix, simplify
 
 
 class CMF:

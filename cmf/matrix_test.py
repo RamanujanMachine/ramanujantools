@@ -1,7 +1,7 @@
 from pytest import approx
 from sympy.abc import x, y
 
-from matrix import Position, Matrix, simplify
+from cmf import Position, Matrix, simplify
 
 
 def test_position_add():

@@ -1,9 +1,7 @@
 import sympy as sp
 from sympy.abc import x, y
 
-from matrix import Matrix
-from cmf import CMF
-from ffbar import ffbar
+from cmf import Matrix, CMF, ffbar
 
 c0 = sp.Symbol("c0")
 c1 = sp.Symbol("c1")
@@ -32,8 +30,8 @@ zeta3 = CMF(
     ),
 )
 
-cmf1 = ffbar(c0 + c1 * (x + y), c2 + c3 * (x - y))
-cmf2 = ffbar(
+cmf1 = ffbar.construct(c0 + c1 * (x + y), c2 + c3 * (x - y))
+cmf2 = ffbar.construct(
     (2 * c1 + c2) * (c1 + c2)
     - c3 * c0
     - c3 * ((2 * c1 + c2) * (x + y) + (c1 + c2) * (2 * x + y))
@@ -41,17 +39,17 @@ cmf2 = ffbar(
     c3 * (c0 + c2 * x + c1 * y) - c3**2 * (2 * x**2 - 2 * x * y + y**2),
 )
 
-cmf3_1 = ffbar(
+cmf3_1 = ffbar.construct(
     -((c0 + c1 * (x + y)) * (c0 * (x + 2 * y) + c1 * (x**2 + x * y + y**2))),
     (c0 + c1 * (-x + y)) * (c0 * (x - 2 * y) - c1 * (x**2 - x * y + y**2)),
 )
 
-cmf3_2 = ffbar(
+cmf3_2 = ffbar.construct(
     -(x + y) * (c0**2 + 2 * c1**2 * (x**2 + x * y + y**2)),
     (x - y) * (c0**2 + 2 * c1**2 * (x**2 - x * y + y**2)),
 )
 
-cmf3_3 = ffbar(
+cmf3_3 = ffbar.construct(
     (x + y) * (c0**2 - c0 * c1 * (x - y) - 2 * c1**2 * (x**2 + x * y + y**2)),
     (c0 + c1 * (x - y)) * (3 * c0 * (x - y) + 2 * c1 * (x**2 - x * y + y**2)),
 )
