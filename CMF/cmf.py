@@ -19,8 +19,11 @@ class CMF:
     def My(self, x, y) -> Matrix:
         return self.m_My(x, y)
 
+    def subs(self, substitutions):
+        return CMF(self.m_Mx.subs(substitutions), self.m_My.subs(substitutions))
+
     def trajectory_matrix(self, trajectory) -> Matrix:
-        m = self.Mx(x, y).walk([1, 0], trajectory[0])
+        m = self.m_Mx(x, y).walk([1, 0], trajectory[0])
         m *= self.My(x + trajectory[0], y).walk([0, 1], trajectory[1])
         return simplify(m)
 

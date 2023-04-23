@@ -1,10 +1,11 @@
 from pytest import approx
-from math import e, pi
+from math import e, pi, log
 from scipy.special import zeta
 
 from matrix import Matrix
 from cmf import CMF
 import known_cmfs
+from known_cmfs import c0, c1, c2, c3
 
 
 def test_cmf_e():
@@ -20,3 +21,13 @@ def test_cmf_pi():
 def test_cmf_zeta3():
     cmf = known_cmfs.zeta3
     assert cmf.limit([1, 1], 100, [1, 1]) == approx((1 - zeta(3)) / zeta(3))
+
+
+def test_cmf1():
+    cmf = known_cmfs.cmf1
+    trajectory = [1, 1]
+    for a, b in zip(range(1, 10), range(1, 10)):
+        print(trajectory, [a, b])
+        assert cmf.subs([[c0, 0], [c1, a], [c2, 0], [c3, b]]).limit(
+            trajectory, 100
+        ) == approx(-a + b / log(1 + a / b), 10e-4)
