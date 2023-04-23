@@ -20,11 +20,3 @@ def test_cmf_pi():
 def test_cmf_zeta3():
     cmf = known_cmfs.zeta3
     assert cmf.limit([1, 1], 100, [1, 1]) == approx((1 - zeta(3)) / zeta(3))
-
-
-def test_cmf1():
-    cmf = known_cmfs.cmf1
-
-
-def test_cmf2():
-    cmf = known_cmfs.cmf1
