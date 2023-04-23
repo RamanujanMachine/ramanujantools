@@ -20,7 +20,7 @@ class Matrix(sp.Matrix):
         return self.subs([[x, x_value], [y, y_value]])
 
     def gcd(self):
-        return math.gcd(*self)
+        return math.gcd(math.gcd(self[0], self[1]), math.gcd(self[1], self[2]))
 
     def reduce(self):
         gcd = self.gcd()
