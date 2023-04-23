@@ -3,6 +3,7 @@ from sympy.abc import x, y
 
 from cmf import Matrix, simplify, CMF, known_cmfs
 
+
 def test_non_conserving_throws():
     m = Matrix([[x, x + 17], [y * x, y * 3 - x + 5]])
     with raises(ValueError):
