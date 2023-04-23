@@ -20,3 +20,9 @@ def test_cmf1():
 
 def test_cmf2():
     cmf = known_cmfs.cmf2
+
+
+def test_cmf3():
+    cmf1 = known_cmfs.cmf3_1
+    cmf2 = known_cmfs.cmf3_2
+    cmf3 = known_cmfs.cmf3_3
