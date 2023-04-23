@@ -1,4 +1,7 @@
 from pytest import approx
+
+import itertools
+
 from math import e, pi, log
 from scipy.special import zeta
 
@@ -23,9 +26,7 @@ def test_cmf_zeta3():
 
 def test_cmf1():
     cmf = known_cmfs.cmf1
-    trajectory = [1, 1]
-    for a, b in zip(range(1, 10), range(1, 10)):
-        print(trajectory, [a, b])
+    for a, b in itertools.product(range(1, 10), range(1, 10)):
         assert cmf.subs([[c0, 0], [c1, a], [c2, 0], [c3, b]]).limit(
-            trajectory, 100
-        ) == approx(-a + b / log(1 + a / b), 10e-4)
+            [1, 1], 100
+        ) == approx(-a + b / log(1 + b / a), 1e-4)
