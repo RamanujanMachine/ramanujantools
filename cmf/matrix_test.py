@@ -1,5 +1,5 @@
 from pytest import approx
-from sympy.abc import x, y
+from sympy.abc import n, x, y
 
 from cmf import Position, Matrix, simplify
 
@@ -85,3 +85,14 @@ def test_walk_different_start():
     assert simplify(m.walk([3, 2], 3, [5, 7])) == simplify(
         m(5, 7) * m(8, 9) * m(11, 11)
     )
+
+
+def test_as_pcf():
+    from cmf import PCF
+    from cmf.known_cmfs import cmf1, c0, c1, c2, c3
+
+    cmf = cmf1.subs([[c0, 0], [c1, 1], [c2, 1], [c3, 3]])
+    matrix = cmf.trajectory_matrix([1, 1]).subs([[x, n], [y, n]])
+    pcf = matrix.as_pcf()
+    print(pcf)
+    assert pcf.simplify() == PCF(5 + 10 * n, 1 - 9 * n**2)

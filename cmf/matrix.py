@@ -54,6 +54,15 @@ class Matrix(sp.Matrix):
             position += trajectory
         return simplify(retval)
 
+    def as_pcf(self):
+        from cmf import PCF
+
+        U = Matrix([[1, self[0, 0]], [0, self[1, 0]]])
+        Uinv = Matrix([[self[1, 0], -self[0, 0]], [0, 1]])
+        commutated = Uinv * self * U(n + 1)
+        normalized = simplify(commutated / commutated[1, 0])
+        return PCF.from_matrix(normalized).inflate(self[1, 0]).deflate_all()
+
 
 def simplify(matrix: Matrix) -> Matrix:
     matrix.simplify()
