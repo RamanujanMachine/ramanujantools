@@ -4,12 +4,15 @@ from sympy.abc import n
 from cmf import Matrix, PCF, is_pcf
 
 
-def test_non_pcf_throws():
-    with raises(Exception):
-        PCF(Matrix([[0, 0], [0, 0]]))
-    with raises(Exception):
-        PCF(Matrix([[1, 1], [1, 1]]))
+def test_from_matrix_throws():
+    with raises(ValueError):
+        PCF.from_matrix(Matrix([[0, 0], [0, 0]]))
+    with raises(ValueError):
+        PCF.from_matrix(Matrix([[1, 1], [1, 1]]))
 
+def test_pcf_repr():
+    pcf = PCF(1+n, 3-n)
+    assert pcf == eval(repr(pcf))
 
 def test_pcf_limit():
     pcf = PCF(5 + 10 * n, 1 - 9 * n**2)
