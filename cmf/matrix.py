@@ -55,11 +55,12 @@ class Matrix(sp.Matrix):
         return simplify(retval)
 
     def as_pcf(self):
+        """Returns the matrix's equivalent PCF with an equal limit up to a mobius transformation"""
         from cmf import PCF
 
-        U = Matrix([[1, self[0, 0]], [0, self[1, 0]]])
-        Uinv = Matrix([[self[1, 0], -self[0, 0]], [0, 1]])
-        commutated = Uinv * self * U(n + 1)
+        U = Matrix([[self[1, 0], -self[0, 0]], [0, 1]])
+        Uinv = Matrix([[1, self[0, 0]], [0, self[1, 0]]])
+        commutated = U * self * Uinv(n + 1)
         normalized = simplify(commutated / commutated[1, 0])
         return PCF.from_matrix(normalized).inflate(self[1, 0]).deflate_all()
 
