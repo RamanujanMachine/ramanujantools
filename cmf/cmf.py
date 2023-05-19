@@ -1,7 +1,7 @@
 import sympy as sp
 from sympy.abc import x, y
 
-from cmf import Matrix, simplify
+from cmf import Matrix, Position, simplify
 
 
 class CMF:
@@ -23,13 +23,17 @@ class CMF:
         return CMF(self.m_Mx.subs(substitutions), self.m_My.subs(substitutions))
 
     def trajectory_matrix(self, trajectory) -> Matrix:
-        m = self.m_Mx(x, y).walk([1, 0], trajectory[0])
-        m *= self.My(x + trajectory[0], y).walk([0, 1], trajectory[1])
+        m = self.m_Mx.walk({x: 1, y: 0}, trajectory[0], {x: x, y: y})
+        m *= self.m_My.walk({x: 0, y: 1}, trajectory[1], {x: x + trajectory[0], y: y})
         return simplify(m)
 
     def walk(self, trajectory, iterations, start=[1, 1]) -> Matrix:
         m = self.trajectory_matrix(trajectory)
-        return m.walk(trajectory, iterations // sum(trajectory), start)
+        return m.walk(
+            Position.from_list([x, y], trajectory),
+            iterations // sum(trajectory),
+            Position.from_list([x, y], start),
+        )
 
     def limit(
         self, trajectory, iterations, start=[1, 1], vector=Matrix([[0], [1]])

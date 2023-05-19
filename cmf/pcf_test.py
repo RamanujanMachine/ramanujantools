@@ -1,7 +1,7 @@
 from pytest import approx, raises
 from sympy.abc import n
 
-from cmf import Matrix, PCF, is_pcf
+from cmf import Matrix, PCF
 
 
 def test_from_matrix_throws():

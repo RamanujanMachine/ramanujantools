@@ -7,12 +7,18 @@ import operator
 from sympy.abc import n, x, y
 
 
-class Position(list):
-    def __add__(self, other):
-        return Position(map(operator.add, self, other))
+class Position(dict):
+    @classmethod
+    def from_list(cls, variables, values):
+        return cls(dict(zip(variables, values)))
 
     def __iadd__(self, other):
-        return self + other
+        for coordinate, value in other.items():
+            self[coordinate] = self.get(coordinate, 0) + value
+        return self
+
+    def as_subs(self):
+        return [(coordinate, value) for coordinate, value in self.items()]
 
 
 class Matrix(sp.Matrix):
@@ -44,13 +50,13 @@ class Matrix(sp.Matrix):
         p, q = self * vector
         return sp.Float(p / q)
 
-    def walk(self, trajectory, iterations, start=[x, y]):
+    def walk(self, trajectory, iterations, start):
         """Returns the multiplication result of walking in a certain trajectory."""
-        trajectory = Position(trajectory)
         position = Position(start)
+        trajectory = Position(trajectory)
         retval = Matrix.eye(2)
         for _ in range(iterations):
-            retval *= self(*position)
+            retval *= self.subs(position.as_subs())
             position += trajectory
         return simplify(retval)
 

@@ -49,7 +49,7 @@ class PCF:
     @classmethod
     def from_matrix(cls, M: Matrix):
         """Constructs a PCF from a matrix"""
-        if not is_pcf(M):
+        if not PCF.is_pcf(M):
             raise ValueError("The given matrix M is not of a PCF form!")
         return cls(M[1, 1], M[0, 1])
 
@@ -101,8 +101,8 @@ class PCF:
 
     def walk(self, iterations, start=1) -> Matrix:
         """Returns the matrix walk multiplication"""
-        return self.M().walk([1], iterations, start)
+        return self.M().walk({n: 1}, iterations, {n: start})
 
-    def limit(self, depth, start=[1], vector=Matrix([[0], [1]])) -> sp.Float:
+    def limit(self, depth, start=1, vector=Matrix([[0], [1]])) -> sp.Float:
         """Calculates the convergence limit of the PCF"""
         return (self.A() * self.walk(depth, start)).limit(vector)
