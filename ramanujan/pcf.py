@@ -2,7 +2,7 @@ import math
 import sympy as sp
 from sympy.abc import n
 
-from cmf import Matrix
+from ramanujan import Matrix
 
 
 def remove_root(factorization, root):
