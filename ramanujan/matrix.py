@@ -62,7 +62,7 @@ class Matrix(sp.Matrix):
 
     def as_pcf(self):
         """Returns the matrix's equivalent PCF with an equal limit up to a mobius transformation"""
-        from cmf import PCF
+        from ramanujan import PCF
 
         U = Matrix([[self[1, 0], -self[0, 0]], [0, 1]])
         Uinv = Matrix([[1, self[0, 0]], [0, self[1, 0]]])

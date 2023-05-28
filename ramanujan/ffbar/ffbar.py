@@ -1,7 +1,7 @@
 import sympy as sp
 from sympy.abc import x, y
 
-from cmf import Matrix, CMF
+from ramanujan import Matrix, CMF
 
 
 def linear_condition(f, fbar) -> bool:

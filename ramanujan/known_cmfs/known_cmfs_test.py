@@ -5,8 +5,8 @@ import itertools
 from math import e, pi, log
 from scipy.special import zeta
 
-from cmf import Matrix, CMF, known_cmfs
-from cmf.known_cmfs import c0, c1, c2, c3
+from ramanujan import Matrix, CMF, known_cmfs
+from ramanujan.known_cmfs import c0, c1, c2, c3
 
 
 def test_cmf_e():

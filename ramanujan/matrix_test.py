@@ -1,7 +1,7 @@
 from pytest import approx
 from sympy.abc import n, x, y
 
-from cmf import Position, Matrix, simplify
+from ramanujan import Position, Matrix, simplify
 
 
 def test_position_iadd():
@@ -81,8 +81,8 @@ def test_walk_different_start():
 
 
 def test_as_pcf():
-    from cmf import PCF
-    from cmf.known_cmfs import cmf1, c0, c1, c2, c3
+    from ramanujan import PCF
+    from ramanujan.known_cmfs import cmf1, c0, c1, c2, c3
 
     cmf = cmf1.subs([[c0, 0], [c1, 1], [c2, 1], [c3, 3]])
     matrix = cmf.trajectory_matrix([1, 1]).subs([[x, n], [y, n]])
