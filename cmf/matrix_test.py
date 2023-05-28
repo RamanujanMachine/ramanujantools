@@ -1,26 +1,15 @@
 from pytest import approx
-from sympy.abc import x, y
+from sympy.abc import n, x, y
 
 from cmf import Position, Matrix, simplify
 
 
-def test_position_add():
-    a = [5, 7]
-    b = [17, 63]
-    x = Position(a)
-    y = Position(b)
-    x_y = Position([a[0] + b[0], a[1] + b[1]])
-    assert x + y == x_y
-
-
 def test_position_iadd():
-    a = [57, 29]
-    b = [82, 31]
-    x = Position(a)
-    y = Position(b)
-    x_y = Position([a[0] + b[0], a[1] + b[1]])
-    x += y
-    assert x == x_y
+    a = Position({x: 57, y: 29})
+    b = Position({x: 82, y: 31})
+    a_b = Position({x: a[x] + b[x], y: a[y] + b[y]})
+    a += b
+    assert a == a_b
 
 
 def test_limit():
@@ -56,32 +45,47 @@ def test_call_2():
 
 def test_walk_0():
     m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
-    assert m.walk([0, 1], 0) == Matrix.eye(2)
+    assert m.walk({x: 0, y: 1}, 0, {x: x, y: y}) == Matrix.eye(2)
 
 
 def test_walk_1():
     m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
-    assert m.walk([1, 0], 1) == m(x, y)
+    assert m.walk({x: 1, y: 0}, 1, {x: x, y: y}) == m(x, y)
 
 
 def test_walk_axis():
     m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
-    assert simplify(m.walk([1, 0], 3, [1, 1])) == simplify(m(1, 1) * m(2, 1) * m(3, 1))
-    assert simplify(m.walk([0, 1], 5, [1, 1])) == simplify(
+    assert simplify(m.walk({x: 1, y: 0}, 3, {x: 1, y: 1})) == simplify(
+        m(1, 1) * m(2, 1) * m(3, 1)
+    )
+    assert simplify(m.walk({x: 0, y: 1}, 5, {x: 1, y: 1})) == simplify(
         m(1, 1) * m(1, 2) * m(1, 3) * m(1, 4) * m(1, 5)
     )
 
 
 def test_walk_diagonal():
     m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
-    assert simplify(m.walk([1, 1], 4, [1, 1])) == simplify(
+    assert simplify(m.walk({x: 1, y: 1}, 4, {x: 1, y: 1})) == simplify(
         m(1, 1) * m(2, 2) * m(3, 3) * m(4, 4)
     )
-    assert simplify(m.walk([3, 2], 3, [1, 1])) == simplify(m(1, 1) * m(4, 3) * m(7, 5))
+    assert simplify(m.walk({x: 3, y: 2}, 3, {x: 1, y: 1})) == simplify(
+        m(1, 1) * m(4, 3) * m(7, 5)
+    )
 
 
 def test_walk_different_start():
     m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
-    assert simplify(m.walk([3, 2], 3, [5, 7])) == simplify(
+    assert simplify(m.walk({x: 3, y: 2}, 3, {x: 5, y: 7})) == simplify(
         m(5, 7) * m(8, 9) * m(11, 11)
     )
+
+
+def test_as_pcf():
+    from cmf import PCF
+    from cmf.known_cmfs import cmf1, c0, c1, c2, c3
+
+    cmf = cmf1.subs([[c0, 0], [c1, 1], [c2, 1], [c3, 3]])
+    matrix = cmf.trajectory_matrix([1, 1]).subs([[x, n], [y, n]])
+    pcf = matrix.as_pcf()
+    print(pcf)
+    assert pcf.simplify() == PCF(5 + 10 * n, 1 - 9 * n**2)
