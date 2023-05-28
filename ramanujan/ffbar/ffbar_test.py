@@ -13,15 +13,15 @@ def test_quadratic_condition():
     assert not ffbar.quadratic_condition(x**2 + x * y + y**2, x - y + 1)
 
 
-def test_cmf1():
+def test_load_cmf1():
     cmf = known_cmfs.cmf1
 
 
-def test_cmf2():
+def test_load_cmf2():
     cmf = known_cmfs.cmf2
 
 
-def test_cmf3():
+def test_load_cmf3():
     cmf1 = known_cmfs.cmf3_1
     cmf2 = known_cmfs.cmf3_2
     cmf3 = known_cmfs.cmf3_3
