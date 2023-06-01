@@ -96,7 +96,7 @@ class PCF:
         return PCF(self.m_a.simplify(), self.m_b.simplify())
 
     def subs(self, substitutions):
-        """Substitutes variables in the PCF"""
+        """Substitutes parameters in the PCF"""
         return PCF(self.m_a.subs(substitutions), self.m_b.subs(substitutions))
 
     def walk(self, iterations, start=1) -> Matrix:

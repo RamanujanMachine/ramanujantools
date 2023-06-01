@@ -60,7 +60,7 @@ class Matrix(sp.Matrix):
             position += trajectory
         return simplify(retval)
 
-    def as_pcf(self):
+    def as_pcf(self, deflate_all=True):
         """Returns the matrix's equivalent PCF with an equal limit up to a mobius transformation"""
         from ramanujan import PCF
 
@@ -68,7 +68,10 @@ class Matrix(sp.Matrix):
         Uinv = Matrix([[1, self[0, 0]], [0, self[1, 0]]])
         commutated = U * self * Uinv(n + 1)
         normalized = simplify(commutated / commutated[1, 0])
-        return PCF.from_matrix(normalized).inflate(self[1, 0]).deflate_all()
+        pcf = PCF.from_matrix(normalized).inflate(self[1, 0])
+        if deflate_all:
+            pcf = pcf.deflate_all()
+        return pcf
 
 
 def simplify(matrix: Matrix) -> Matrix:
