@@ -18,7 +18,7 @@ class Position(dict):
         return self
 
     def as_subs(self):
-        return [(coordinate, value) for coordinate, value in self.items()]
+        return list(self.items())
 
 
 class Matrix(sp.Matrix):
