@@ -13,13 +13,13 @@ class CMF:
         if simplify(Mxy - Myx) != Matrix([[0, 0], [0, 0]]):
             raise ValueError("The given Mx and My matrices are not conserving!")
 
-    def Mx(self, x, y) -> Matrix:
+    def Mx(self, _x, _y) -> Matrix:
         """Substitute Mx."""
-        return self.m_Mx(x, y)
+        return self.m_Mx.subs({x: _x, y: _y})
 
-    def My(self, x, y) -> Matrix:
+    def My(self, _x, _y) -> Matrix:
         """Substitute My."""
-        return self.m_My(x, y)
+        return self.m_My.subs({x: _x, y: _y})
 
     def subs(self, substitutions):
         """Returns a new CMF with substituted Mx and My."""
