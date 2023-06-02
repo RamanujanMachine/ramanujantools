@@ -62,7 +62,7 @@ def test_substitute_trajectory_diagonal():
     )
 
 
-def test_substitue_trajectory_walk_equivalence():
+def test_substitute_trajectory_walk_equivalence():
     cmf = known_cmfs.e
     iterations = 7
     trajectory = [1, 1]
