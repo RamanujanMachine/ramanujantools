@@ -1,5 +1,5 @@
 import sympy as sp
-from sympy.abc import x, y
+from sympy.abc import n, x, y
 
 from ramanujan import Matrix, Position, simplify
 
@@ -22,17 +22,26 @@ class CMF:
     def subs(self, substitutions):
         return CMF(self.m_Mx.subs(substitutions), self.m_My.subs(substitutions))
 
-    def trajectory_matrix(self, trajectory) -> Matrix:
+    def trajectory_matrix(self, trajectory, start=None) -> Matrix:
         m = self.m_Mx.walk({x: 1, y: 0}, trajectory[0], {x: x, y: y})
         m *= self.m_My.walk({x: 0, y: 1}, trajectory[1], {x: x + trajectory[0], y: y})
+        if start is not None:
+            m = CMF.substitute_trajectory(m, trajectory, start)
         return simplify(m)
 
+    @staticmethod
+    def substitute_trajectory(m: Matrix, trajectory, start):
+        from sympy.abc import n
+
+        sub = lambda i: start[i] + (n - 1) * trajectory[i]
+        return m.subs([(x, sub(0)), (y, sub(1))])
+
     def walk(self, trajectory, iterations, start=[1, 1]) -> Matrix:
-        m = self.trajectory_matrix(trajectory)
+        m = self.trajectory_matrix(trajectory, start)
         return m.walk(
-            Position.from_list([x, y], trajectory),
+            {n: 1},
             iterations // sum(trajectory),
-            Position.from_list([x, y], start),
+            {n: 1},
         )
 
     def limit(
