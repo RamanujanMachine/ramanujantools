@@ -3,26 +3,29 @@ from sympy.abc import n
 
 from ramanujan import Matrix
 
-def deflatable_constant(a_constant, b_constant):
+
+def deflate_constant(a_constant, b_constant):
     factors = sp.factorint(sp.gcd(a_constant**2, b_constant))
     constant = 1
     for root, mul in factors.items():
         constant *= root ** (mul // 2)
     return constant
-    
 
-def deflatable_content(a_content, b_content):
-    (a_constant, a_factors), (b_constant, b_factors) = map(sp.factor_list, [a_content, b_content])
-    content = deflatable_constant(a_constant, b_constant)
+
+def deflate_lead(a_leading_expression, b_leading_expression):
+    (a_constant, a_factors), (b_constant, b_factors) = map(
+        sp.factor_list, [a_leading_expression, b_leading_expression]
+    )
+    c = deflate_constant(a_constant, b_constant)
     a_factors, b_factors = map(dict, [a_factors, b_factors])
     for factor in a_factors:
-        while is_root_deflatable(a_factors, b_factors, factor, 0):
+        while is_deflatable(a_factors, b_factors, factor, 0):
             deflate_root(a_factors, b_factors, factor, 0)
-            content *= factor
-    return content
+            c *= factor
+    return sp.simplify(c)
 
 
-def is_root_deflatable(a_roots, b_roots, root, shift=1):
+def is_deflatable(a_roots, b_roots, root, shift=1):
     return (
         a_roots.get(root, 0) > 0
         and b_roots.get(root, 0) > 0
@@ -36,11 +39,11 @@ def deflate_root(a_roots, b_roots, root, shift=1):
     b_roots[root + shift] -= 1
 
 
-def deflatable_polynomial(a_poly, b_poly):
+def content(a_poly, b_poly):
     a_roots, b_roots = map(lambda p: sp.roots(p, n), [a_poly, b_poly])
-    c_n = deflatable_content(sp.content(a_poly), sp.content(b_poly))
+    c_n = deflate_lead(*map(lambda p: sp.LC(p, n), [a_poly, b_poly]))
     for root in a_roots:
-        while is_root_deflatable(a_roots, b_roots, root):
+        while is_deflatable(a_roots, b_roots, root):
             deflate_root(a_roots, b_roots, root)
             c_n *= n - root
     return sp.simplify(c_n)
@@ -64,7 +67,10 @@ class PCF:
         self.m_b = b_n
 
     def __eq__(self, other):
-        return sp.simplify(self.m_a - other.m_a) == 0 and sp.simplify(self.m_b - other.m_b) == 0
+        return (
+            sp.simplify(self.m_a - other.m_a) == 0
+            and sp.simplify(self.m_b - other.m_b) == 0
+        )
 
     def __repr__(self):
         return "PCF({}, {})".format(self.m_a, self.m_b)
@@ -87,7 +93,7 @@ class PCF:
 
     def deflate_all(self):
         """Deflates the PCF to the fullest extent"""
-        return self.deflate(deflatable_polynomial(self.m_a, self.m_b))
+        return self.deflate(content(self.m_a, self.m_b))
 
     def simplify(self):
         """Simplifies the PCF (i.e, simplifies (a, b))"""
