@@ -1,43 +1,49 @@
-import math
 import sympy as sp
 from sympy.abc import n
 
 from ramanujan import Matrix
 
+def deflatable_constant(a_constant, b_constant):
+    factors = sp.factorint(sp.gcd(a_constant**2, b_constant))
+    constant = 1
+    for root, mul in factors.items():
+        constant *= root ** (mul // 2)
+    return constant
+    
 
-def remove_root(factorization, root):
-    """Given a factorization for n, returns the factorization of n / root"""
-    factorization[root] -= 1
-    if factorization[root] == 0:
-        del factorization[root]
+def deflatable_content(a_content, b_content):
+    (a_constant, a_factors), (b_constant, b_factors) = map(sp.factor_list, [a_content, b_content])
+    content = deflatable_constant(a_constant, b_constant)
+    a_factors, b_factors = map(dict, [a_factors, b_factors])
+    for factor in a_factors:
+        while is_root_deflatable(a_factors, b_factors, factor, 0):
+            deflate_root(a_factors, b_factors, factor, 0)
+            content *= factor
+    return content
 
 
-def deflate_coeffs(a_coeff, b_coeff):
-    """Deflates the coefficients of (a, b)"""
-    possible_roots = sp.factorint(math.gcd(a_coeff**2, b_coeff))
-    deflateable = 1
-    for root, mul in possible_roots.items():
-        deflateable *= root ** (mul // 2)
-    return a_coeff // deflateable, b_coeff // (deflateable**2)
+def is_root_deflatable(a_roots, b_roots, root, shift=1):
+    return (
+        a_roots.get(root, 0) > 0
+        and b_roots.get(root, 0) > 0
+        and b_roots.get(root + shift, 0) > (1 if shift == 0 else 0)
+    )
 
 
-def deflate_single_root(a_roots, b_roots):
-    """Attempts to find a root that can be deflated for (a, b)"""
+def deflate_root(a_roots, b_roots, root, shift=1):
+    a_roots[root] -= 1
+    b_roots[root] -= 1
+    b_roots[root + shift] -= 1
+
+
+def deflatable_polynomial(a_poly, b_poly):
+    a_roots, b_roots = map(lambda p: sp.roots(p, n), [a_poly, b_poly])
+    c_n = deflatable_content(sp.content(a_poly), sp.content(b_poly))
     for root in a_roots:
-        if root in b_roots and root + 1 in b_roots:
-            remove_root(a_roots, root)
-            remove_root(b_roots, root)
-            remove_root(b_roots, root + 1)
-            return True
-    return False
-
-
-def construct_poly(roots, coeff):
-    """Constructs a polynomial from it's roots and a leading coefficient"""
-    retval = coeff
-    for root, mul in roots.items():
-        retval *= (n - root) ** mul
-    return retval.simplify()
+        while is_root_deflatable(a_roots, b_roots, root):
+            deflate_root(a_roots, b_roots, root)
+            c_n *= n - root
+    return sp.simplify(c_n)
 
 
 class PCF:
@@ -58,7 +64,7 @@ class PCF:
         self.m_b = b_n
 
     def __eq__(self, other):
-        return self.m_a == other.m_a and self.m_b == other.m_b
+        return sp.simplify(self.m_a - other.m_a) == 0 and sp.simplify(self.m_b - other.m_b) == 0
 
     def __repr__(self):
         return "PCF({}, {})".format(self.m_a, self.m_b)
@@ -81,14 +87,7 @@ class PCF:
 
     def deflate_all(self):
         """Deflates the PCF to the fullest extent"""
-        a_coeff, b_coeff = deflate_coeffs(*map(sp.LC, [self.m_a, self.m_b]))
-        a_roots, b_roots = map(sp.roots, [self.m_a, self.m_b])
-        while deflate_single_root(a_roots, b_roots):
-            pass
-        return PCF(
-            construct_poly(a_roots, a_coeff),
-            construct_poly(b_roots, b_coeff),
-        )
+        return self.deflate(deflatable_polynomial(self.m_a, self.m_b))
 
     def simplify(self):
         """Simplifies the PCF (i.e, simplifies (a, b))"""

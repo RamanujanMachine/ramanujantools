@@ -76,7 +76,7 @@ def test_as_pcf():
     cmf = cmf1.subs([[c0, 0], [c1, 1], [c2, 1], [c3, 3]])
     matrix = cmf.trajectory_matrix([1, 1], [1, 1])
     pcf = matrix.as_pcf()
-    assert pcf.simplify() == PCF(5 + 10 * n, 1 - 9 * n**2)
+    assert pcf == PCF(5 + 10 * n, 1 - 9 * n**2)
 
 
 def test_as_pcf_parametric():
@@ -87,5 +87,4 @@ def test_as_pcf_parametric():
     cmf = cmf1.subs([[c0, 0], [c1, 1], [c2, 1], [c3, c]])
     matrix = cmf.trajectory_matrix({x: 1, y: 1}, {x: 1, y: 1})
     pcf = matrix.as_pcf(True)
-    print(pcf)
-    assert pcf.simplify() == PCF((1 + 2 * n) * (c + 2), 1 - (c * n) ** 2)
+    assert pcf == PCF((1 + 2 * n) * (c + 2), 1 - (c * n) ** 2)
