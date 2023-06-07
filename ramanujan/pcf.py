@@ -81,9 +81,8 @@ class PCF:
 
     def deflate_all(self):
         """Deflates the PCF to the fullest extent"""
-        a_coeff, b_coeff = deflate_coeffs(sp.LC(self.m_a), sp.LC(self.m_b))
-        a_roots = sp.roots(self.m_a)
-        b_roots = sp.roots(self.m_b)
+        a_coeff, b_coeff = deflate_coeffs(*map(sp.LC, [self.m_a, self.m_b]))
+        a_roots, b_roots = map(sp.roots, [self.m_a, self.m_b])
         while deflate_single_root(a_roots, b_roots):
             pass
         return PCF(
