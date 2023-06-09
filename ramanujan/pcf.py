@@ -4,6 +4,20 @@ from sympy.abc import n
 from ramanujan import Matrix
 
 
+def is_deflatable(a_roots, b_roots, root, shift=1):
+    return (
+        a_roots.get(root, 0) > 0
+        and b_roots.get(root, 0) > 0
+        and b_roots.get(root + shift, 0) > (1 if shift == 0 else 0)
+    )
+
+
+def deflate_root(a_roots, b_roots, root, shift=1):
+    a_roots[root] -= 1
+    b_roots[root] -= 1
+    b_roots[root + shift] -= 1
+
+
 def deflate_constant(a_constant, b_constant):
     factors = sp.factorint(sp.gcd(a_constant**2, b_constant))
     constant = 1
@@ -23,20 +37,6 @@ def deflate_lead(a_leading_expression, b_leading_expression):
             deflate_root(a_factors, b_factors, factor, 0)
             c *= factor
     return sp.simplify(c)
-
-
-def is_deflatable(a_roots, b_roots, root, shift=1):
-    return (
-        a_roots.get(root, 0) > 0
-        and b_roots.get(root, 0) > 0
-        and b_roots.get(root + shift, 0) > (1 if shift == 0 else 0)
-    )
-
-
-def deflate_root(a_roots, b_roots, root, shift=1):
-    a_roots[root] -= 1
-    b_roots[root] -= 1
-    b_roots[root + shift] -= 1
 
 
 def content(a_poly, b_poly):
