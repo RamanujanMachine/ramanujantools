@@ -55,7 +55,10 @@ class CMF:
         from sympy.abc import n
 
         start, trajectory = CMF._initialize_positions(start, trajectory)
-        sub = lambda i: start[i] + (n - 1) * trajectory[i]
+
+        def sub(i):
+            lambda i: start[i] + (n - 1) * trajectory[i]
+
         return trajectory_matrix.subs([(x, sub(x)), (y, sub(y))])
 
     def walk(self, trajectory, iterations, start=[1, 1]) -> Matrix:
