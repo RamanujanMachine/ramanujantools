@@ -1,7 +1,7 @@
 import sympy as sp
 from sympy.abc import n, x, y
 
-from ramanujan import Matrix, Position, simplify
+from ramanujan import Matrix, simplify
 
 
 class CMF:
