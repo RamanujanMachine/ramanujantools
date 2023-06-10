@@ -1,7 +1,8 @@
 from pytest import approx
 from sympy.abc import n, x, y
 
-from ramanujan import Position, Matrix, simplify
+from .matrix import Position
+from ramanujan import Matrix, simplify
 
 
 def test_position_iadd():

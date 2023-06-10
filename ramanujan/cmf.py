@@ -9,7 +9,7 @@ class CMF:
 
     @staticmethod
     def _initialize_positions(*positions):
-        return (CMF._initialize_position(position) for position in positions)
+        return tuple(map(CMF._initialize_position, positions))
 
     @staticmethod
     def _initialize_position(position):
@@ -42,7 +42,7 @@ class CMF:
 
         If start is given, the new matrix will be reduces to a single variable `n`.
         """
-        start, trajectory = CMF._initialize_positions(start, trajectory)
+        trajectory, start = CMF._initialize_positions(trajectory, start)
         m = self.m_Mx.walk({x: 1, y: 0}, trajectory[x], {x: x, y: y})
         m *= self.m_My.walk({x: 0, y: 1}, trajectory[y], {x: x + trajectory[x], y: y})
         if start is not None:
@@ -54,8 +54,11 @@ class CMF:
         """Returns trajectory_matrix reduced to a single variable `n`."""
         from sympy.abc import n
 
-        start, trajectory = CMF._initialize_positions(start, trajectory)
-        sub = lambda i: start[i] + (n - 1) * trajectory[i]
+        trajectory, start = CMF._initialize_positions(trajectory, start)
+
+        def sub(i):
+            return start[i] + (n - 1) * trajectory[i]
+
         return trajectory_matrix.subs([(x, sub(x)), (y, sub(y))])
 
     def walk(self, trajectory, iterations, start=[1, 1]) -> Matrix:

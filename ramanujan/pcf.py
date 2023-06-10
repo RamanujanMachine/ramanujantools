@@ -4,18 +4,21 @@ from sympy.abc import n
 from ramanujan import Matrix
 
 
-def is_deflatable(a_roots, b_roots, root, shift=1):
-    return (
-        a_roots.get(root, 0) > 0
-        and b_roots.get(root, 0) > 0
-        and b_roots.get(root + shift, 0) > (1 if shift == 0 else 0)
-    )
+def is_deflatable(a_factors, b_factors, factor):
+    if n in factor.free_symbols:
+        return (
+            a_factors.get(factor, 0) > 0
+            and b_factors.get(factor, 0) > 0
+            and b_factors.get(factor.subs(n, n - 1), 0) > 0
+        )
+    else:
+        return a_factors.get(factor, 0) > 0 and b_factors.get(factor, 0) > 1
 
 
-def deflate_root(a_roots, b_roots, root, shift=1):
-    a_roots[root] -= 1
-    b_roots[root] -= 1
-    b_roots[root + shift] -= 1
+def remove_factor(a_factors, b_factors, factor):
+    a_factors[factor] -= 1
+    b_factors[factor] -= 1
+    b_factors[factor.subs(n, n - 1)] -= 1
 
 
 def deflate_constant(a_constant, b_constant):
@@ -26,26 +29,24 @@ def deflate_constant(a_constant, b_constant):
     return constant
 
 
-def deflate_lead(a_leading_expression, b_leading_expression):
-    (a_constant, a_factors), (b_constant, b_factors) = map(
-        sp.factor_list, [a_leading_expression, b_leading_expression]
+def content(a, b, variables):
+    if len(a.free_symbols | b.free_symbols) == 0:
+        return deflate_constant(a, b)
+
+    def factor_list(poly, variables):
+        content, factors = sp.factor_list(poly, *variables)
+        return content, dict(factors)
+
+    (a_content, a_factors), (b_content, b_factors) = map(
+        lambda p: factor_list(p, variables), [a, b]
     )
-    c = deflate_constant(a_constant, b_constant)
-    a_factors, b_factors = map(dict, [a_factors, b_factors])
+
+    c_n = content(a_content, b_content, [])
     for factor in a_factors:
-        while is_deflatable(a_factors, b_factors, factor, 0):
-            deflate_root(a_factors, b_factors, factor, 0)
-            c *= factor
-    return sp.simplify(c)
+        while is_deflatable(a_factors, b_factors, factor):
+            remove_factor(a_factors, b_factors, factor)
+            c_n *= factor
 
-
-def content(a_poly, b_poly):
-    a_roots, b_roots = map(lambda p: sp.roots(p, n), [a_poly, b_poly])
-    c_n = deflate_lead(*map(lambda p: sp.LC(p, n), [a_poly, b_poly]))
-    for root in a_roots:
-        while is_deflatable(a_roots, b_roots, root):
-            deflate_root(a_roots, b_roots, root)
-            c_n *= n - root
     return sp.simplify(c_n)
 
 
@@ -93,7 +94,7 @@ class PCF:
 
     def deflate_all(self):
         """Deflates the PCF to the fullest extent"""
-        return self.deflate(content(self.m_a, self.m_b))
+        return self.deflate(content(self.m_a, self.m_b, [n]))
 
     def simplify(self):
         """Simplifies the PCF (i.e, simplifies (a, b))"""
