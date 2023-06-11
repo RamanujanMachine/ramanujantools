@@ -34,7 +34,7 @@ class Matrix(sp.Matrix):
 
     def as_pcf(self, deflate_all=True):
         """Returns the matrix's equivalent PCF with an equal limit up to a mobius transformation"""
-        from ramanujan import PCF
+        from ramanujan.pcf import PCF
         from sympy.abc import n
 
         U = Matrix([[self[1, 0], -self[0, 0]], [0, 1]])

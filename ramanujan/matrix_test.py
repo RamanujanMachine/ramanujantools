@@ -62,7 +62,7 @@ def test_walk_different_start():
 
 
 def test_as_pcf():
-    from ramanujan import PCF
+    from ramanujan.pcf import PCF
     from ramanujan.cmf.known_cmfs import cmf1, c0, c1, c2, c3
 
     cmf = cmf1.subs([[c0, 0], [c1, 1], [c2, 1], [c3, 3]])
@@ -73,7 +73,7 @@ def test_as_pcf():
 
 def test_as_pcf_parametric():
     from sympy.abc import c
-    from ramanujan import PCF
+    from ramanujan.pcf import PCF
     from ramanujan.cmf.known_cmfs import cmf1, c0, c1, c2, c3
 
     cmf = cmf1.subs([[c0, 0], [c1, 1], [c2, 1], [c3, c]])

@@ -7,6 +7,7 @@ setup(
     description="The official research tools of Ramanujan group",
     packages=[
         "ramanujan",
+        "ramanujan.pcf",
         "ramanujan.cmf",
         "ramanujan.cmf.ffbar",
         "ramanujan.cmf.known_cmfs",

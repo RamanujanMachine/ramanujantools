@@ -1,7 +1,8 @@
 from pytest import approx, raises
 from sympy.abc import c, n
 
-from ramanujan import Matrix, PCF
+from ramanujan import Matrix
+from ramanujan.pcf import PCF
 
 
 def test_from_matrix_throws():
