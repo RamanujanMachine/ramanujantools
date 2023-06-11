@@ -64,29 +64,29 @@ class PCF:
         return cls(M[1, 1], M[0, 1])
 
     def __init__(self, a_n, b_n):
-        self.m_a = a_n
-        self.m_b = b_n
+        self.a_n = a_n
+        self.b_n = b_n
 
     def __eq__(self, other):
         return (
-            sp.simplify(self.m_a - other.m_a) == 0
-            and sp.simplify(self.m_b - other.m_b) == 0
+            sp.simplify(self.a_n - other.a_n) == 0
+            and sp.simplify(self.b_n - other.b_n) == 0
         )
 
     def __repr__(self):
-        return "PCF({}, {})".format(self.m_a, self.m_b)
+        return "PCF({}, {})".format(self.a_n, self.b_n)
 
     def M(self):
         """Returns the matrix that represents the PCF"""
-        return Matrix([[0, self.m_b], [1, self.m_a]])
+        return Matrix([[0, self.b_n], [1, self.a_n]])
 
     def A(self):
         """Returns the matrix A used to calculate the limit (represents a0)"""
-        return Matrix([[1, self.m_a.subs(n, 0)], [0, 1]])
+        return Matrix([[1, self.a_n.subs(n, 0)], [0, 1]])
 
     def inflate(self, c_n):
         """Inflates the PCF by c_n"""
-        return PCF(self.m_a * c_n, self.m_b * c_n.subs(n, n - 1) * c_n).simplify()
+        return PCF(self.a_n * c_n, self.b_n * c_n.subs(n, n - 1) * c_n).simplify()
 
     def deflate(self, c_n):
         """Deflates the PCF by c_n"""
@@ -94,15 +94,15 @@ class PCF:
 
     def deflate_all(self):
         """Deflates the PCF to the fullest extent"""
-        return self.deflate(content(self.m_a, self.m_b, [n]))
+        return self.deflate(content(self.a_n, self.b_n, [n]))
 
     def simplify(self):
         """Simplifies the PCF (i.e, simplifies (a, b))"""
-        return PCF(self.m_a.simplify(), self.m_b.simplify())
+        return PCF(self.a_n.simplify(), self.b_n.simplify())
 
     def subs(self, substitutions):
         """Substitutes parameters in the PCF"""
-        return PCF(self.m_a.subs(substitutions), self.m_b.subs(substitutions))
+        return PCF(self.a_n.subs(substitutions), self.b_n.subs(substitutions))
 
     def walk(self, iterations, start=1) -> Matrix:
         """Returns the matrix walk multiplication"""
