@@ -1,16 +1,7 @@
 from pytest import approx
 from sympy.abc import n, x, y
 
-from .matrix import Position
 from ramanujan import Matrix, simplify
-
-
-def test_position_iadd():
-    a = Position({x: 57, y: 29})
-    b = Position({x: 82, y: 31})
-    a_b = Position({x: a[x] + b[x], y: a[y] + b[y]})
-    a += b
-    assert a == a_b
 
 
 def test_limit():
