@@ -1,7 +1,8 @@
 import sympy as sp
 from sympy.abc import x, y
 
-from ramanujan import Matrix, CMF, ffbar
+from ramanujan import Matrix
+from ramanujan.cmf import CMF, ffbar
 
 c0 = sp.Symbol("c0")
 c1 = sp.Symbol("c1")

@@ -1,6 +1,6 @@
 from sympy.abc import x, y
 
-from ramanujan import ffbar, known_cmfs
+from ramanujan.cmf import ffbar, known_cmfs
 
 
 def test_linear_condition():
