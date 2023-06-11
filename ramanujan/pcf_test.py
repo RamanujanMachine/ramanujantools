@@ -16,6 +16,11 @@ def test_repr():
     assert pcf == eval(repr(pcf))
 
 
+def test_degree():
+    pcf = PCF(1 + n - n**2, 3 - n**9)
+    assert (2, 9) == pcf.degree()
+
+
 def test_limit():
     pcf = PCF(5 + 10 * n, 1 - 9 * n**2)
     expected = (4 ** (1 / 3) + 1) / (4 ** (1 / 3) - 1)

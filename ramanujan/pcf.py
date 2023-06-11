@@ -76,6 +76,9 @@ class PCF:
     def __repr__(self):
         return "PCF({}, {})".format(self.a_n, self.b_n)
 
+    def degree(self):
+        return tuple(map(lambda p: sp.Poly(p).degree(), [self.a_n, self.b_n]))
+
     def M(self):
         """Returns the matrix that represents the PCF"""
         return Matrix([[0, self.b_n], [1, self.a_n]])
