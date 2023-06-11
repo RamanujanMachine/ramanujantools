@@ -41,6 +41,10 @@ class CMF:
             m = CMF.substitute_trajectory(m, trajectory, start)
         return simplify(m)
 
+    def as_pcf(self, trajectory, start={x: 1, y: 1}):
+        """Returns the PCF equivalent of the CMF in a certain trajectory"""
+        return self.trajectory_matrix(trajectory, start).as_pcf()
+
     @staticmethod
     def substitute_trajectory(trajectory_matrix: Matrix, trajectory, start):
         """Returns trajectory_matrix reduced to a single variable `n`."""
