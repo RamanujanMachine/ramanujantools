@@ -22,17 +22,9 @@ class Position(dict):
 
 
 class Matrix(sp.Matrix):
-    variables = {1: [n], 2: [x, y]}
-
-    def __call__(self, *args):
-        """
-        Quick substitution method.
-
-        For 1 args, assumes variable is n.
-        For 2 args, assumes variables are (x, y).
-        """
-        args = list(args)
-        return self.subs(list(zip(Matrix.variables[len(args)], args)))
+    def __call__(self, substitutions):
+        """Same as 'subs', but in a math-like syntax."""
+        return self.subs(substitutions)
 
     def gcd(self):
         """Returns gcd of the matrix"""
@@ -66,7 +58,7 @@ class Matrix(sp.Matrix):
 
         U = Matrix([[self[1, 0], -self[0, 0]], [0, 1]])
         Uinv = Matrix([[1, self[0, 0]], [0, self[1, 0]]])
-        commutated = U * self * Uinv(n + 1)
+        commutated = U * self * Uinv({n: n + 1})
         normalized = simplify(commutated / commutated[1, 0])
         pcf = PCF.from_matrix(normalized).inflate(self[1, 0])
         if deflate_all:

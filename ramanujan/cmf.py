@@ -5,6 +5,18 @@ from ramanujan import Matrix, Position, simplify
 
 
 class CMF:
+    variables = [x, y]
+
+    @staticmethod
+    def _initialize_positions(*positions):
+        return (CMF._initialize_position(position) for position in positions)
+
+    @staticmethod
+    def _initialize_position(position):
+        if type(position) == list:
+            return dict(zip(CMF.variables, position))
+        return position
+
     def __init__(self, Mx: Matrix, My: Matrix):
         self.m_Mx = Mx
         self.m_My = My
@@ -13,13 +25,13 @@ class CMF:
         if simplify(Mxy - Myx) != Matrix([[0, 0], [0, 0]]):
             raise ValueError("The given Mx and My matrices are not conserving!")
 
-    def Mx(self, x, y) -> Matrix:
+    def Mx(self, _x, _y) -> Matrix:
         """Substitute Mx."""
-        return self.m_Mx(x, y)
+        return self.m_Mx.subs({x: _x, y: _y})
 
-    def My(self, x, y) -> Matrix:
+    def My(self, _x, _y) -> Matrix:
         """Substitute My."""
-        return self.m_My(x, y)
+        return self.m_My.subs({x: _x, y: _y})
 
     def subs(self, substitutions):
         """Returns a new CMF with substituted Mx and My."""
@@ -30,8 +42,9 @@ class CMF:
 
         If start is given, the new matrix will be reduces to a single variable `n`.
         """
-        m = self.m_Mx.walk({x: 1, y: 0}, trajectory[0], {x: x, y: y})
-        m *= self.m_My.walk({x: 0, y: 1}, trajectory[1], {x: x + trajectory[0], y: y})
+        start, trajectory = CMF._initialize_positions(start, trajectory)
+        m = self.m_Mx.walk({x: 1, y: 0}, trajectory[x], {x: x, y: y})
+        m *= self.m_My.walk({x: 0, y: 1}, trajectory[y], {x: x + trajectory[x], y: y})
         if start is not None:
             m = CMF.substitute_trajectory(m, trajectory, start)
         return simplify(m)
@@ -41,8 +54,9 @@ class CMF:
         """Returns trajectory_matrix reduced to a single variable `n`."""
         from sympy.abc import n
 
+        start, trajectory = CMF._initialize_positions(start, trajectory)
         sub = lambda i: start[i] + (n - 1) * trajectory[i]
-        return trajectory_matrix.subs([(x, sub(0)), (y, sub(1))])
+        return trajectory_matrix.subs([(x, sub(x)), (y, sub(y))])
 
     def walk(self, trajectory, iterations, start=[1, 1]) -> Matrix:
         """Returns the multiplication matrix of walking in a certain trajectory."""
