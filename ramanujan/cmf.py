@@ -18,24 +18,16 @@ class CMF:
         return position
 
     def __init__(self, Mx: Matrix, My: Matrix):
-        self.m_Mx = Mx
-        self.m_My = My
-        Mxy = simplify(self.Mx(x, y) * self.My(x + 1, y))
-        Myx = simplify(self.My(x, y) * self.Mx(x, y + 1))
+        self.Mx = Mx
+        self.My = My
+        Mxy = simplify(self.Mx * self.My({x: x + 1}))
+        Myx = simplify(self.My * self.Mx({y: y + 1}))
         if simplify(Mxy - Myx) != Matrix([[0, 0], [0, 0]]):
             raise ValueError("The given Mx and My matrices are not conserving!")
 
-    def Mx(self, _x, _y) -> Matrix:
-        """Substitute Mx."""
-        return self.m_Mx.subs({x: _x, y: _y})
-
-    def My(self, _x, _y) -> Matrix:
-        """Substitute My."""
-        return self.m_My.subs({x: _x, y: _y})
-
     def subs(self, substitutions):
         """Returns a new CMF with substituted Mx and My."""
-        return CMF(self.m_Mx.subs(substitutions), self.m_My.subs(substitutions))
+        return CMF(self.Mx.subs(substitutions), self.My.subs(substitutions))
 
     def trajectory_matrix(self, trajectory, start=None) -> Matrix:
         """Returns the corresponding matrix for walking in trajectory.
@@ -43,11 +35,15 @@ class CMF:
         If start is given, the new matrix will be reduces to a single variable `n`.
         """
         trajectory, start = CMF._initialize_positions(trajectory, start)
-        m = self.m_Mx.walk({x: 1, y: 0}, trajectory[x], {x: x, y: y})
-        m *= self.m_My.walk({x: 0, y: 1}, trajectory[y], {x: x + trajectory[x], y: y})
+        m = self.Mx.walk({x: 1, y: 0}, trajectory[x], {x: x, y: y})
+        m *= self.My.walk({x: 0, y: 1}, trajectory[y], {x: x + trajectory[x], y: y})
         if start is not None:
             m = CMF.substitute_trajectory(m, trajectory, start)
         return simplify(m)
+
+    def as_pcf(self, trajectory, start={x: 1, y: 1}):
+        """Returns the PCF equivalent of the CMF in a certain trajectory"""
+        return self.trajectory_matrix(trajectory, start).as_pcf()
 
     @staticmethod
     def substitute_trajectory(trajectory_matrix: Matrix, trajectory, start):

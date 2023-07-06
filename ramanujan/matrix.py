@@ -2,20 +2,6 @@ import math
 import sympy as sp
 
 
-class Position(dict):
-    @classmethod
-    def from_list(cls, variables, values):
-        return cls(dict(zip(variables, values)))
-
-    def __iadd__(self, other):
-        for coordinate, value in other.items():
-            self[coordinate] = self.get(coordinate, 0) + value
-        return self
-
-    def as_subs(self):
-        return list(self.items())
-
-
 class Matrix(sp.Matrix):
     def __call__(self, substitutions):
         """Same as 'subs', but in a math-like syntax."""
@@ -39,12 +25,11 @@ class Matrix(sp.Matrix):
 
     def walk(self, trajectory, iterations, start):
         """Returns the multiplication result of walking in a certain trajectory."""
-        position = Position(start)
-        trajectory = Position(trajectory)
+        position = start
         retval = Matrix.eye(2)
         for _ in range(iterations):
-            retval *= self.subs(position.as_subs())
-            position += trajectory
+            retval *= self.subs(position)
+            position = {key: trajectory[key] + value for key, value in position.items()}
         return simplify(retval)
 
     def as_pcf(self, deflate_all=True):
