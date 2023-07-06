@@ -4,62 +4,99 @@ from sympy.abc import n
 from ramanujan.pcf import PCF
 
 
-def pfq(a, b, z):
-    return sp.hyperexpand(sp.hyper(a, b, z))
+class HypergeometricLimit:
+    """Factory class that creates an instance of a hpyergeometric limit class (either 1f1 or 2f1)."""
+
+    @staticmethod
+    def __call__(pcf: PCF):
+        supported_degrees = {
+            (1, 1): Hypergeometric1F1Limit,
+            (1, 2): Hypergeometric2F1Limit,
+        }
+        if pcf.degree() not in supported_degrees:
+            raise ValueError(
+                (
+                    "Attempted to evaluate hypergeometric limit of {} of degree {}. "
+                    "Supported degrees are {}"
+                ).format(pcf, pcf.degree(), supported_degrees.keys())
+            )
+        return supported_degrees[pcf.degree](pcf)
 
 
-def hypergeometric_limit(pcf: PCF):
-    supported_degrees = {(1, 1): hyp_1f1_limit, (1, 2): hyp_2f1_limit}
-    if pcf.degree() not in supported_degrees:
-        raise ValueError(
-            "Attempted to evaluate hypergeometric limit of {} of degree {}. Supported degrees are {}".format(
-                pcf, pcf.degree(), supported_degrees.keys()
+class HypLimitInterface:
+    def __init__(self, pcf: PCF):
+        pass
+
+    def limit(self):
+        """Attempts to calculate the limit using sympy's hypergeometric functions"""
+        pass
+
+    def as_mathematica_prompt(self):
+        """Returns a mathematica prompt that will calculate the limit of this pcf"""
+        pass
+
+
+class Hypergeometric1F1Limit(HypLimitInterface):
+    def __init__(self, pcf: PCF):
+        [a1, a0] = sp.Poly(pcf.a_n, n).all_coeffs()
+        [b1, b0] = sp.Poly(pcf.b_n, n).all_coeffs()
+
+        self.alpha = b0 / b1
+        self.beta = (a0 * a1 + b1) / a1**2
+        self.z = b1 / a1**2
+
+    def limit(self):
+        """Attempts to calculate the limit using sympy's 1f1 functions"""
+        return sp.simplify(
+            sp.hyperexpand(
+                self.alpha
+                * self.beta
+                * (
+                    sp.hyper([self.alpha], [self.beta], self.z)
+                    / sp.hyper([self.alpha + 1], [self.beta + 1], self.z)
+                )
             )
         )
-    return supported_degrees[pcf.degree](pcf)
 
-
-def validate_degree(pcf: PCF, degree):
-    if pcf.degree() != degree:
-        raise ValueError(
-            "Attempted to evaluate {}f{} limit of {} of degree {}. Only degree {} allowed.".format(
-                degree[1], degree[0], pcf, pcf.degree(), degree
-            )
+    def as_mathematica_prompt(self):
+        """Returns a mathematica prompt that will calculate the limit of this pcf"""
+        return (
+            f"{self.alpha} * {self.beta} * "
+            f"Hypergeometric1F1[{self.alpha}, {self.beta}, {self.z}] / "
+            f"Hypergeometric1F1[{self.alpha + 1}, {self.beta + 1}, {self.z + 1}]"
         )
 
 
-def hyp_1f1_limit(pcf: PCF):
-    validate_degree(pcf, (1, 1))
-    [a1, a0] = sp.Poly(pcf.a_n, n).all_coeffs()
-    [b1, b0] = sp.Poly(pcf.b_n, n).all_coeffs()
+class Hypergeometric2F1Limit(HypLimitInterface):
+    def __init__(self, pcf: PCF):
+        [e, d] = sp.Poly(pcf.a_n, n).all_coeffs()
+        [c, b, a] = sp.Poly(pcf.b_n, n).all_coeffs()
+        delta = e**2 + 4 * c
+        # assert delta > 0, "Delta is less than 0!"
+        self.sqrt_delta = sp.sign(e) * sp.root(delta, 2)
+        self.alpha, self.beta = list(sp.solve(c * n**2 - b * n + a, n))
+        self.z = sp.simplify((1 - e / self.sqrt_delta) / 2)
+        self.gamma = sp.simplify(((b + c) * self.z) / c + d / self.sqrt_delta)
 
-    alpha = b0 / b1
-    beta = (a0 * a1 + b1) / a1**2
-    z = b1 / a1**2
+    def limit(self):
+        """Attempts to calculate the limit using sympy's 2f1 functions"""
+        return sp.simplify(
+            sp.hyperexpand(
+                self.sqrt_delta
+                * self.gamma
+                * (
+                    sp.hyper([self.alpha, self.beta], [self.gamma], self.z)
+                    / sp.hyper(
+                        [self.alpha + 1, self.beta + 1], [self.gamma + 1], self.z
+                    )
+                )
+            )
+        )
 
-    return sp.simplify(
-        alpha * beta * (pfq([alpha], [beta], z) / pfq([alpha + 1], [beta + 1], z))
-    )
-
-
-def hyp_2f1_limit(pcf: PCF):
-    validate_degree(pcf, (1, 2))
-    [e, d] = sp.Poly(pcf.a_n, n).all_coeffs()
-    [c, b, a] = sp.Poly(pcf.b_n, n).all_coeffs()
-    delta = e**2 + 4 * c
-    # assert delta > 0, "Delta is less than 0!"
-    sqrt_delta = sp.sign(e) * sp.root(delta, 2)
-    alpha, beta = sum(
-        [
-            ([sp.simplify(root)] * multiplicity)
-            for root, multiplicity in sp.roots(c * n**2 - b * n + a, n).items()
-        ],
-        [],
-    )
-    z = sp.simplify((1 - e / sqrt_delta) / 2)
-    gamma = sp.simplify(((b + c) * z) / c + d / sqrt_delta)
-    return (
-        sqrt_delta
-        * gamma
-        * (pfq([alpha, beta], [gamma], z) / pfq([alpha + 1, beta + 1], [gamma + 1], z))
-    )
+    def as_mathematica_prompt(self):
+        """Returns a mathematica prompt that will calculate the limit of this pcf"""
+        return (
+            f"{self.sqrt_delta} * {self.gamma} * "
+            f"Hypergeometric2F1[{self.alpha}, {self.beta}, {self.gamma}, {self.z}] / "
+            f"Hypergeometric2F1[{self.alpha + 1}, {self.beta + 1}, {self.gamma + 1}, {self.z}]"
+        )
