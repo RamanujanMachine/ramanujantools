@@ -29,6 +29,10 @@ class CMF:
         """Returns a new CMF with substituted Mx and My."""
         return CMF(self.Mx.subs(substitutions), self.My.subs(substitutions))
 
+    def simplify(self):
+        """Returns a new CMF with simplified Mx and My"""
+        return CMF(simplify(self.Mx), simplify(self.My))
+
     def trajectory_matrix(self, trajectory, start=None) -> Matrix:
         """Returns the corresponding matrix for walking in trajectory.
 

@@ -1,7 +1,8 @@
 from pytest import raises
 from sympy.abc import x, y, n
 
-from ramanujan import Matrix, simplify, CMF, known_cmfs
+from ramanujan import Matrix, simplify
+from ramanujan.cmf import CMF, known_cmfs
 
 
 DEFAULT_START = {x: x, y: y}

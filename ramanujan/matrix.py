@@ -18,6 +18,10 @@ class Matrix(sp.Matrix):
             self[i] //= gcd
         return self
 
+    def simplify(self):
+        """Returns a simplified version of matrix"""
+        return Matrix(sp.simplify(self))
+
     def limit(self, vector=sp.Matrix([[0], [1]])):
         """Returns the limit of the matrix, i.e, the ratio of M * v for some vector v"""
         p, q = self * vector
@@ -30,23 +34,18 @@ class Matrix(sp.Matrix):
         for _ in range(iterations):
             retval *= self.subs(position)
             position = {key: trajectory[key] + value for key, value in position.items()}
-        return simplify(retval)
+        return retval.simplify()
 
     def as_pcf(self, deflate_all=True):
         """Returns the matrix's equivalent PCF with an equal limit up to a mobius transformation"""
-        from ramanujan import PCF
+        from ramanujan.pcf import PCF
         from sympy.abc import n
 
         U = Matrix([[self[1, 0], -self[0, 0]], [0, 1]])
         Uinv = Matrix([[1, self[0, 0]], [0, self[1, 0]]])
         commutated = U * self * Uinv({n: n + 1})
-        normalized = simplify(commutated / commutated[1, 0])
+        normalized = (commutated / commutated[1, 0]).simplify()
         pcf = PCF.from_matrix(normalized).inflate(self[1, 0])
         if deflate_all:
             pcf = pcf.deflate_all()
         return pcf
-
-
-def simplify(matrix: Matrix) -> Matrix:
-    matrix.simplify()
-    return matrix
