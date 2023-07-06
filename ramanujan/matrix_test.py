@@ -85,7 +85,7 @@ def test_as_pcf():
     from ramanujan.known_cmfs import cmf1, c0, c1, c2, c3
 
     cmf = cmf1.subs([[c0, 0], [c1, 1], [c2, 1], [c3, 3]])
-    matrix = cmf.trajectory_matrix([1, 1]).subs([[x, n], [y, n]])
+    matrix = cmf.trajectory_matrix([1, 1], [1, 1])
     pcf = matrix.as_pcf()
     print(pcf)
     assert pcf.simplify() == PCF(5 + 10 * n, 1 - 9 * n**2)
