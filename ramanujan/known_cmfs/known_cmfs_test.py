@@ -5,8 +5,7 @@ import itertools
 from math import e, pi, log
 from scipy.special import zeta
 
-from ramanujan import Matrix, CMF, known_cmfs
-from ramanujan.known_cmfs import c0, c1, c2, c3
+from ramanujan import known_cmfs
 
 
 def test_cmf_e():
@@ -25,6 +24,8 @@ def test_cmf_zeta3():
 
 
 def test_cmf1():
+    from ramanujan.known_cmfs import c0, c1, c2, c3
+
     cmf = known_cmfs.cmf1
     for a, b in itertools.product(range(1, 10), range(1, 10)):
         assert cmf.subs([[c0, 0], [c1, a], [c2, 0], [c3, b]]).limit(
