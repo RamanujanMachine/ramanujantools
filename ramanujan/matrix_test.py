@@ -1,7 +1,8 @@
 from pytest import approx
 from sympy.abc import n, x, y
 
-from ramanujan import Position, Matrix, simplify
+from .matrix import Position
+from ramanujan import Matrix, simplify
 
 
 def test_position_iadd():
@@ -76,5 +77,15 @@ def test_as_pcf():
     cmf = cmf1.subs([[c0, 0], [c1, 1], [c2, 1], [c3, 3]])
     matrix = cmf.trajectory_matrix([1, 1], [1, 1])
     pcf = matrix.as_pcf()
-    print(pcf)
-    assert pcf.simplify() == PCF(5 + 10 * n, 1 - 9 * n**2)
+    assert pcf == PCF(5 + 10 * n, 1 - 9 * n**2)
+
+
+def test_as_pcf_parametric():
+    from sympy.abc import c
+    from ramanujan import PCF
+    from ramanujan.known_cmfs import cmf1, c0, c1, c2, c3
+
+    cmf = cmf1.subs([[c0, 0], [c1, 1], [c2, 1], [c3, c]])
+    matrix = cmf.trajectory_matrix({x: 1, y: 1}, {x: 1, y: 1})
+    pcf = matrix.as_pcf(True)
+    assert pcf == PCF((1 + 2 * n) * (c + 2), 1 - (c * n) ** 2)

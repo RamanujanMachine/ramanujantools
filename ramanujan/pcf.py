@@ -1,43 +1,53 @@
-import math
 import sympy as sp
 from sympy.abc import n
 
 from ramanujan import Matrix
 
 
-def remove_root(factorization, root):
-    """Given a factorization for n, returns the factorization of n / root"""
-    factorization[root] -= 1
-    if factorization[root] == 0:
-        del factorization[root]
+def is_deflatable(a_factors, b_factors, factor):
+    if n in factor.free_symbols:
+        return (
+            a_factors.get(factor, 0) > 0
+            and b_factors.get(factor, 0) > 0
+            and b_factors.get(factor.subs(n, n - 1), 0) > 0
+        )
+    else:
+        return a_factors.get(factor, 0) > 0 and b_factors.get(factor, 0) > 1
 
 
-def deflate_coeffs(a_coeff, b_coeff):
-    """Deflates the coefficients of (a, b)"""
-    possible_roots = sp.factorint(math.gcd(a_coeff**2, b_coeff))
-    deflateable = 1
-    for root, mul in possible_roots.items():
-        deflateable *= root ** (mul // 2)
-    return a_coeff // deflateable, b_coeff // (deflateable**2)
+def remove_factor(a_factors, b_factors, factor):
+    a_factors[factor] -= 1
+    b_factors[factor] -= 1
+    b_factors[factor.subs(n, n - 1)] -= 1
 
 
-def deflate_single_root(a_roots, b_roots):
-    """Attempts to find a root that can be deflated for (a, b)"""
-    for root in a_roots:
-        if root in b_roots and root + 1 in b_roots:
-            remove_root(a_roots, root)
-            remove_root(b_roots, root)
-            remove_root(b_roots, root + 1)
-            return True
-    return False
+def deflate_constant(a_constant, b_constant):
+    factors = sp.factorint(sp.gcd(a_constant**2, b_constant))
+    constant = 1
+    for root, mul in factors.items():
+        constant *= root ** (mul // 2)
+    return constant
 
 
-def construct_poly(roots, coeff):
-    """Constructs a polynomial from it's roots and a leading coefficient"""
-    retval = coeff
-    for root, mul in roots.items():
-        retval *= (n - root) ** mul
-    return retval.simplify()
+def content(a, b, variables):
+    if len(a.free_symbols | b.free_symbols) == 0:
+        return deflate_constant(a, b)
+
+    def factor_list(poly, variables):
+        content, factors = sp.factor_list(poly, *variables)
+        return content, dict(factors)
+
+    (a_content, a_factors), (b_content, b_factors) = map(
+        lambda p: factor_list(p, variables), [a, b]
+    )
+
+    c_n = content(a_content, b_content, [])
+    for factor in a_factors:
+        while is_deflatable(a_factors, b_factors, factor):
+            remove_factor(a_factors, b_factors, factor)
+            c_n *= factor
+
+    return sp.simplify(c_n)
 
 
 class PCF:
@@ -58,7 +68,10 @@ class PCF:
         self.m_b = b_n
 
     def __eq__(self, other):
-        return self.m_a == other.m_a and self.m_b == other.m_b
+        return (
+            sp.simplify(self.m_a - other.m_a) == 0
+            and sp.simplify(self.m_b - other.m_b) == 0
+        )
 
     def __repr__(self):
         return "PCF({}, {})".format(self.m_a, self.m_b)
@@ -81,15 +94,7 @@ class PCF:
 
     def deflate_all(self):
         """Deflates the PCF to the fullest extent"""
-        a_coeff, b_coeff = deflate_coeffs(sp.LC(self.m_a), sp.LC(self.m_b))
-        a_roots = sp.roots(self.m_a)
-        b_roots = sp.roots(self.m_b)
-        while deflate_single_root(a_roots, b_roots):
-            pass
-        return PCF(
-            construct_poly(a_roots, a_coeff),
-            construct_poly(b_roots, b_coeff),
-        )
+        return self.deflate(content(self.m_a, self.m_b, [n]))
 
     def simplify(self):
         """Simplifies the PCF (i.e, simplifies (a, b))"""
