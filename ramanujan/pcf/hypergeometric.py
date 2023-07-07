@@ -4,23 +4,20 @@ from sympy.abc import n
 from ramanujan.pcf import PCF
 
 
-class HypergeometricLimit:
-    """Factory class that creates an instance of a hpyergeometric limit class (either 1f1 or 2f1)."""
-
-    @staticmethod
-    def __call__(pcf: PCF):
-        supported_degrees = {
-            (1, 1): Hypergeometric1F1Limit,
-            (1, 2): Hypergeometric2F1Limit,
-        }
-        if pcf.degree() not in supported_degrees:
-            raise ValueError(
-                (
-                    "Attempted to evaluate hypergeometric limit of {} of degree {}. "
-                    "Supported degrees are {}"
-                ).format(pcf, pcf.degree(), supported_degrees.keys())
-            )
-        return supported_degrees[pcf.degree](pcf)
+def HypergeometricLimit(pcf: PCF):
+    """Factory function that creates an instance of a hpyergeometric limit class (either 1f1 or 2f1)."""
+    supported_degrees = {
+        (1, 1): Hypergeometric1F1Limit,
+        (1, 2): Hypergeometric2F1Limit,
+    }
+    if pcf.degree() not in supported_degrees:
+        raise ValueError(
+            (
+                "Attempted to evaluate hypergeometric limit of {} of degree {}. "
+                "Supported degrees are {}"
+            ).format(pcf, pcf.degree(), supported_degrees.keys())
+        )
+    return supported_degrees[pcf.degree()](pcf)
 
 
 class HypLimitInterface:
@@ -91,12 +88,22 @@ class Hypergeometric1F1Limit(HypLimitInterface):
 
 class Hypergeometric2F1Limit(HypLimitInterface):
     def __init__(self, pcf: PCF):
+        def solve(expression):
+            """Returns a list of the roots of `expression` with multiplicites"""
+            return sum(
+                [
+                    ([sp.simplify(root)] * multiplicity)
+                    for root, multiplicity in sp.roots(expression, n).items()
+                ],
+                [],
+            )
+
         [e, d] = sp.Poly(pcf.a_n, n).all_coeffs()
         [c, b, a] = sp.Poly(pcf.b_n, n).all_coeffs()
         delta = e**2 + 4 * c
         # assert delta > 0, "Delta is less than 0!"
         self.sqrt_delta = sp.simplify(sp.sign(e) * sp.root(delta, 2))
-        self.alpha, self.beta = sp.solve(c * n**2 - b * n + a, n)
+        self.alpha, self.beta = solve(c * n**2 - b * n + a)
         self.z = sp.simplify((1 - e / self.sqrt_delta) / 2)
         self.gamma = sp.simplify(((b + c) * self.z) / c + d / self.sqrt_delta)
 
