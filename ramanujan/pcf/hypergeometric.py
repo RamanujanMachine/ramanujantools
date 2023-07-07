@@ -72,7 +72,7 @@ class Hypergeometric1F1Limit(HypLimitInterface):
         return (
             f"{self.alpha} * {self.beta} * "
             f"Hypergeometric1F1[{self.alpha}, {self.beta}, {self.z}] / "
-            f"Hypergeometric1F1[{self.alpha + 1}, {self.beta + 1}, {self.z + 1}]"
+            f"Hypergeometric1F1[{self.alpha + 1}, {self.beta + 1}, {self.z}]"
         )
 
     def subs(self, *args, **kwargs):
