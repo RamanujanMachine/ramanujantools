@@ -1,6 +1,6 @@
 from pytest import raises
 import sympy as sp
-from sympy.abc import c, n, z
+from sympy.abc import n, z
 
 from ramanujan.pcf import (
     PCF,
@@ -41,7 +41,28 @@ def test_2f1_limit():
 
 
 def test_2f1_limit_parameteric():
+    # going for positive c here to avoid piecewise condition of c!=-2
+    c = sp.Symbol("c", positive=True)
     pcf = PCF((1 + 2 * n) * (c + 2), 1 - (c * n) ** 2)
     # limit = (sp.root(c + 1, c) + 1) / (sp.root(c + 1, c) - 1)
-    print(Hypergeometric2F1Limit(pcf).as_mathematica_prompt())
-    assert False
+    hyp = Hypergeometric2F1Limit(pcf)
+    assert hyp.alpha == -1 / c
+    assert hyp.beta == 1 / c
+    assert hyp.gamma == 1 / 2
+    assert hyp.z == (-c + 2 * sp.sqrt(c + 1) - 2) / (4 * sp.sqrt(c + 1))
+
+
+def test_1f1_subs():
+    from sympy.abc import c
+
+    pcf = PCF(c * n, 3 - n)
+    hyp = Hypergeometric1F1Limit(pcf)
+    assert hyp.subs(c, 7) == Hypergeometric1F1Limit(pcf.subs(c, 7))
+
+
+def test_2f1_subs():
+    from sympy.abc import c
+
+    pcf = PCF((1 + 2 * n) * (c + 2), 1 - (c * n) ** 2)
+    hyp = Hypergeometric2F1Limit(pcf)
+    assert hyp.subs(c, 7) == Hypergeometric2F1Limit(pcf.subs(c, 7))

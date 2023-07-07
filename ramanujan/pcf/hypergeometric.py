@@ -27,12 +27,19 @@ class HypLimitInterface:
     def __init__(self, pcf: PCF):
         pass
 
+    def __eq__(self, other):
+        pass
+
     def limit(self):
         """Attempts to calculate the limit using sympy's hypergeometric functions"""
         pass
 
     def as_mathematica_prompt(self):
         """Returns a mathematica prompt that will calculate the limit of this pcf"""
+        pass
+
+    def subs(self, *args, **kwargs):
+        """Substitutes all parameters"""
         pass
 
 
@@ -44,6 +51,11 @@ class Hypergeometric1F1Limit(HypLimitInterface):
         self.alpha = b0 / b1
         self.beta = (a0 * a1 + b1) / a1**2
         self.z = b1 / a1**2
+
+    def __eq__(self, other):
+        return (
+            self.alpha == other.alpha and self.beta == other.beta and self.z == other.z
+        )
 
     def limit(self):
         """Attempts to calculate the limit using sympy's 1f1 functions"""
@@ -66,6 +78,16 @@ class Hypergeometric1F1Limit(HypLimitInterface):
             f"Hypergeometric1F1[{self.alpha + 1}, {self.beta + 1}, {self.z + 1}]"
         )
 
+    def subs(self, *args, **kwargs):
+        """Substitutes all parameters"""
+        import copy
+
+        retval = copy.deepcopy(self)
+        retval.alpha = retval.alpha.subs(*args, **kwargs)
+        retval.beta = retval.beta.subs(*args, **kwargs)
+        retval.z = retval.z.subs(*args, **kwargs)
+        return retval
+
 
 class Hypergeometric2F1Limit(HypLimitInterface):
     def __init__(self, pcf: PCF):
@@ -73,10 +95,19 @@ class Hypergeometric2F1Limit(HypLimitInterface):
         [c, b, a] = sp.Poly(pcf.b_n, n).all_coeffs()
         delta = e**2 + 4 * c
         # assert delta > 0, "Delta is less than 0!"
-        self.sqrt_delta = sp.sign(e) * sp.root(delta, 2)
-        self.alpha, self.beta = list(sp.solve(c * n**2 - b * n + a, n))
+        self.sqrt_delta = sp.simplify(sp.sign(e) * sp.root(delta, 2))
+        self.alpha, self.beta = sp.solve(c * n**2 - b * n + a, n)
         self.z = sp.simplify((1 - e / self.sqrt_delta) / 2)
         self.gamma = sp.simplify(((b + c) * self.z) / c + d / self.sqrt_delta)
+
+    def __eq__(self, other):
+        return (
+            self.alpha == other.alpha
+            and self.beta == other.beta
+            and self.gamma == other.gamma
+            and self.z == other.z
+            and self.sqrt_delta == other.sqrt_delta
+        )
 
     def limit(self):
         """Attempts to calculate the limit using sympy's 2f1 functions"""
@@ -100,3 +131,15 @@ class Hypergeometric2F1Limit(HypLimitInterface):
             f"Hypergeometric2F1[{self.alpha}, {self.beta}, {self.gamma}, {self.z}] / "
             f"Hypergeometric2F1[{self.alpha + 1}, {self.beta + 1}, {self.gamma + 1}, {self.z}]"
         )
+
+    def subs(self, *args, **kwargs):
+        """Substitutes all parameters"""
+        import copy
+
+        retval = copy.deepcopy(self)
+        retval.alpha = retval.alpha.subs(*args, **kwargs)
+        retval.beta = retval.beta.subs(*args, **kwargs)
+        retval.gamma = retval.gamma.subs(*args, **kwargs)
+        retval.z = retval.z.subs(*args, **kwargs)
+        retval.sqrt_delta = retval.sqrt_delta.subs(*args, **kwargs)
+        return retval
