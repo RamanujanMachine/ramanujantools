@@ -10,7 +10,7 @@ from ramanujan.pcf import (
 )
 
 
-def bad_degrees_throw():
+def test_factory_bad_degrees_throw():
     with raises(ValueError):
         HypergeometricLimit(PCF(0, n))
     with raises(ValueError):
@@ -19,6 +19,11 @@ def bad_degrees_throw():
         HypergeometricLimit(PCF(n**2, n))
     with raises(ValueError):
         HypergeometricLimit(PCF(n, n**3))
+
+
+def test_factory_types():
+    assert isinstance(HypergeometricLimit(PCF(n, n)), Hypergeometric1F1Limit)
+    assert isinstance(HypergeometricLimit(PCF(n, n**2)), Hypergeometric2F1Limit)
 
 
 def test_1f1_limit():
