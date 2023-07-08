@@ -42,12 +42,13 @@ class HypLimitInterface:
 
 class Hypergeometric1F1Limit(HypLimitInterface):
     def __init__(self, pcf: PCF):
-        [a1, a0] = sp.Poly(pcf.a_n, n).all_coeffs()
-        [b1, b0] = sp.Poly(pcf.b_n, n).all_coeffs()
+        a, c = sp.Poly(pcf.a_n, n).all_coeffs()
+        b, d = sp.Poly(pcf.b_n, n).all_coeffs()
 
-        self.alpha = b0 / b1
-        self.beta = (a0 * a1 + b1) / a1**2
-        self.z = b1 / a1**2
+        self.alpha = b / d
+        self.beta = (c * a + b) / a**2
+        self.z = b / a**2
+        self.a = a
 
     def __eq__(self, other):
         return (
@@ -58,7 +59,7 @@ class Hypergeometric1F1Limit(HypLimitInterface):
         """Attempts to calculate the limit using sympy's 1f1 functions"""
         return sp.simplify(
             sp.hyperexpand(
-                self.alpha
+                self.a
                 * self.beta
                 * (
                     sp.hyper([self.alpha], [self.beta], self.z)
@@ -70,7 +71,7 @@ class Hypergeometric1F1Limit(HypLimitInterface):
     def as_mathematica_prompt(self):
         """Returns a mathematica prompt that will calculate the limit of this pcf"""
         return (
-            f"{self.alpha} * {self.beta} * "
+            f"{self.a} * {self.beta} * "
             f"Hypergeometric1F1[{self.alpha}, {self.beta}, {self.z}] / "
             f"Hypergeometric1F1[{self.alpha + 1}, {self.beta + 1}, {self.z}]"
         )

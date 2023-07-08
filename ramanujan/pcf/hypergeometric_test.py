@@ -1,4 +1,4 @@
-from pytest import raises
+from pytest import approx, raises
 import sympy as sp
 from sympy.abc import n, z
 
@@ -55,6 +55,19 @@ def test_2f1_limit_parameteric():
     assert hyp.beta == 1 / c
     assert hyp.gamma == 1 / 2
     assert hyp.z == (-c + 2 * sp.sqrt(c + 1) - 2) / (4 * sp.sqrt(c + 1))
+
+
+def test_1f1_limit_numerically():
+    pcf = PCF(1 + n, 3 + n)
+    hyp = HypergeometricLimit(pcf)
+    print(hyp.alpha, hyp.beta, hyp.z)
+    print(hyp.as_mathematica_prompt())
+    assert pcf.limit(1000) == approx(float(Hypergeometric1F1Limit(pcf).limit()))
+
+
+def test_2f1_limit_numerically():
+    pcf = PCF(5 + 10 * n, 1 - 9 * n**2)
+    assert pcf.limit(1000) == approx(float(Hypergeometric2F1Limit(pcf).limit()))
 
 
 def test_1f1_subs():
