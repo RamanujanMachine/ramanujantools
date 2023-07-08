@@ -103,9 +103,9 @@ class PCF:
         """Simplifies the PCF (i.e, simplifies (a, b))"""
         return PCF(self.a_n.simplify(), self.b_n.simplify())
 
-    def subs(self, substitutions):
+    def subs(self, *args, **kwargs):
         """Substitutes parameters in the PCF"""
-        return PCF(self.a_n.subs(substitutions), self.b_n.subs(substitutions))
+        return PCF(self.a_n.subs(*args, **kwargs), self.b_n.subs(*args, **kwargs))
 
     def walk(self, iterations, start=1) -> Matrix:
         """Returns the matrix walk multiplication"""
