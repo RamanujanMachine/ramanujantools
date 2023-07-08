@@ -9,7 +9,9 @@ class Matrix(sp.Matrix):
 
     def gcd(self):
         """Returns gcd of the matrix"""
-        return math.gcd(math.gcd(self[0], self[1]), math.gcd(self[1], self[2]))
+        import functools
+
+        return functools.reduce(math.gcd, self)
 
     def reduce(self):
         """Reduces gcd from the matrix"""
