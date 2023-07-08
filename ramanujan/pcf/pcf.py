@@ -64,8 +64,8 @@ class PCF:
         return cls(M[1, 1], M[0, 1])
 
     def __init__(self, a_n, b_n):
-        self.a_n = a_n
-        self.b_n = b_n
+        self.a_n = sp.simplify(a_n)
+        self.b_n = sp.simplify(b_n)
 
     def __eq__(self, other):
         return (
