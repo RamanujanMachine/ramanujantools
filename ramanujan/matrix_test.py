@@ -12,6 +12,16 @@ def test_limit():
     assert m.limit(Matrix([[1], [1]])) == approx((a + b) / (c + d))
 
 
+def test_gcd():
+    a = 2 * 3 * 5
+    b = 2 * 3 * 7
+    c = 2 * 5 * 7
+    d = 3 * 5 * 7
+    m = Matrix([[a, b], [c, d]])
+    m *= 11
+    assert 11 == m.gcd()
+
+
 def test_gcd_reduce():
     initial = Matrix([[2, 3], [5, 7]])
     gcd = 17
