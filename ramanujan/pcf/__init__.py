@@ -1,3 +1,3 @@
-from .pcf import PCF
+from .pcf import PCF, PCFFromMatrix
 
-__all__ = ["PCF"]
+__all__ = ["PCF", "PCFFromMatrix"]

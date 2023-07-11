@@ -51,18 +51,6 @@ def content(a, b, variables):
 
 
 class PCF:
-    @staticmethod
-    def is_pcf(M: Matrix):
-        """Checks if the given matrix is of a PCF form"""
-        return M[0, 0] == 0 and M[1, 0] == 1
-
-    @classmethod
-    def from_matrix(cls, M: Matrix):
-        """Constructs a PCF from a matrix"""
-        if not PCF.is_pcf(M):
-            raise ValueError("The given matrix M is not of a PCF form!")
-        return cls(M[1, 1], M[0, 1])
-
     def __init__(self, a_n, b_n):
         self.a_n = sp.simplify(a_n)
         self.b_n = sp.simplify(b_n)
@@ -114,3 +102,30 @@ class PCF:
     def limit(self, depth, start=1, vector=Matrix([[0], [1]])) -> sp.Float:
         """Calculates the convergence limit of the PCF"""
         return (self.A() * self.walk(depth, start)).limit(vector)
+
+
+class PCFFromMatrix(PCF):
+    def __init__(self, a_n, b_n, U):
+        super().__init__(a_n, b_n)
+        self.U = U
+
+    @classmethod
+    def convert(cls, matrix: Matrix, deflate_all=True):
+        """Constructs a PCF from a matrix"""
+        U = Matrix([[matrix[1, 0], -matrix[0, 0]], [0, 1]])
+        Uinv = Matrix([[1, matrix[0, 0]], [0, matrix[1, 0]]])
+        commutated = U * matrix * Uinv({n: n + 1})
+        normalized = (commutated / commutated[1, 0]).simplify()
+        if not (normalized[0, 0] == 0 and normalized[1, 0] == 1):
+            raise ValueError(
+                f"An error has occured when converting matrix {matrix} into a pcf"
+            )
+        pcf = cls(normalized[1, 1], normalized[0, 1], U)
+        pcf.inflate(matrix[1, 0])
+        if deflate_all:
+            pcf = pcf.deflate_all()
+        return pcf
+
+    def relative_limit(self):
+        relative_matrix = self.A() * self.U.subs(n, 1)
+        print(relative_matrix)

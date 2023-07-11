@@ -40,14 +40,6 @@ class Matrix(sp.Matrix):
 
     def as_pcf(self, deflate_all=True):
         """Returns the matrix's equivalent PCF with an equal limit up to a mobius transformation"""
-        from ramanujan.pcf import PCF
-        from sympy.abc import n
+        from ramanujan.pcf import PCFFromMatrix
 
-        U = Matrix([[self[1, 0], -self[0, 0]], [0, 1]])
-        Uinv = Matrix([[1, self[0, 0]], [0, self[1, 0]]])
-        commutated = U * self * Uinv({n: n + 1})
-        normalized = (commutated / commutated[1, 0]).simplify()
-        pcf = PCF.from_matrix(normalized).inflate(self[1, 0])
-        if deflate_all:
-            pcf = pcf.deflate_all()
-        return pcf
+        return PCFFromMatrix.convert(self, deflate_all)

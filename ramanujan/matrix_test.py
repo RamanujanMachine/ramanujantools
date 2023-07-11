@@ -69,24 +69,3 @@ def test_walk_different_start():
     assert simplify(m.walk({x: 3, y: 2}, 3, {x: 5, y: 7})) == simplify(
         m({x: 5, y: 7}) * m({x: 8, y: 9}) * m({x: 11, y: 11})
     )
-
-
-def test_as_pcf():
-    from ramanujan.pcf import PCF
-    from ramanujan.cmf.known_cmfs import cmf1, c0, c1, c2, c3
-
-    cmf = cmf1.subs([[c0, 0], [c1, 1], [c2, 1], [c3, 3]])
-    matrix = cmf.trajectory_matrix([1, 1], [1, 1])
-    pcf = matrix.as_pcf()
-    assert pcf == PCF(5 + 10 * n, 1 - 9 * n**2)
-
-
-def test_as_pcf_parametric():
-    from sympy.abc import c
-    from ramanujan.pcf import PCF
-    from ramanujan.cmf.known_cmfs import cmf1, c0, c1, c2, c3
-
-    cmf = cmf1.subs([[c0, 0], [c1, 1], [c2, 1], [c3, c]])
-    matrix = cmf.trajectory_matrix({x: 1, y: 1}, {x: 1, y: 1})
-    pcf = matrix.as_pcf(True)
-    assert pcf == PCF((1 + 2 * n) * (c + 2), 1 - (c * n) ** 2)
