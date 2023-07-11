@@ -1,5 +1,6 @@
 import math
 import sympy as sp
+import ramanujan
 
 
 class Matrix(sp.Matrix):
@@ -27,7 +28,7 @@ class Matrix(sp.Matrix):
     def limit(self, vector=sp.Matrix([[0], [1]])):
         """Returns the limit of the matrix, i.e, the ratio of M * v for some vector v"""
         p, q = self * vector
-        return sp.Float(p / q)
+        return sp.Float(p / q, ramanujan.dps)
 
     def walk(self, trajectory, iterations, start):
         """Returns the multiplication result of walking in a certain trajectory."""
