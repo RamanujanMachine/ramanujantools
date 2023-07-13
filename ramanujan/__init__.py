@@ -1,5 +1,8 @@
 from .matrix import Matrix
 from .precision import dps
-from .simplify import simplify
+from .simplify_object import simplify
 
-__all__ = ["Matrix", "simplify", "dps"]
+from .pcf import pcf
+from .cmf import cmf
+
+__all__ = ["Matrix", "simplify", "dps", "pcf", "cmf"]
