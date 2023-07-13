@@ -18,7 +18,7 @@ The most relevant pieces of code of this library are:
 
 ### Example: calculating the limit of zeta3 CMF alongside the diagonal
 ```python
-from ramanujan.cmf import known_cmfs # this might take a few seconds
+from ramanujan.cmf import known_cmfs
 
-known_cmfs.zeta3.limit([1,1], 100)
+known_cmfs.zeta3().limit([1,1], 100)
 ```
