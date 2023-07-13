@@ -71,7 +71,7 @@ class CMF:
         )
 
     def limit(
-        self, trajectory, iterations, start=[1, 1], vector=Matrix([[0], [1]])
+        self, trajectory, iterations, start=[1, 1], vector=Matrix.zero()
     ) -> sp.Float:
         """Returns the limit of walking in a certain trajectory."""
         return self.walk(trajectory, iterations, start).limit(vector)

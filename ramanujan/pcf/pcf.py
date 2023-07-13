@@ -99,6 +99,6 @@ class PCF:
         """Returns the matrix walk multiplication"""
         return self.M().walk({n: 1}, iterations, {n: start})
 
-    def limit(self, depth, start=1, vector=Matrix([[0], [1]])) -> sp.Float:
+    def limit(self, depth, start=1, vector=Matrix.zero()) -> sp.Float:
         """Calculates the convergence limit of the PCF"""
         return (self.A() * self.walk(depth, start)).limit(vector)

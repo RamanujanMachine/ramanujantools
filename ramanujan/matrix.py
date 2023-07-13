@@ -25,8 +25,8 @@ class Matrix(sp.Matrix):
         """Returns a simplified version of matrix"""
         return Matrix(sp.simplify(self))
 
-    def limit(self, vector=sp.Matrix([[0], [1]])):
-        """Returns the limit of the matrix, i.e, the ratio of M * v for some vector v"""
+    def limit(self, vector):
+        """Returns the limit of the matrix, i.e, the ratio of M * vector"""
         p, q = self * vector
         return sp.Float(p / q, ramanujan.dps)
 
@@ -44,3 +44,13 @@ class Matrix(sp.Matrix):
         from ramanujan.pcf import PCFFromMatrix
 
         return PCFFromMatrix.convert(self, deflate_all)
+
+    @staticmethod
+    def zero():
+        """Returns the zero vector ([[0], [1]])"""
+        return Matrix([[0], [1]])
+
+    @staticmethod
+    def inf():
+        """Returns the infinity vector ([[1], [0]])"""
+        return Matrix([[1], [0]])
