@@ -62,7 +62,7 @@ class PCF:
         )
 
     def __repr__(self):
-        return "PCF({}, {})".format(self.a_n, self.b_n)
+        return f"PCF({self.a_n}, {self.b_n})"
 
     def degree(self):
         return tuple(map(lambda p: sp.Poly(p, n).degree(), [self.a_n, self.b_n]))
@@ -104,13 +104,8 @@ class PCF:
         return (self.A() * self.walk(depth, start)).limit(vector)
 
 
-class PCFFromMatrix(PCF):
-    def __init__(self, a_n, b_n, U):
-        super().__init__(a_n, b_n)
-        self.U = U
-
-    @classmethod
-    def convert(cls, matrix: Matrix, deflate_all=True):
+class PCFFromMatrix:
+    def __init__(self, matrix: Matrix, deflate_all=True):
         """Constructs a PCF from a matrix"""
         U = Matrix([[matrix[1, 0], -matrix[0, 0]], [0, 1]])
         Uinv = Matrix([[1, matrix[0, 0]], [0, matrix[1, 0]]])
@@ -120,12 +115,13 @@ class PCFFromMatrix(PCF):
             raise ValueError(
                 f"An error has occured when converting matrix {matrix} into a pcf"
             )
-        pcf = cls(normalized[1, 1], normalized[0, 1], U)
+        pcf = PCF(normalized[1, 1], normalized[0, 1])
         pcf.inflate(matrix[1, 0])
         if deflate_all:
             pcf = pcf.deflate_all()
-        return pcf
+        self.pcf = pcf
+        self.U = U
 
     def relative_limit(self):
-        relative_matrix = self.A() * self.U.subs(n, 1)
-        print(relative_matrix)
+        """Returns the mobius transform between the original matrix limit and the pcf limit"""
+        return self.pcf.A() * self.U.subs(n, 1)
