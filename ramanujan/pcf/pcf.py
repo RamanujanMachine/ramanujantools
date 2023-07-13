@@ -51,18 +51,6 @@ def content(a, b, variables):
 
 
 class PCF:
-    @staticmethod
-    def is_pcf(M: Matrix):
-        """Checks if the given matrix is of a PCF form"""
-        return M[0, 0] == 0 and M[1, 0] == 1
-
-    @classmethod
-    def from_matrix(cls, M: Matrix):
-        """Constructs a PCF from a matrix"""
-        if not PCF.is_pcf(M):
-            raise ValueError("The given matrix M is not of a PCF form!")
-        return cls(M[1, 1], M[0, 1])
-
     def __init__(self, a_n, b_n):
         self.a_n = sp.simplify(a_n)
         self.b_n = sp.simplify(b_n)
@@ -74,7 +62,7 @@ class PCF:
         )
 
     def __repr__(self):
-        return "PCF({}, {})".format(self.a_n, self.b_n)
+        return f"PCF({self.a_n}, {self.b_n})"
 
     def degree(self):
         return tuple(map(lambda p: sp.Poly(p, n).degree(), [self.a_n, self.b_n]))

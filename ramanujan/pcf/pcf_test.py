@@ -1,15 +1,8 @@
-from pytest import approx, raises
+from pytest import approx
 from sympy.abc import c, n
 
 from ramanujan import Matrix
 from ramanujan.pcf import PCF
-
-
-def test_from_matrix_throws():
-    with raises(ValueError):
-        PCF.from_matrix(Matrix([[0, 0], [0, 0]]))
-    with raises(ValueError):
-        PCF.from_matrix(Matrix([[1, 1], [1, 1]]))
 
 
 def test_repr():
