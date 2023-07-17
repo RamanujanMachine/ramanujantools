@@ -7,16 +7,6 @@ from ramanujan import Matrix, Vector, simplify
 class CMF:
     variables = [x, y]
 
-    @staticmethod
-    def _initialize_positions(*positions):
-        return tuple(map(CMF._initialize_position, positions))
-
-    @staticmethod
-    def _initialize_position(position):
-        if type(position) == list:
-            return dict(zip(CMF.variables, position))
-        return position
-
     def __init__(self, Mx: Matrix, My: Matrix):
         self.Mx = Mx
         self.My = My
@@ -33,45 +23,50 @@ class CMF:
         """Returns a new CMF with simplified Mx and My"""
         return CMF(simplify(self.Mx), simplify(self.My))
 
-    def trajectory_matrix(self, trajectory, start=None) -> Matrix:
+    def trajectory_matrix(self, trajectory: dict, start: dict = None) -> Matrix:
         """Returns the corresponding matrix for walking in trajectory.
 
         If start is given, the new matrix will be reduces to a single variable `n`.
         """
-        trajectory, start = CMF._initialize_positions(trajectory, start)
         m = self.Mx.walk({x: 1, y: 0}, trajectory[x], {x: x, y: y})
         m *= self.My.walk({x: 0, y: 1}, trajectory[y], {x: x + trajectory[x], y: y})
         if start is not None:
             m = CMF.substitute_trajectory(m, trajectory, start)
         return simplify(m)
 
-    def as_pcf(self, trajectory, start={x: 1, y: 1}):
+    def as_pcf(self, trajectory, start: dict = {x: 1, y: 1}):
         """Returns the PCF equivalent of the CMF in a certain trajectory"""
         return self.trajectory_matrix(trajectory, start).as_pcf()
 
     @staticmethod
-    def substitute_trajectory(trajectory_matrix: Matrix, trajectory, start):
+    def substitute_trajectory(
+        trajectory_matrix: Matrix, trajectory: dict, start: dict
+    ) -> Matrix:
         """Returns trajectory_matrix reduced to a single variable `n`."""
         from sympy.abc import n
-
-        trajectory, start = CMF._initialize_positions(trajectory, start)
 
         def sub(i):
             return start[i] + (n - 1) * trajectory[i]
 
         return trajectory_matrix.subs([(x, sub(x)), (y, sub(y))])
 
-    def walk(self, trajectory, iterations, start=[1, 1]) -> Matrix:
+    def walk(
+        self, trajectory: dict, iterations: int, start: dict = {x: 1, y: 1}
+    ) -> Matrix:
         """Returns the multiplication matrix of walking in a certain trajectory."""
         trajectory_matrix = self.trajectory_matrix(trajectory, start)
         return trajectory_matrix.walk(
             {n: 1},
-            iterations // sum(trajectory),
+            iterations // sum(trajectory.values()),
             {n: 1},
         )
 
     def limit(
-        self, trajectory, iterations, start=[1, 1], vector=Vector.zero()
+        self,
+        trajectory: dict,
+        iterations: int,
+        start: dict = {x: 1, y: 1},
+        vector: Vector = Vector.zero(),
     ) -> sp.Float:
         """Returns the limit of walking in a certain trajectory."""
         return self.walk(trajectory, iterations, start).limit(vector)
