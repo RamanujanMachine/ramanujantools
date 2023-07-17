@@ -84,13 +84,3 @@ class Matrix(sp.Matrix):
         from ramanujan.pcf import PCFFromMatrix
 
         return PCFFromMatrix(self, deflate_all)
-
-    @staticmethod
-    def zero():
-        r"""Returns the zero vector $\begin{pmatrix} 0 \cr 1 \end{pmatrix}$"""
-        return Matrix([[0], [1]])
-
-    @staticmethod
-    def inf():
-        r"""Returns the infinity vector $\begin{pmatrix} 1 \cr 0 \end{pmatrix}$"""
-        return Matrix([[1], [0]])

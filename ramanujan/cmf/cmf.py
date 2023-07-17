@@ -1,7 +1,7 @@
 import sympy as sp
 from sympy.abc import n, x, y
 
-from ramanujan import Matrix, simplify
+from ramanujan import Matrix, Vector, simplify
 
 
 class CMF:
@@ -71,7 +71,7 @@ class CMF:
         )
 
     def limit(
-        self, trajectory, iterations, start=[1, 1], vector=Matrix.zero()
+        self, trajectory, iterations, start=[1, 1], vector=Vector.zero()
     ) -> sp.Float:
         """Returns the limit of walking in a certain trajectory."""
         return self.walk(trajectory, iterations, start).limit(vector)
