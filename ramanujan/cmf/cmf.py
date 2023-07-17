@@ -28,6 +28,9 @@ class CMF:
         if simplify(Mxy - Myx) != Matrix([[0, 0], [0, 0]]):
             raise ValueError("The given Mx and My matrices are not conserving!")
 
+    def __repr__(self):
+        return f"CMF({self.Mx}, {self.My})"
+
     def subs(self, *args, **kwrags):
         """Returns a new CMF with substituted Mx and My."""
         return CMF(self.Mx.subs(*args, **kwrags), self.My.subs(*args, **kwrags))
