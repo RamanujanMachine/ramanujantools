@@ -1,7 +1,7 @@
 import sympy as sp
 from sympy.abc import n
 
-from ramanujan import Matrix
+from ramanujan import Matrix, Vector
 
 
 def is_deflatable(a_factors, b_factors, factor):
@@ -51,9 +51,20 @@ def content(a, b, variables):
 
 
 class PCF:
+    """
+    Represents a Polynomial Continued Fraction (PCF).
+    """
+
     def __init__(self, a_n, b_n):
+        """
+        Initializes a PCF with `a_n` and `b_n` polynomials, for example:
+        `pcf = PCF(5 + 10 * n, 1 - 9 * n**2)`
+        """
         self.a_n = sp.simplify(a_n)
+        """The a_n polynomial"""
+
         self.b_n = sp.simplify(b_n)
+        """The b_n polynomial"""
 
     def __eq__(self, other):
         return (
@@ -65,26 +76,48 @@ class PCF:
         return f"PCF({self.a_n}, {self.b_n})"
 
     def degree(self):
+        """
+        Returns the degrees of a_n and b_n as a tuple: $(deg(a_n), deg(b_n))$
+        """
         return tuple(map(lambda p: sp.Poly(p, n).degree(), [self.a_n, self.b_n]))
 
     def M(self):
-        """Returns the matrix that represents the PCF"""
+        r"""
+        Returns the matrix that represents the PCF recurrence:
+
+        $M = \begin{pmatrix} 0, b_n \cr 1, a_n \end{pmatrix}$
+        """
         return Matrix([[0, self.b_n], [1, self.a_n]])
 
     def A(self):
-        """Returns the matrix A used to calculate the limit (represents a0)"""
+        r"""
+        Returns the matrix that represents the $a_0$ part:
+
+        $A = \begin{pmatrix} 1, a_0 \cr 0, 1 \end{pmatrix}$
+        """
         return Matrix([[1, self.a_n.subs(n, 0)], [0, 1]])
 
     def inflate(self, c_n):
-        """Inflates the PCF by c_n"""
+        """
+        Inflates the PCF by $c_n$.
+
+        Inflation is the process of creating an almost equivalent PCF,
+        such that $a_n' = a_n * c_n, b_n' = b_n * c_n * c_{n-1}$
+        """
         return PCF(self.a_n * c_n, self.b_n * c_n.subs(n, n - 1) * c_n).simplify()
 
     def deflate(self, c_n):
-        """Deflates the PCF by c_n"""
+        """
+        Deflates the PCF by $c_n$
+
+        Deflation is the opposite process of inflation - or inflating by $c_n^{-1}$
+        """
         return self.inflate(1 / c_n)
 
     def deflate_all(self):
-        """Deflates the PCF to the fullest extent"""
+        """
+        Deflates the PCF to the fullest extent, by calculating the biggest $c_n$ possibly deflated
+        """
         return self.deflate(content(self.a_n, self.b_n, [n]))
 
     def simplify(self):
@@ -96,9 +129,30 @@ class PCF:
         return PCF(self.a_n.subs(*args, **kwargs), self.b_n.subs(*args, **kwargs))
 
     def walk(self, iterations, start=1) -> Matrix:
-        """Returns the matrix walk multiplication"""
-        return self.M().walk({n: 1}, iterations, {n: start})
+        r"""
+        Returns the matrix corresponding to calculating the PCF up to a certain depth, including $a_0$
 
-    def limit(self, depth, start=1, vector=Matrix([[0], [1]])) -> sp.Float:
-        """Calculates the convergence limit of the PCF"""
-        return (self.A() * self.walk(depth, start)).limit(vector)
+        This is essentially $A \cdot \prod_{i=0}^{n-1}M(s + i)$ where `n=iterations` and `s=start`
+
+        Args:
+            iterations: The multiplication iterations amount
+            start: The n value of the first matrix to be multiplied (1 by default)
+        Returns:
+            the walk multiplication as defined above.
+        """
+        return self.A() * self.M().walk({n: 1}, iterations, {n: start})
+
+    def limit(self, depth, start=1, vector=Vector.zero()) -> sp.Float:
+        """
+        Calculates the convergence limit of the PCF up to a certain `depth`.
+
+        This is essentially the same as `self.walk(depth, start).limit(vector)`
+
+        Args:
+            depth: The desired depth of the calculation
+            start: The n value of the first matrix to be multiplied (1 by default)
+            vector: The final vector to multiply the matrix by (the zero vector by default)
+        Returns:
+            The pcf convergence limit as defined above.
+        """
+        return self.walk(depth, start).limit(vector)

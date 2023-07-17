@@ -1,5 +1,5 @@
 from pytest import approx
-from sympy.abc import n, x, y
+from sympy.abc import x, y
 
 from ramanujan import Matrix, simplify
 
