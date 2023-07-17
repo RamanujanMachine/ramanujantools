@@ -82,7 +82,7 @@ class CMF:
     def walk(
         self, trajectory: dict, iterations: int, start: dict = {x: 1, y: 1}
     ) -> Matrix:
-        """
+        r"""
         Returns the multiplication matrix of walking in a certain trajectory.
 
         The walk operation is defined as $\prod_{i=0}^{n-1}M(s_0 + i \cdot t_0, ..., s_k + i \cdot t_k)$,

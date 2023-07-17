@@ -1,7 +1,6 @@
 from pytest import approx
 from sympy.abc import c, n
 
-from ramanujan import Matrix
 from ramanujan.pcf import PCF
 
 
