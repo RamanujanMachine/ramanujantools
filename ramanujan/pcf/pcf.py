@@ -53,12 +53,13 @@ def content(a, b, variables):
 class PCF:
     """
     Represents a Polynomial Continued Fraction (PCF).
-
-    Initialized using $a_n$ and $b_n$ polynomials:
-    `pcf = PCF(5 + 10 * n, 1 - 9 * n**2)`
     """
 
     def __init__(self, a_n, b_n):
+        """
+        Initializes a PCF with `a_n` and `b_n` polynomials, for example:
+        `pcf = PCF(5 + 10 * n, 1 - 9 * n**2)`
+        """
         self.a_n = sp.simplify(a_n)
         """The a_n polynomial"""
 
@@ -145,12 +146,12 @@ class PCF:
         """
         Calculates the convergence limit of the PCF up to a certain `depth`.
 
-        This is essentially the same as walk(depth, start).limit(vector)
+        This is essentially the same as `self.walk(depth, start).limit(vector)`
 
         Args:
             depth: The desired depth of the calculation
             start: The n value of the first matrix to be multiplied (1 by default)
-            vector: The final vector to multiply the matrix by, zero vector by default.
+            vector: The final vector to multiply the matrix by (the zero vector by default)
         Returns:
             The pcf convergence limit as defined above.
         """
