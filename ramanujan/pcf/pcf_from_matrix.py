@@ -22,6 +22,9 @@ class PCFFromMatrix:
         self.pcf = pcf
         self.U = U
 
+    def __eq__(self, other):
+        return self.pcf == other.pcf and self.U == other.U
+
     def relative_limit(self):
         """Returns the mobius transform between the original matrix limit and the pcf limit"""
         return self.pcf.A() * self.U.subs(n, 1)

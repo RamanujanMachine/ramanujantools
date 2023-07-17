@@ -83,7 +83,7 @@ class Matrix(sp.Matrix):
         """
         from ramanujan.pcf import PCFFromMatrix
 
-        return PCFFromMatrix.convert(self, deflate_all)
+        return PCFFromMatrix(self, deflate_all)
 
     @staticmethod
     def zero():
