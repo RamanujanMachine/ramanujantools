@@ -4,7 +4,6 @@ from ramanujan import Matrix
 class Vector(Matrix):
     def __init__(self, vector: list):
         vector_as_lists = list(map(lambda x: [x], vector))
-        print(vector_as_lists)
         Matrix.__init__(vector_as_lists)
 
     @staticmethod
