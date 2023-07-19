@@ -1,8 +1,10 @@
+import sympy as sp
 from pytest import raises
 from sympy.abc import x, y, n
 
 from ramanujan import Matrix, simplify
 from ramanujan.cmf import CMF, known_cmfs
+from ramanujan import Vector
 
 
 DEFAULT_START = {x: x, y: y}
@@ -81,4 +83,10 @@ def test_substitute_trajectory_walk_equivalence():
 
 def test_cache_calculation_method():
     cmf = known_cmfs.zeta3()
+    cmf.reset_potential_cache([40,40], initial_mat=Matrix(sp.eye(2)))
     assert cmf.walk({x:1, y:1}, 40).limit(Vector.zero()) == cmf[40,40].limit(Vector.zero())
+
+
+def test_cache_data():
+    cmf = known_cmfs.zeta3()
+    assert cmf.walk({x:1, y:1}, 40).limit(Vector.zero()) == cmf.potential_cache[40][40].limit(Vector.zero())
