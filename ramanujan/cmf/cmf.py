@@ -29,12 +29,12 @@ class CMF:
         if simplify(Mxy - Myx) != Matrix([[0, 0], [0, 0]]):
             raise ValueError("The given Mx and My matrices are not conserving!")
 
+        self.initial_loc = initial_loc
         if potential_cache_file is not None:
             self.potential_cache = self.load_potential_from_file(potential_cache_file)
         else:
             self.reset_potential_cache(maximal_cache_dims, initial_mat)
 
-        self.initial_loc = initial_loc
 
     def __repr__(self):
         return f"CMF({self.Mx}, {self.My})"
