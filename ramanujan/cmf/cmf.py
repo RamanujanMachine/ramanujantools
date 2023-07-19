@@ -32,14 +32,19 @@ class CMF:
         if potential_cache_file is not None:
             self.potential_cache = self.load_potential_from_file(potential_cache_file)
         else:
-            self.potential_cache = [
-                [None for _ in range(maximal_cache_dims[1]+1)] 
-                    for _ in range(maximal_cache_dims[0]+1)]
+            self.reset_potential_cache(maximal_cache_dims, initial_mat)
+
         self.initial_loc = initial_loc
-        self.potential_cache[initial_loc[0]][initial_loc[1]] = initial_mat
 
     def __repr__(self):
         return f"CMF({self.Mx}, {self.My})"
+
+    def reset_potential_cache(self, maximal_cache_dims, initial_mat):
+        self.potential_cache = [
+            [None for _ in range(maximal_cache_dims[1]+1)] 
+                for _ in range(maximal_cache_dims[0]+1)]
+
+        self.potential_cache[self.initial_loc[0]][self.initial_loc[1]] = initial_mat
 
     def subs(self, *args, **kwrags):
         """Returns a new CMF with substituted Mx and My."""
