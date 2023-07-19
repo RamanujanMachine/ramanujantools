@@ -35,7 +35,6 @@ class CMF:
         else:
             self.reset_potential_cache(maximal_cache_dims, initial_mat)
 
-
     def __repr__(self):
         return f"CMF({self.Mx}, {self.My})"
 

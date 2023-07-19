@@ -15,5 +15,6 @@ setup(
     install_requires=[
         "sympy>=1.11.1",
         "scipy>=1.10.1",
+        "gmpy2>=2.1.5",
     ],
 )
