@@ -77,3 +77,8 @@ def test_substitute_trajectory_walk_equivalence():
     assert subbed.walk({n: 1}, iterations, {n: 1}) == unsubbed.walk(
         trajectory, iterations, start
     )
+
+
+def test_cache_calculation_method():
+    cmf = known_cmfs.zeta3()
+    assert cmf.walk({x:1, y:1}, 40).limit(Vector.zero()) == cmf[40,40].limit(Vector.zero())
