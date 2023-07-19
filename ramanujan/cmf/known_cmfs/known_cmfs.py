@@ -1,5 +1,8 @@
 import sympy as sp
+import os
 from sympy.abc import x, y
+from os.path import dirname
+from os.path import join as path_join
 
 from ramanujan import Matrix
 from ramanujan.cmf import CMF, ffbar
@@ -8,6 +11,8 @@ c0 = sp.Symbol("c0")
 c1 = sp.Symbol("c1")
 c2 = sp.Symbol("c2")
 c3 = sp.Symbol("c3")
+
+CACHED_CMFS_PATH = path_join(dirname(__file__), 'cached_cmfs')
 
 
 def e():
@@ -37,6 +42,7 @@ def zeta3():
                 [x**3, x**3 + 2 * x**2 * y + 2 * x * y**2 + y**3],
             ]
         ),
+        potential_cache_file=path_join(CACHED_CMFS_PATH, 'zeta3_cmf_first_50x50_cells.pkl')
     )
 
 

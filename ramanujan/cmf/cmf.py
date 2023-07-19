@@ -1,6 +1,6 @@
 import sympy as sp
+import pickle
 from sympy.abc import n, x, y
-
 from ramanujan import Matrix, Vector, simplify
 from ramanujan.pcf import PCFFromMatrix
 
@@ -14,7 +14,7 @@ class CMF:
     """
 
     def __init__(self, Mx: Matrix, My: Matrix, maximal_cache_dims=(50, 50), 
-        initial_mat=Matrix(sp.eye(2)), initial_loc=(1,1)):
+        initial_mat=Matrix(sp.eye(2)), initial_loc=(1,1), potential_cache_file=None):
         """
         Initializes a CMF with `Mx` and `My` matrices
         """
@@ -29,9 +29,12 @@ class CMF:
         if simplify(Mxy - Myx) != Matrix([[0, 0], [0, 0]]):
             raise ValueError("The given Mx and My matrices are not conserving!")
 
-        self.potential_cache = [
-            [None for _ in range(maximal_cache_dims[1])] 
-                for _ in range(maximal_cache_dims[0])]
+        if potential_cache_file is not None:
+            self.potential_cache = self.load_potential_from_file(potential_cache_file)
+        else:
+            self.potential_cache = [
+                [None for _ in range(maximal_cache_dims[1]+1)] 
+                    for _ in range(maximal_cache_dims[0]+1)]
         self.initial_loc = initial_loc
         self.potential_cache[initial_loc[0]][initial_loc[1]] = initial_mat
 
@@ -132,6 +135,12 @@ class CMF:
         return self.walk(trajectory, iterations, start).limit(vector)
 
     def __getitem__(self, location):
+        """
+        Same as `potential`.
+        """
+        return self.potential(location)
+
+    def potential(self, location):
         r"""
         Returns the potential matrix of the conservative matrix field at a given location.
 
@@ -171,3 +180,21 @@ class CMF:
                 self.potential_cache[x_target][y_i-1] * self.My.subs({x: x_target, y: y_i-1})
 
         return self.potential_cache[x_target][y_target]
+
+    def calculate_over_range(self, max_x, max_y):
+        """
+        calculates the CMF in first quandrant up to (max_x, max_y).
+        """
+        
+        # The calculation method in `potential` takes steps over the x axis first, then over y.
+        # Since it caches elements while calculating, this will lead to caching of the entire space. 
+        for x_i in range(self.initial_loc[0], max_x+1):
+            self.potential([x_i, max_y])
+
+    def dump_potential_to_file(self, dest_path):
+        with open(dest_path, 'wb') as f:
+            pickle.dump(self.potential_cache, f)
+
+    def load_potential_from_file(self, cache_path):
+        with open(cache_path, 'rb') as f:
+            return pickle.load(f)
