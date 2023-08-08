@@ -75,6 +75,17 @@ class EulerSolution:
             tuple(self.b.all_coeffs()),
             tuple(self.f.all_coeffs())))
 
+    @staticmethod
+    def _poly_eq(poly1: Poly, poly2: Poly):
+        """
+        Use this equality in case the polynomials have non integer algebraic coefficients
+        """
+        coeffs1 = [sympy.simplify(c) for c in poly1.all_coeffs()]
+        coeffs2 = [sympy.simplify(c) for c in poly2.all_coeffs()]
+        if len(coeffs1) != len(coeffs2):
+            return False
+        return all(c1 == c2 for c1, c2 in zip(coeffs1, coeffs2))
+
     def __eq__(self, other):
         if not isinstance(other, EulerSolution):
             return False
@@ -88,7 +99,11 @@ class EulerSolution:
         # check if f and g are the same up to scalar
         if any(lead_f*g_elem - lead_g*f_elem for f_elem, g_elem in zip(f_coef, g_coef)):
             return False
-        return (self.h_1 == other.h_1) and (self.h_2 == other.h_2) and (self.a == other.a) and (self.b == other.b)
+        return \
+            EulerSolution._poly_eq(self.h_1, other.h_1) and \
+            EulerSolution._poly_eq(self.h_2, other.h_2) and \
+            EulerSolution._poly_eq(self.a, other.a) and \
+            EulerSolution._poly_eq(self.b, other.b)
 
 
 class Coefficients:
@@ -129,12 +144,12 @@ class EulerSolver:
         works under the assumption that $a(x),b(x)$ are integeral, and so are $h_1(x),h_2(x)$ in the solutions.
         :return: A list of all possible solutions.
         """
-        # Make sure that the paramters are actually polynomials
+        # Make sure that the parameters are actually polynomials
         a = Poly(a, x)
         b = Poly(b, x)
 
         roots = b.all_roots()
-        if len(roots) + 1 < len(b.all_coeffs()):
+        if len(roots) < b.degree():
             # TODO: consider adding an exception
             print(f'Could not find all the roots for {b.expr}')
             return []
@@ -147,7 +162,7 @@ class EulerSolver:
             else:
                 roots_dict[root] = 1
 
-        leading_coefficient = b.all_coeffs()[0]
+        leading_coefficient = b.LC()
 
         return EulerSolver.solve_for_monic_decomposition(a, roots_dict, leading_coefficient)
 
@@ -190,51 +205,36 @@ class EulerSolver:
                 # then c1 + c2 = 0, and c1*c2 = -c1*c1 = -leading_coefficient
                 if leading_coefficient_b < 0:
                     continue  # TODO: add support to non integer solutions
-                c = int(math.sqrt(leading_coefficient_b))
-                if c*c != leading_coefficient_b:
-                    continue  # TODO: add support to non integer solutions
+                c = sympy.sqrt(leading_coefficient_b)
 
                 solutions += EulerSolver.solve_for_decomposition(a, c * monic_poly_1, -c * monic_poly_2)
                 solutions += EulerSolver.solve_for_decomposition(a, -c * monic_poly_1, c * monic_poly_2)
                 continue
 
-            # now deg_a >= deg_h1, deg_h2
-            a_coef = list(reversed(a.all_coeffs())) + [0] * (d - sympy.degree(a))
-            leading_coef_a = a_coef[d]
+            # now d=deg_a >= deg_h1, deg_h2
+            leading_coefficient_a = a.LC()
 
             if deg_h1 < deg_h2:  # and automatically deg_a = deg_h2 = d
-                c2 = leading_coef_a
-                c1 = float(-leading_coefficient_b / c2)
-                if not c1.is_integer():
-                    continue  # TODO: add support to non integer solutions
-                c1 = int(c1)
+                c2 = leading_coefficient_a
+                c1 = -leading_coefficient_b / c2
                 solutions += EulerSolver.solve_for_decomposition(a, c1 * monic_poly_1, c2 * monic_poly_2)
                 continue
 
             if deg_h2 < deg_h1:  # and automatically deg_a = deg_h1 = d
-                c1 = leading_coef_a
-                c2 = float(-leading_coefficient_b / c1)
-                if not c2.is_integer():
-                    continue  # TODO: add support to non integer solutions
-                c2 = int(c2)
+                c1 = leading_coefficient_a
+                c2 = -leading_coefficient_b / c1
                 solutions += EulerSolver.solve_for_decomposition(a, c1 * monic_poly_1, c2 * monic_poly_2)
                 continue
 
             # Left with the case of deg_a = deg_h_1 = deg_h_2 = d, so that
-            # c1 + c2 = leading_coef_a
+            # c1 + c2 = leading_coefficient_a
             # c1 * c2 = - leading_coefficient_b
             # so that they are solutions to
-            # (c - c1)*(c - c2) = c^2 - leading_coef_a * c - leading_coefficient_b
-            disc = math.sqrt(leading_coef_a ** 2 + 4 * leading_coefficient_b)
-            if not disc.is_integer():
-                continue  # TODO: add support to non integer solutions
-            c1 = float((leading_coef_a + disc) / 2)
-            c2 = float((leading_coef_a - disc) / 2)
-            if not (c1.is_integer() and c2.is_integer()):
-                continue  # TODO: add support to non integer solutions
+            # (c - c1)*(c - c2) = c^2 - leading_coefficient_a * c - leading_coefficient_b
+            disc = sympy.sqrt(leading_coefficient_a ** 2 + 4 * leading_coefficient_b)
+            c1 = (leading_coefficient_a + disc) / 2
+            c2 = (leading_coefficient_a - disc) / 2
 
-            c1 = int(c1)
-            c2 = int(c2)
             solutions += EulerSolver.solve_for_decomposition(a, c1 * monic_poly_1, c2 * monic_poly_2)
             if c1 != c2:
                 solutions += EulerSolver.solve_for_decomposition(a, c2 * monic_poly_1, c1 * monic_poly_2)
@@ -284,8 +284,8 @@ class EulerSolver:
         num = a_coef[d - 1] - h_1_coef[d - 1] - h_2_plus_coef[d - 1]
         denom = h_2_plus_coef[d] - h_1_coef[d]
         if denom != 0:
-            deg = float(num / denom)
-            if deg >= 0 and deg.is_integer():
+            deg = float(sympy.simplify(num / denom))
+            if deg.is_integer() and int(deg) >= 0:
                 return [int(deg)]
             return []
 
@@ -304,7 +304,7 @@ class EulerSolver:
 
         # the possible degrees are the roots for coef2 * x^2 + coef1 * x + coef0 = 0
         disc = math.sqrt(coef1**2 - 4*coef2*coef0)
-        roots = [(-coef1+disc)/(2*coef2), (-coef1-disc)/(2*coef2)]
+        roots = [sympy.simplify((-coef1+disc)/(2*coef2)), sympy.simplify((-coef1-disc)/(2*coef2))]
 
         return [int(root) for root in roots if float(root).is_integer() and root >= 0]
 
@@ -334,10 +334,10 @@ class EulerSolver:
 
         p = f * a - f_minus * h_1 - f_plus * h_2_plus
 
-        solution = sympy.solve(p.all_coeffs(), yy)
-        if len(solution) == 0:
+        assignment = sympy.solve(p.all_coeffs(), yy)
+        if len(assignment) == 0:
             return False
 
         # TODO: If there is a solution, does it have to be unique?
-        f_solved = f.subs(sympy.solve(p.all_coeffs(), yy))
+        f_solved = f.subs(assignment)
         return EulerSolution(h_1=Poly(h_1, x), h_2=Poly(h_2, x), a=a, b=b, f=Poly(f_solved, x))
