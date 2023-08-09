@@ -14,11 +14,20 @@ Either there is a trivial solution (f=1), general solution (general f), or no so
 Right now, the EulerSolver only works when all the polynomials are over Z.
 """
 
+sqrt5 = sympy.sqrt(5)
 
 @pytest.mark.parametrize("h1,h2", [
-    (1, 1), (1, x), (x, 1), (1, x**2), (x**2, 1), (x+1, x**2), (x**2, x+1),
-    ((x+1), (x-1)*(x-2)), ((x+1)*(x-5)*(x+9), (x-1)*(x-2)),
-    (x**3, x**3), (x*x*(x+5), x*(x-3)*(x-10)), (x**3, -x**3), (-x**3, x**3), ((x+1)*(x+2), -(x+1)*(x+4))
+    # degree(h_1) = degree(h_2) = degree(a):=degree(h_1+h_2)
+    (1, 1), (x**3, x**3), (x*x*(x+5), x*(x-3)*(x-10)),
+    # degree(h_1) = degree(h_2) > degree(a):=degree(h_1+h_2)
+    (x**3, -x**3), (-x**3, x**3), ((x+1)*(x+2), -(x+1)*(x+4)),
+    # degree(h_1) < degree(h_2)
+    (1, x), (1, x**2), (x+1, x**2), ((x+1), (x-1)*(x-2)),
+    # degree(h_1) > degree(h_2)
+    (x, 1), (x**2, 1), (x**2, x+1), ((x+1)*(x-5)*(x+9), (x-1)*(x-2)),
+    # some non rational algebraic examples:
+    ((1+sqrt5)/2, (1-sqrt5)/2), ((1+sqrt5)/2, x*(1-sqrt5)/2),
+    (-x*(1+sqrt5)/2, x*(1-sqrt5)/2), (x**2 * (1+sqrt5), x**2 * (1-sqrt5))
 ])
 def test_trivial_euler_family(h1: sympy.Poly, h2: sympy.Poly):
     h2 = sympy.Poly(h2, x)  # needed for the subs(x, x+1) called below
