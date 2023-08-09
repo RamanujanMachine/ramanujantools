@@ -5,6 +5,8 @@ from sympy import Poly
 from sympy.abc import x
 from typing import Dict, List, Union
 
+from ramanujan.generic_polynomial import GenericPolynomial
+
 
 r"""
 We say that a polynomial continued fraction (PCF) with functions $a(x), b(x)$ is in Euler's form,
@@ -327,14 +329,13 @@ class EulerSolver:
 
         # Create the polynomial f, and the recursion it needs to solve, namely
         #    f(x)a(x) = f(x-1)h_1(x) + f(x+1)h_2(x+1)
-        yy = sympy.symbols(f'y:{d_f}')
-        f = x ** d_f + sum(yy[i] * x ** i for i in range(d_f))
+        f, f_ = GenericPolynomial.of_degree(deg=d_f, var_name='f_', s=x, monic=True)
         f_plus = Poly(f.subs(x, x + 1), x)
         f_minus = Poly(f.subs(x, x - 1), x)
 
         p = f * a - f_minus * h_1 - f_plus * h_2_plus
 
-        assignment = sympy.solve(p.all_coeffs(), yy)
+        assignment = sympy.solve(p.all_coeffs(), f_)
         if len(assignment) == 0:
             return False
 
