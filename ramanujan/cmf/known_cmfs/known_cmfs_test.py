@@ -32,3 +32,11 @@ def test_cmf1():
         assert cmf.subs([[c0, 0], [c1, a], [c2, 0], [c3, b]]).limit(
             {x: 1, y: 1}, 100
         ) == approx(-a + b / log(1 + b / a), 1e-4)
+
+
+def test_var_root_cmf():
+    '''
+    Checks that the multi_cmf is indeed a cmf. If it is not, then an exception will be raised
+    which will fail this test
+    '''
+    known_cmfs.var_root_cmf()
