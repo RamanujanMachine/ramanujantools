@@ -4,10 +4,7 @@ from sympy.abc import x, y
 from ramanujan import Matrix
 from ramanujan.cmf import CMF, ffbar
 
-c0 = sp.Symbol("c0")
-c1 = sp.Symbol("c1")
-c2 = sp.Symbol("c2")
-c3 = sp.Symbol("c3")
+c0, c1, c2, c3, c4 = sp.symbols("c:5")
 
 
 def e():
@@ -37,6 +34,28 @@ def zeta3():
                 [x**3, x**3 + 2 * x**2 * y + 2 * x * y**2 + y**3],
             ]
         ),
+    )
+
+
+def var_root_cmf():
+    '''
+    This is not a standard f,bar(f) matrix field.
+    Note that b(x,y) depends on y, while a(x) does not, and x=c/2-y is the root which depends on y
+    '''
+    Y=2*y-c2
+    b = -x*(x+c0)*(x+c1)*(2*x+Y)
+    a = (2*x+c1+1)*(2*x+c0+1)-x*(x+1)
+    F = x**2 + x*(Y+1) + (Y+1-c1)*(Y+1-c0)
+    G = -(Y+2*x)*(x+c1+c0-(Y+1))
+    return CMF(
+        Mx=Matrix([
+            [0, b],
+            [1, a]
+        ]),
+        My=Matrix([
+            [G, b],
+            [1, F]
+        ])
     )
 
 
