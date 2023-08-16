@@ -13,16 +13,24 @@ class PCFFromMatrix:
 
         `converted = PCFFromMatrix(Matrix, deflate_all=True)`
         """
-        U = Matrix([[matrix[1, 0], -matrix[0, 0]], [0, 1]])
-        Uinv = Matrix([[1, matrix[0, 0]], [0, matrix[1, 0]]])
-        commutated = U * matrix * Uinv({n: n + 1})
+        U = Matrix([
+            [1, matrix[0, 0]], 
+            [0, matrix[1, 0]]
+            ])
+        Uinv = Matrix([
+            [1, -matrix[0, 0]/matrix[1, 0]], 
+            [0, 1/matrix[1, 0]]
+            ])
+
+        commutated = Uinv * matrix * U({n: n + 1})
         normalized = (commutated / commutated[1, 0]).simplify()
         if not (normalized[0, 0] == 0 and normalized[1, 0] == 1):
             raise ValueError(
                 f"An error has occured when converting matrix {matrix} into a pcf"
             )
+
         pcf = PCF(normalized[1, 1], normalized[0, 1])
-        pcf.inflate(matrix[1, 0])
+        pcf = pcf.inflate(matrix[1, 0])
         if deflate_all:
             pcf = pcf.deflate_all()
 
