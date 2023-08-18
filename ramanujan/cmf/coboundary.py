@@ -3,6 +3,7 @@ from sympy import Poly, Symbol
 from sympy.abc import x
 from typing import Dict, List, Optional, Tuple
 
+from ramanujan.generic_polynomial import GenericPolynomial
 from ramanujan.matrix import Matrix
 from ramanujan.simplify_object import simplify
 
@@ -13,16 +14,6 @@ class CoboundarySolver:
     is there a solution $m(x)$ to
     $m1(x) * m(x+1) = m(x) * m2(x)$.
     """
-
-    @staticmethod
-    def generic_poly(deg: int, var_name: str, s: Symbol) -> Tuple[Poly, List[Symbol]]:
-        r"""
-        Creates and returns a generic polynomial of degree 'deg' with a list of its generic symbols
-        """
-        # TODO : move this method to a more general location, so other places can use it
-        poly_vars = sympy.symbols(f'{var_name}:{deg + 1}')
-        poly = Poly(sum(poly_vars[i] * s ** i for i in range(deg + 1)), s)
-        return poly, poly_vars
 
     @staticmethod
     def solve_polynomial_matrix(matrix: Matrix, symbol: Symbol, variables: List[Symbol]) -> Dict:
@@ -59,10 +50,10 @@ class CoboundarySolver:
         Note 2: Will probably not work if $m_1$ or $m_2$ depend on a variable different from the given symbol.
         """
 
-        f11, f11_ = CoboundarySolver.generic_poly(max_deg, 'f11_', symbol)
-        f12, f12_ = CoboundarySolver.generic_poly(max_deg, 'f12_', symbol)
-        f21, f21_ = CoboundarySolver.generic_poly(max_deg, 'f21_', symbol)
-        f22, f22_ = CoboundarySolver.generic_poly(max_deg, 'f22_', symbol)
+        f11, f11_ = GenericPolynomial.of_degree(max_deg, 'f11_', symbol)
+        f12, f12_ = GenericPolynomial.of_degree(max_deg, 'f12_', symbol)
+        f21, f21_ = GenericPolynomial.of_degree(max_deg, 'f21_', symbol)
+        f22, f22_ = GenericPolynomial.of_degree(max_deg, 'f22_', symbol)
         all_vars = f11_ + f12_ + f21_ + f22_
 
         # use '.expr' instead of just the polynomials, because calling subs(x,x+1) on polynomials in sympy
