@@ -90,7 +90,7 @@ class GenericPolynomial:
         n = len(symm_symbols)
         symm_polynomial = 0
         symm = GenericPolynomial.symmetric_polynomials(*symm_symbols)
-        s = sympy.symbols(f'{symm_var_name}:4')
+        s = sympy.symbols(f'{symm_var_name}:{n+1}')
 
         monomial, coefficient = Poly(polynomial, *symm_symbols).LT()
         while coefficient != 0:
