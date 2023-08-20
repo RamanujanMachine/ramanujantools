@@ -39,12 +39,24 @@ def test_self_coboundary(matrix: Matrix):
 
 
 @pytest.mark.parametrize("cmf", known_cmf_list)
-def test_cmf_coboundary(cmf: CMF):
+def test_2_lines_cmf_coboundary(cmf: CMF):
+    # coboundary random two lines in a given cmf
     line = random.randint(1, 10)
     verify_solution(
         mx1=cmf.Mx({y: line}), mx2=cmf.Mx({y: line+1}),
         solution=cmf.My({y: line}),
         deg=5)
+
+
+@pytest.mark.parametrize("cmf", known_cmf_list)
+def test_cmf_coboundary(cmf: CMF):
+    r"""
+    Given a family of parametrized matrices, we can find if they are part of a cmf
+    """
+    verify_solution(
+        mx1=cmf.Mx, mx2=cmf.Mx({y: y+1}),
+        solution=cmf.My,
+        deg=6)
 
 
 def test_specific_coboundary():
