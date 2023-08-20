@@ -76,3 +76,32 @@ class GenericPolynomial:
         poly = math.prod([t+v for v in expressions], start=sympy.Poly(1, t))
         return poly.all_coeffs()
 
+    @staticmethod
+    def as_symmetric(polynomial, symm_symbols: List[Symbol], symm_var_name: str):
+        r"""
+        Given a polynomial in (symbols, symm_symbols), tries to find a new polynomial as a function
+        of the symmetric polynomial in the symm_symbols.
+
+        Example:
+            x, y, z = sympy.symbols('x y z')
+            p = (x+y)*(x*y)*z + z**2*(x**2 + y**2) + (x+y) + 1
+            as_symmetric(p, [x,y], 's_') = s1*s2*z + z**2*(s1**2 - 2*s2) + s1 + 1
+        """
+        n = len(symm_symbols)
+        symm_polynomial = 0
+        symm = GenericPolynomial.symmetric_polynomials(*symm_symbols)
+        s = sympy.symbols(f'{symm_var_name}:4')
+
+        monomial, coefficient = Poly(polynomial, *symm_symbols).LT()
+        while coefficient != 0:
+            ex = list(monomial.exponents) + [0]
+            prod = coefficient
+            for i in range(0, len(symm_symbols)):
+                prod *= s[i+1]**(ex[i]-ex[i+1])
+
+            symm_polynomial += prod
+            prod_subs = prod.subs({s[i]: symm[i] for i in range(1, n+1)})
+            polynomial -= prod_subs
+            monomial, coefficient = Poly(polynomial, *symm_symbols).LT()
+
+        return symm_polynomial
