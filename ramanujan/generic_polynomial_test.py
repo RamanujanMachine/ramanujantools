@@ -50,10 +50,17 @@ def test_symmetric_poly():
 
 
 def test_as_symmetric():
-    x, y, z = sympy.symbols('x y z')
-    s1, s2, s3 = sympy.symbols('s_1 s_2 s_3')
+    x, y, z, w = sympy.symbols('x y z w')
+    s1, s2, s3, s4 = sympy.symbols('s_1 s_2 s_3 s_4')
 
+    # two symmetric variables
     p = (x+y)*(x*y)*z + z**2*(x**2 + y**2) + (x+y) + 1
     symm_p = s1*s2*z + z**2*(s1**2 - 2*s2) + s1 + 1
-    result = GenericPolynomial.as_symmetric(polynomial=p, symm_symbols=[x,y], symm_var_name='s_')
+    result = GenericPolynomial.as_symmetric(polynomial=p, symm_symbols=[x, y], symm_var_name='s_')
+    assert sympy.simplify(result - symm_p) == 0
+
+    # three symmetric variables
+    p = (x+y+z)*(x*y*z)*w + w**2*(x**2 + y**2 + z**2) + (x+y+z) + 1
+    symm_p = s1*s3*w + w**2*(s1**2 - 2*s2) + s1 + 1
+    result = GenericPolynomial.as_symmetric(polynomial=p, symm_symbols=[x, y, z], symm_var_name='s_')
     assert sympy.simplify(result - symm_p) == 0
