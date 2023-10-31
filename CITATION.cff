@@ -1,0 +1,18 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: Ramanujan Machine Research Tools
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - name: Ramanujan Machine Research Group
+repository-code: 'https://github.com/RamanujanMachine/ResearchTools'
+url: 'https://www.ramanujanmachine.com/'
+abstract: Tools used to study polynomial continued fractions
+keywords:
+  - Ramanujan Machine
+  - Polynomial continued fractions
+  - Conservative matrix fields
