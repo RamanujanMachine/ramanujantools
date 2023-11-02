@@ -1,5 +1,5 @@
 # Ramanujan Solvers
-This library contains several "solver" for both polynomial continued fractions and conservative matrix fields.
+This library contains several "solvers" for both polynomial continued fractions and conservative matrix fields.
 
 ## Euler continued fractions
 
@@ -8,27 +8,37 @@ $$\mathbb{K}_1^\infty \frac {b_i}{a_i} := \cfrac{b_1}{a_1+ \cfrac{b_2}{a_2+ \cfr
 
 We call it a **polynomial continued fraction** if $a_i=a(i), b_i=b(i)$ where both $a(x), b(x)$ are polynomials (where in most cases, we would also want them to be integral $a(x),b(x)\in\mathbb{Z}[x]$).
 
-In general, it is not easy to find out what is the limit of the continued fraction above. However, there are cases where these can be transformed to "simple" infinite sum expansions.
+In general, it is not easy to find out what is the limit of the continued fraction above. However, there are cases where these can be transformed into "simple" infinite sum expansions.
 An **Euler polynomial continued fraction** is a continued fraction as above where
-$$\begin{align*}
+```math
+\begin{align*}
 b\left(x\right) & =-h_{1}\left(x\right)h_{2}\left(x\right)\\
 f\left(x\right)a\left(x\right) & =f\left(x-1\right)h_{1}\left(x\right)+f\left(x+1\right)h_{2}\left(x+1\right)
-\end{align*}$$
+\end{align*}
+```
 for polynomials $h_1(x), h_2(x), f(x)$.
 
 If this holds, then we have
-$$\mathbb{K}_1^\infty \frac {b(i)}{a(i)}= \frac{f(1)h_2(1)}{f(0)}  \left(\left( \sum_{k=0}^\infty \frac{f(0)f(1)}{f(k)f(k+1)} \prod_{i=1}^{k} \frac{h_1(i)}{h_2(i+1)} \right)^{-1} - 1\right)$$
+```math
+\mathbb{K}_1^\infty \frac {b(i)}{a(i)}= \frac{f(1)h_2(1)}{f(0)}  \left(\left( \sum_{k=0}^\infty \frac{f(0)f(1)}{f(k)f(k+1)} \prod_{i=1}^{k} \frac{h_1(i)}{h_2(i+1)} \right)^{-1} - 1\right)
+```
 
-[python notebook](https://colab.research.google.com/drive/10aJ22X9LMhP_NNJCrcpDe0YLxXmTEfz3?usp=sharing)
+To find if a polynomial continued fraction is in the Euler family, use `ramanujan.pcf.euler_family.EulerSolver' and call
+> `EulerSolver.solve_for(a,b)`
+
+See the `euler_family_test.py` file for more examples, or go to the [python notebook here](https://colab.research.google.com/drive/10aJ22X9LMhP_NNJCrcpDe0YLxXmTEfz3?usp=sharing).
+
 ## Coboundary Equivalence
 
 Given two polynomial matrices $M_1(x), M_2(x)$, we say that they are **$U(x)$-coboundary equivalent** for a polynomial matrix $U(x)$ if
-
-$$ M_1(x) \cdot U(x+1) = U(x) \cdot M_2(x) $$.
+```math
+M_1(x) \cdot U(x+1) = U(x) \cdot M_2(x).
+```
 
 The library `ramanujan.cmf.coboundary` contains the `CoboundarySolver` class which can be used to 
 find such $U(x)$ solutions.
-More over, the matrices $M_1, M_2$ can also depend on other variables, so we look for a coboundary equivalence 
+
+In general, the matrices $M_1, M_2$ can also depend on other variables, so we can look for a coboundary equivalence 
 of a family of pairs of polynomial matrices.
 Finally, given a single polynomial matrix $M(x,y)$, we can take $M_1 = M(x,y)$ and $M_2=M(x,y+1)$. If they are 
 coboundary equivalent with some matrix $U(x,y)$, then this means that the pair 
