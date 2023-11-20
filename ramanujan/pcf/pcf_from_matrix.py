@@ -22,7 +22,7 @@ class PCFFromMatrix:
                 f"An error has occured when converting matrix {matrix} into a pcf"
             )
         pcf = PCF(normalized[1, 1], normalized[0, 1])
-        pcf.inflate(matrix[1, 0])
+        pcf = pcf.inflate(matrix[1, 0])
         if deflate_all:
             pcf = pcf.deflate_all()
 
