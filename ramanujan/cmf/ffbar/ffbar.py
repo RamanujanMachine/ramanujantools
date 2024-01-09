@@ -7,36 +7,27 @@ from ramanujan.cmf import CMF
 
 def linear_condition(f, fbar) -> bool:
     r"""
-    Checks if `f` and `fbar` satisfy the linear condition
+    Returns the linear condition value for `f` and `fbar`.
 
     Functions $f(x, y), \bar{f}(x, y)$ satisfy the linear condition iff:
     $f(x+1, y-1) - \bar{f}(x, y-1) + \bar{f}(x+1, y) - f(x, y) = 0$
     """
-    return (
-        sp.simplify(
-            f.subs([[x, x + 1], [y, y - 1]])
-            - fbar.subs(y, y - 1)
-            + fbar.subs(x, x + 1)
-            - f
-        )
-        == 0
+    return sp.simplify(
+        f.subs([[x, x + 1], [y, y - 1]]) - fbar.subs(y, y - 1) + fbar.subs(x, x + 1) - f
     )
 
 
 def quadratic_condition(f, fbar) -> bool:
     r"""
-    Checks if `f` and `fbar` satisfy the quadratic condition
+    Returns the quadratic condition value for `f` and `fbar`.
 
     Functions $f(x, y), \bar{f}(x, y)$ satisfy the quadratic condition iff:
     $f\bar{f}(x, y) - f\bar{f}(x, 0) -f\bar{f}(0, y) + f\bar{f}(0, 0) = 0$,
     where $f\bar{f}(x, y) = f(x, y) \cdot \bar{f}(x, y)$
     """
-    ffbar = f * fbar
-    return (
-        sp.simplify(
-            ffbar - ffbar.subs(x, 0) - ffbar.subs(y, 0) + ffbar.subs([[x, 0], [y, 0]])
-        )
-        == 0
+    ffbar = sp.simplify(f * fbar)
+    return sp.simplify(
+        ffbar - ffbar.subs(x, 0) - ffbar.subs(y, 0) + ffbar.subs([[x, 0], [y, 0]])
     )
 
 
@@ -80,13 +71,13 @@ def construct(f, fbar) -> CMF:
 
     Asserts that the `f` and `fbar` functions satisfy the linear and quadratic conditions.
     """
-    assert linear_condition(f, fbar), (
+    assert linear_condition(f, fbar) == 0, (
         "given f and fbar do not satisfy the linear condition! f="
         + str(f)
         + ", fbar="
         + str(fbar)
     )
-    assert quadratic_condition(f, fbar), (
+    assert quadratic_condition(f, fbar) == 0, (
         "given f and fbar do not satisfy the quadratic condition! f="
         + str(f)
         + ", fbar="

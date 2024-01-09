@@ -4,13 +4,13 @@ from ramanujan.cmf import ffbar, known_cmfs
 
 
 def test_linear_condition():
-    assert ffbar.linear_condition(x + y, x - y)
-    assert not ffbar.linear_condition(2**x - 3**y, 2**x + 3**y)
+    assert ffbar.linear_condition(x + y, x - y) == 0
+    assert ffbar.linear_condition(2**x - 3**y, 2**x + 3**y) != 0
 
 
 def test_quadratic_condition():
-    assert ffbar.quadratic_condition(x**2 + x * y + y**2, x - y)
-    assert not ffbar.quadratic_condition(x**2 + x * y + y**2, x - y + 1)
+    assert ffbar.quadratic_condition(x**2 + x * y + y**2, x - y) == 0
+    assert ffbar.quadratic_condition(x**2 + x * y + y**2, x - y + 1) != 0
 
 
 def test_load_cmf1():
