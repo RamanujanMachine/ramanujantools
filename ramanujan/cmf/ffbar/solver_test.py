@@ -1,10 +1,18 @@
-from ramanujan.cmf.ffbar import full_poly, solve_ffbar
+import pytest
+
+from ramanujan.cmf.ffbar import (
+    full_poly,
+    solve_ffbar,
+    linear_condition,
+    quadratic_condition,
+)
 
 
-def test_solver():
-    f = full_poly("c", 2)
-    fbar = full_poly("d", 2)
+@pytest.mark.parametrize("deg", [1, 2])
+def test_solver_full_poly(deg: int):
+    f = full_poly("c", deg)
+    fbar = full_poly("d", deg)
     solutions = solve_ffbar(f, fbar)
     for f, fbar in solutions:
-        print(f, ", ", fbar)
-    assert False
+        assert linear_condition(f, fbar) == 0
+        assert quadratic_condition(f, fbar) == 0

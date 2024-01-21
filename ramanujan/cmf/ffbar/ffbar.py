@@ -5,7 +5,7 @@ from ramanujan import Matrix
 from ramanujan.cmf import CMF
 
 
-def linear_condition(f, fbar) -> bool:
+def linear_condition(f, fbar) -> sp.Expr:
     r"""
     Returns the linear condition value for `f` and `fbar`.
 
@@ -17,7 +17,7 @@ def linear_condition(f, fbar) -> bool:
     )
 
 
-def quadratic_condition(f, fbar) -> bool:
+def quadratic_condition(f, fbar) -> sp.Expr:
     r"""
     Returns the quadratic condition value for `f` and `fbar`.
 
