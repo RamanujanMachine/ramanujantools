@@ -1,5 +1,5 @@
 from .ffbar import linear_condition, quadratic_condition, a, b, Mx, My, construct
-from .solver import solve_ffbar, full_poly
+from .solver import solve_ffbar
 
 __all__ = [
     "linear_condition",
@@ -9,6 +9,5 @@ __all__ = [
     "Mx",
     "My",
     "construct",
-    "full_poly",
     "solve_ffbar",
 ]

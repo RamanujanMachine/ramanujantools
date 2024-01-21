@@ -8,29 +8,12 @@ def polynomial_coefficients(poly):
     return sp.Poly(poly, x, y).coeffs()
 
 
-def full_poly(letter: str, degree: int):
-    poly = 0
-    for x_deg in range(degree + 1):
-        for y_deg in range(degree + 1 - x_deg):
-            symbol = sp.Symbol(f"{letter}{x_deg}{y_deg}")
-            poly += symbol * (x**x_deg) * (y**y_deg)
-    return poly
-
-
 def extract_variables(expressions):
     variables = set()
     for expression in expressions:
         variables.update(expression.free_symbols)
     variables -= {x, y}
     return variables
-
-
-def rename_variables(expressions, letter: str):
-    current_variables = list(extract_variables(expressions))
-    substitutions = {}
-    for i in range(len(current_variables)):
-        substitutions.update({current_variables[i]: sp.Symbol(f"{letter}{i}")})
-    return [expression.subs(substitutions).simplify() for expression in expressions]
 
 
 def solve(expressions):
