@@ -305,6 +305,9 @@ class EulerSolver:
         coef0 = cc
 
         # the possible degrees are the roots for coef2 * x^2 + coef1 * x + coef0 = 0
+        disc_squared = coef1**2 - 4*coef2*coef0
+        if disc_squared < 0:
+            return []
         disc = math.sqrt(coef1**2 - 4*coef2*coef0)
         roots = [sympy.simplify((-coef1+disc)/(2*coef2)), sympy.simplify((-coef1-disc)/(2*coef2))]
 
@@ -334,6 +337,11 @@ class EulerSolver:
         f_minus = Poly(f.subs(x, x - 1), x)
 
         p = f * a - f_minus * h_1 - f_plus * h_2_plus
+
+        system = [sympy.simplify(coefficient) for coefficient in p.all_coeffs()]
+        system = [equation for equation in system if equation != 0]
+        if len(system) == 0: # no conditions on f_
+            return EulerSolution(h_1=Poly(h_1, x), h_2=Poly(h_2, x), a=a, b=b, f=Poly(f, x))
 
         assignment = sympy.solve(p.all_coeffs(), f_)
         if len(assignment) == 0:
