@@ -1,7 +1,9 @@
 from sympy.abc import x, y
 
+from ramanujan import Matrix
+from ramanujan.cmf import CMF, known_cmfs
+from ramanujan.cmf.known_cmfs import c0, c1, c2, c3
 from ramanujan.cmf.ffbar import FFbar
-from ramanujan.cmf import known_cmfs
 
 
 def test_linear_condition():
@@ -14,15 +16,19 @@ def test_quadratic_condition():
     assert FFbar.quadratic_condition(x**2 + x * y + y**2, x - y + 1) != 0
 
 
-def test_load_cmf1():
-    known_cmfs.cmf1
-
-
-def test_load_cmf2():
-    known_cmfs.cmf2
-
-
-def test_load_cmf3():
-    known_cmfs.cmf3_1
-    known_cmfs.cmf3_2
-    known_cmfs.cmf3_3
+def test_ffbar_construction():
+    c0, c1, c2,
+    assert known_cmfs.cmf1() == CMF(
+        Matrix(
+            [
+                [0, -c0 * c2 + (c0 + c1 * x) * (c2 + c3 * x)],
+                [1, c0 + c1 * (x + y) - c2 - c3 * (x - y + 1)],
+            ]
+        ),
+        Matrix(
+            [
+                [c2 + c3 * (x - y), -c0 * c2 + (c0 + c1 * x) * (c2 + c3 * x)],
+                [1, c0 + c1 * (x + y)],
+            ]
+        ),
+    )

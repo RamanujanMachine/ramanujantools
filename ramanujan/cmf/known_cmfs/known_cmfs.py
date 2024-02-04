@@ -5,7 +5,7 @@ from ramanujan import Matrix
 from ramanujan.cmf import CMF
 from ramanujan.cmf.ffbar import FFbar
 
-c0, c1, c2, c3, c4 = sp.symbols("c:5")
+c0, c1, c2, c3 = sp.symbols("c:4")
 
 
 def e():
