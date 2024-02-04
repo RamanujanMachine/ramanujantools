@@ -1,16 +1,17 @@
 from sympy.abc import x, y
 
-from ramanujan.cmf import ffbar, known_cmfs
+from ramanujan.cmf.ffbar import FFbar
+from ramanujan.cmf import known_cmfs
 
 
 def test_linear_condition():
-    assert ffbar.linear_condition(x + y, x - y) == 0
-    assert ffbar.linear_condition(2**x - 3**y, 2**x + 3**y) != 0
+    assert FFbar.linear_condition(x + y, x - y) == 0
+    assert FFbar.linear_condition(2**x - 3**y, 2**x + 3**y) != 0
 
 
 def test_quadratic_condition():
-    assert ffbar.quadratic_condition(x**2 + x * y + y**2, x - y) == 0
-    assert ffbar.quadratic_condition(x**2 + x * y + y**2, x - y + 1) != 0
+    assert FFbar.quadratic_condition(x**2 + x * y + y**2, x - y) == 0
+    assert FFbar.quadratic_condition(x**2 + x * y + y**2, x - y + 1) != 0
 
 
 def test_load_cmf1():

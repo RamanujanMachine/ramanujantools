@@ -2,7 +2,8 @@ import sympy as sp
 from sympy.abc import x, y
 
 from ramanujan import Matrix
-from ramanujan.cmf import CMF, ffbar
+from ramanujan.cmf import CMF
+from ramanujan.cmf.ffbar import FFbar
 
 c0, c1, c2, c3, c4 = sp.symbols("c:5")
 
@@ -51,11 +52,11 @@ def var_root_cmf():
 
 
 def cmf1():
-    return ffbar.construct(c0 + c1 * (x + y), c2 + c3 * (x - y))
+    return FFbar(c0 + c1 * (x + y), c2 + c3 * (x - y))
 
 
 def cmf2():
-    return ffbar.construct(
+    return FFbar(
         (2 * c1 + c2) * (c1 + c2)
         - c3 * c0
         - c3 * ((2 * c1 + c2) * (x + y) + (c1 + c2) * (2 * x + y))
@@ -65,21 +66,21 @@ def cmf2():
 
 
 def cmf3_1():
-    return ffbar.construct(
+    return FFbar(
         -((c0 + c1 * (x + y)) * (c0 * (x + 2 * y) + c1 * (x**2 + x * y + y**2))),
         (c0 + c1 * (-x + y)) * (c0 * (x - 2 * y) - c1 * (x**2 - x * y + y**2)),
     )
 
 
 def cmf3_2():
-    return ffbar.construct(
+    return FFbar(
         -(x + y) * (c0**2 + 2 * c1**2 * (x**2 + x * y + y**2)),
         (x - y) * (c0**2 + 2 * c1**2 * (x**2 - x * y + y**2)),
     )
 
 
 def cmf3_3():
-    return ffbar.construct(
+    return FFbar(
         (x + y)
         * (c0**2 - c0 * c1 * (x - y) - 2 * c1**2 * (x**2 + x * y + y**2)),
         (c0 + c1 * (x - y)) * (3 * c0 * (x - y) + 2 * c1 * (x**2 - x * y + y**2)),

@@ -1,11 +1,11 @@
 import sympy as sp
 from sympy.abc import x, y
 
-from ramanujan.cmf.ffbar import linear_condition, quadratic_condition
+from ramanujan.cmf.ffbar import FFbar
 
 
 def polynomial_coefficients(poly, variables=(x, y)):
-    """
+    r"""
     Returns the coefficients of all monomials of `poly` in `variables`.
     By default assumes variables are $(x, y)$.
     """
@@ -13,7 +13,7 @@ def polynomial_coefficients(poly, variables=(x, y)):
 
 
 def solve(expressions):
-    """
+    r"""
     Returns a list of solutions that solve `expressions`.
 
     The equation system represented by `expressions` is [expr = 0 for expr in expressions].
@@ -22,13 +22,13 @@ def solve(expressions):
 
 
 def solve_ffbar(f, fbar):
-    """
+    r"""
     Returns all pairs of subsets of the input $f(x, y), \bar{f}(x, y)$ such that
     each one is a valid solution of the linear condition and the quadratic condition.
     """
     equations = [
-        *polynomial_coefficients(linear_condition(f, fbar)),
-        *polynomial_coefficients(quadratic_condition(f, fbar)),
+        *polynomial_coefficients(FFbar.linear_condition(f, fbar)),
+        *polynomial_coefficients(FFbar.quadratic_condition(f, fbar)),
     ]
     solutions = solve(equations)
     return [
