@@ -6,6 +6,15 @@ from ramanujan.cmf import CMF
 
 
 class FFbar(CMF):
+    r"""
+    Represents a Conservative Matrix Field that was generated using the f, fbar construction:
+    $a(x, y) = f(x, y) - \bar{f}(x+1, y) = f(x+1, y-1) - \bar{f}(x, y-1)$,
+    $b(x) = f\bar{f}(x, 0) - f\bar{f}(0, 0) = f\bar{f}(x, y) - f\bar{f}(0, y)$,
+
+    $Mx = \begin{pmatrix} 0, b(x) \cr 1, a(x, y) \end{pmatrix}$
+    $My = \begin{pmatrix} \bar{f}(x, y), b(x) \cr 1, f(x, y) \end{pmatrix}$
+    """
+
     @staticmethod
     def linear_condition(f, fbar) -> sp.Expr:
         r"""
@@ -37,9 +46,7 @@ class FFbar(CMF):
 
     def __init__(self, f, fbar):
         r"""
-        Constructs an FFbar CMF:
-        $Mx = \begin{pmatrix} 0, b(x) \cr 1, a(x, y) \end{pmatrix}$
-        $My = \begin{pmatrix} \bar{f}(x, y), b(x) \cr 1, f(x, y) \end{pmatrix}$
+        Constructs an `FFbar` `CMF`
 
         Asserts that `f` and `fbar` functions satisfy both linear and quadratic conditions.
         """
@@ -56,7 +63,10 @@ class FFbar(CMF):
             + str(fbar)
         )
         self.f = f
+        """The f function of the FFbar CMF"""
         self.fbar = fbar
+        """The fbar function of the FFbar CMF"""
+
         super().__init__(
             Matrix([[0, self.b()], [1, self.a()]]),
             Matrix([[self.fbar, self.b()], [1, self.f]]),
