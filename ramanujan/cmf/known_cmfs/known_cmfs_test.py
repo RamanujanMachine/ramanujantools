@@ -34,9 +34,17 @@ def test_cmf1():
         ) == approx(-a + b / log(1 + b / a), 1e-4)
 
 
-def test_var_root_cmf():
-    '''
-    Checks that the multi_cmf is indeed a cmf. If it is not, then an exception will be raised
-    which will fail this test
-    '''
+def test_all_cmfs():
+    r"""
+    Checks that all cmfs are indeed cmfs.
+    If one of these is not a cmf, an exception will be thrown.
+    """
+    known_cmfs.e()
+    known_cmfs.pi()
+    known_cmfs.zeta3()
     known_cmfs.var_root_cmf()
+    known_cmfs.cmf1()
+    known_cmfs.cmf2()
+    known_cmfs.cmf3_1()
+    known_cmfs.cmf3_2()
+    known_cmfs.cmf3_3()

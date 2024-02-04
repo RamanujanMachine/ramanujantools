@@ -28,6 +28,9 @@ class CMF:
         if simplify(Mxy - Myx) != Matrix([[0, 0], [0, 0]]):
             raise ValueError("The given Mx and My matrices are not conserving!")
 
+    def __eq__(self, other):
+        return self.Mx == other.Mx and self.My == other.My
+
     def __repr__(self):
         return f"CMF({self.Mx}, {self.My})"
 
