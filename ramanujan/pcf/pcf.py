@@ -1,7 +1,7 @@
 import sympy as sp
 from sympy.abc import n
 
-from ramanujan import Matrix, Vector
+import ramanujan
 
 
 def is_deflatable(a_factors, b_factors, factor):
@@ -87,7 +87,7 @@ class PCF:
 
         $M = \begin{pmatrix} 0, b_n \cr 1, a_n \end{pmatrix}$
         """
-        return Matrix([[0, self.b_n], [1, self.a_n]])
+        return ramanujan.Matrix([[0, self.b_n], [1, self.a_n]])
 
     def A(self):
         r"""
@@ -95,7 +95,7 @@ class PCF:
 
         $A = \begin{pmatrix} 1, a_0 \cr 0, 1 \end{pmatrix}$
         """
-        return Matrix([[1, self.a_n.subs(n, 0)], [0, 1]])
+        return ramanujan.Matrix([[1, self.a_n.subs(n, 0)], [0, 1]])
 
     def inflate(self, c_n):
         """
@@ -128,7 +128,7 @@ class PCF:
         """Substitutes parameters in the PCF"""
         return PCF(self.a_n.subs(*args, **kwargs), self.b_n.subs(*args, **kwargs))
 
-    def walk(self, iterations, start=1) -> Matrix:
+    def walk(self, iterations, start=1) -> ramanujan.Matrix:
         r"""
         Returns the matrix corresponding to calculating the PCF up to a certain depth, including $a_0$
 
@@ -138,12 +138,12 @@ class PCF:
             iterations: The multiplication iterations amount
             start: The n value of the first matrix to be multiplied (1 by default)
         Returns:
-            the walk multiplication as defined above.
+            The walk multiplication as defined above.
         """
         return self.A() * self.M().walk({n: 1}, iterations, {n: start})
 
-    def limit(self, depth, start=1, vector=Vector.zero()) -> sp.Float:
-        """
+    def limit(self, depth, start=1, vector=ramanujan.Vector.zero()) -> sp.Float:
+        r"""
         Calculates the convergence limit of the PCF up to a certain `depth`.
 
         This is essentially the same as `self.walk(depth, start).limit(vector)`
@@ -156,3 +156,17 @@ class PCF:
             The pcf convergence limit as defined above.
         """
         return self.walk(depth, start).limit(vector)
+
+    def delta(self, depth, limit):
+        r"""
+        Calculates the irrationality measure $\delta$ defined, as:
+        $|\frac{p_n}{q_n} - L| = \frac{1}{q_n}^{1+\delta}$
+
+        Args:
+            depth: $n$
+            limit: $L$
+        Returns:
+            the delta value as defined above.
+        """
+        p, q = self.walk(depth) * ramanujan.Vector.zero()
+        return ramanujan.delta(p, q, limit)

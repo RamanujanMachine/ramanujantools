@@ -3,7 +3,10 @@ from pytest import approx
 import itertools
 from math import e, pi, log
 
-from scipy.special import zeta
+import mpmath as mp
+from mpmath import zeta
+
+import sympy as sp
 from sympy.abc import x, y
 
 from ramanujan.cmf import known_cmfs
@@ -22,6 +25,17 @@ def test_cmf_pi():
 def test_cmf_zeta3():
     cmf = known_cmfs.zeta3()
     assert cmf.limit({x: 1, y: 1}, 100, {x: 1, y: 1}) == approx((1 - zeta(3)) / zeta(3))
+
+
+def test_apery():
+    mp.mp.dps = 10000
+    cmf = known_cmfs.zeta3()
+    pcf = cmf.as_pcf({x: 1, y: 1}, {x: 1, y: 1}).pcf
+    limit = sp.Float(6 / zeta(3))
+    depth = 2000
+    assert pcf.limit(depth) == approx(float(limit))
+    delta = pcf.delta(depth, limit)
+    assert delta > 0.086 and delta < 0.87
 
 
 def test_cmf1():

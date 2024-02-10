@@ -1,6 +1,7 @@
 import math
+
+import mpmath as mp
 import sympy as sp
-import ramanujan
 
 
 class Matrix(sp.Matrix):
@@ -45,7 +46,7 @@ class Matrix(sp.Matrix):
         The limit of the matrix is defined as the ratio of the vector M*v for a given v
         """
         p, q = self * v
-        return sp.Float(p / q, ramanujan.dps)
+        return sp.Float(p / q, mp.mp.dps)
 
     def walk(self, trajectory, iterations, start):
         r"""
