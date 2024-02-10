@@ -7,9 +7,10 @@ import mpmath as mp
 from mpmath import zeta
 
 import sympy as sp
-from sympy.abc import x, y
+from sympy.abc import x, y, n
 
 from ramanujan.cmf import known_cmfs
+from ramanujan.pcf import PCF
 
 
 def test_cmf_e():
@@ -31,6 +32,9 @@ def test_apery():
     mp.mp.dps = 10000
     cmf = known_cmfs.zeta3()
     pcf = cmf.as_pcf({x: 1, y: 1}, {x: 1, y: 1}).pcf
+    # This is Apery's PCF
+    assert pcf == PCF(34 * n**3 + 51 * n**2 + 27 * n + 5, -(n**6))
+
     limit = sp.Float(6 / zeta(3))
     depth = 2000
     assert pcf.limit(depth) == approx(float(limit))
