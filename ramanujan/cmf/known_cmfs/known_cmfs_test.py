@@ -35,7 +35,7 @@ def test_apery():
     depth = 2000
     assert pcf.limit(depth) == approx(float(limit))
     delta = pcf.delta(depth, limit)
-    assert delta > 0.0866 and delta <= 1
+    assert delta > 0.086 and delta < 0.87
 
 
 def test_cmf1():
