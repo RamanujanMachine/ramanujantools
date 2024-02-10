@@ -159,7 +159,7 @@ class PCF:
 
     def delta(self, depth, limit):
         r"""
-        Calculates the irrationality measure $\delta$ defined as:
+        Calculates the irrationality measure $\delta$ defined, as:
         $|\frac{p_n}{q_n} - L| = \frac{1}{q_n}^{1+\delta}$
 
         Args:
