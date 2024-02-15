@@ -168,7 +168,9 @@ class PCF:
         Returns:
             the delta value as defined above.
         """
+        m = self.walk(depth)
+        p, q = m * ramanujan.Vector.zero()
         if limit is None:
-            limit = self.limit(depth * 2)
-        p, q = self.walk(depth) * ramanujan.Vector.zero()
+            m *= self.M().walk({n: 1}, depth, {n: depth})
+            limit = m.limit(ramanujan.Vector.zero())
         return ramanujan.delta(p, q, limit)
