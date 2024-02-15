@@ -162,6 +162,9 @@ class PCF:
         Calculates the irrationality measure $\delta$ defined, as:
         $|\frac{p_n}{q_n} - L| = \frac{1}{q_n}^{1+\delta}$
 
+        If `limit` is not specified (i.e, `limit is None`),
+        then `limit` is calculated as `limit = self.limit(2 * depth)`
+
         Args:
             depth: $n$
             limit: $L$
