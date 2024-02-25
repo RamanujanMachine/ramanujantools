@@ -157,10 +157,13 @@ class PCF:
         """
         return self.walk(depth, start).limit(vector)
 
-    def delta(self, depth, limit):
+    def delta(self, depth, limit=None):
         r"""
         Calculates the irrationality measure $\delta$ defined, as:
         $|\frac{p_n}{q_n} - L| = \frac{1}{q_n}^{1+\delta}$
+
+        If `limit` is not specified (i.e, `limit is None`),
+        then `limit` is approximated as `limit = self.limit(2 * depth)`
 
         Args:
             depth: $n$
@@ -168,5 +171,9 @@ class PCF:
         Returns:
             the delta value as defined above.
         """
-        p, q = self.walk(depth) * ramanujan.Vector.zero()
+        m = self.walk(depth)
+        p, q = m * ramanujan.Vector.zero()
+        if limit is None:
+            m *= self.M().walk({n: 1}, depth, {n: depth})
+            limit = m.limit(ramanujan.Vector.zero())
         return ramanujan.delta(p, q, limit)

@@ -1,5 +1,6 @@
 from pytest import approx
 from sympy.abc import c, n
+import mpmath as mp
 
 from ramanujan.pcf import PCF
 
@@ -56,3 +57,12 @@ def test_deflate_all():
     b_n = n**2 - c * n
     pcf = PCF(c_n * a_n, c_n.subs(n, n - 1) * c_n * b_n)
     assert PCF(a_n, b_n) == pcf.deflate_all()
+
+
+def test_blind_delta():
+    mp.mp.dps = 10**5
+    pcf = PCF(34 * n**3 + 51 * n**2 + 27 * n + 5, -(n**6))
+    depth = 2000
+    delta = pcf.delta(depth)
+    print(delta)
+    assert delta > 0.086 and delta < 0.087

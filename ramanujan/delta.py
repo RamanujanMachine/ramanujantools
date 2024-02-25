@@ -5,7 +5,7 @@ import mpmath as mp
 
 def delta(p, q, L):
     r"""
-    Calculates the irrationality measure $\delta$, defined as:
+    Calculates the irrationality measure $\delta$ defined as:
     $|\frac{p}{q} - L| = \frac{1}{q}^{1+\delta}$.
 
     Assumes both p and q are integers.
