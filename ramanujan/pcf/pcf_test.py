@@ -18,7 +18,7 @@ def test_degree():
 def test_limit():
     pcf = PCF(5 + 10 * n, 1 - 9 * n**2)
     expected = (4 ** (1 / 3) + 1) / (4 ** (1 / 3) - 1)
-    assert expected == approx(pcf.limit(100), 1e-4)
+    assert expected == approx(pcf.limit(100).ratio(), 1e-4)
 
 
 def test_inflate_constant():
@@ -64,5 +64,4 @@ def test_blind_delta():
     pcf = PCF(34 * n**3 + 51 * n**2 + 27 * n + 5, -(n**6))
     depth = 2000
     delta = pcf.delta(depth)
-    print(delta)
     assert delta > 0.086 and delta < 0.087

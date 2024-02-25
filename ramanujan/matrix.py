@@ -1,6 +1,5 @@
 import math
 
-import mpmath as mp
 import sympy as sp
 
 
@@ -43,10 +42,10 @@ class Matrix(sp.Matrix):
     def limit(self, v):
         """
         Returns the limit of the matrix.
-        The limit of the matrix is defined as the ratio of the vector M*v for a given v
+
+        The limit of the matrix is defined as the ratio of the vector M*v for a given v.
         """
-        p, q = self * v
-        return sp.Float(p / q, mp.mp.dps)
+        return self * v
 
     def walk(self, trajectory, iterations, start):
         r"""

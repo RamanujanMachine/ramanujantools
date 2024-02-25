@@ -1,15 +1,15 @@
 from pytest import approx
 from sympy.abc import x, y
 
-from ramanujan import Matrix, simplify
+from ramanujan import Matrix, Vector, simplify
 
 
 def test_limit():
     a, b, c, d = (8, 2, 19, 5)
     m = Matrix([[a, b], [c, d]])
-    assert m.limit(Matrix([[1], [0]])) == approx(a / c)
-    assert m.limit(Matrix([[0], [1]])) == approx(b / d)
-    assert m.limit(Matrix([[1], [1]])) == approx((a + b) / (c + d))
+    assert m.limit(Matrix([[1], [0]])) == Vector([a, c])
+    assert m.limit(Matrix([[0], [1]])) == Vector([b, d])
+    assert m.limit(Matrix([[1], [1]])) == Vector([a + b, c + d])
 
 
 def test_gcd():
