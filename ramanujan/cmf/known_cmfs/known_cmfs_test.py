@@ -37,7 +37,7 @@ def test_apery():
     # This is Apery's PCF
     assert pcf == PCF(34 * n**3 + 51 * n**2 + 27 * n + 5, -(n**6))
 
-    limit = sp.Float(6 / zeta(3))
+    limit = sp.Float(6 / zeta(3), mp.mp.dps)
     depth = 2000
     assert pcf.limit(depth).ratio() == approx(float(limit))
     delta = pcf.delta(depth, limit)

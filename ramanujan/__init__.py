@@ -1,5 +1,4 @@
-from .matrix import Matrix
-from .vector import Vector
+from .matrix import Matrix, zero, inf
 from .generic_polynomial import GenericPolynomial
 from .delta import delta
 from .simplify_object import simplify
@@ -9,7 +8,8 @@ from .cmf import cmf
 
 __all__ = [
     "Matrix",
-    "Vector",
+    "zero",
+    "inf",
     "GenericPolynomial",
     "delta",
     "simplify",

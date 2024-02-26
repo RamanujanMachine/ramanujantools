@@ -1,6 +1,6 @@
 from sympy.abc import n, x, y
 
-from ramanujan import Matrix, Vector, simplify
+from ramanujan import Matrix, simplify, zero
 from ramanujan.pcf import PCFFromMatrix
 
 
@@ -109,7 +109,7 @@ class CMF:
         trajectory: dict,
         iterations: int,
         start: dict = {x: 1, y: 1},
-        vector: Vector = Vector.zero(),
+        vector: Matrix = zero(),
     ) -> Matrix:
         """
         Returns the convergence limit of walking in a certain trajectory.

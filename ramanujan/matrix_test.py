@@ -1,7 +1,6 @@
-from pytest import approx
 from sympy.abc import x, y
 
-from ramanujan import Matrix, Vector, simplify
+from ramanujan import Matrix, simplify, zero, inf
 
 
 def test_gcd():
@@ -61,3 +60,11 @@ def test_walk_different_start():
     assert simplify(m.walk({x: 3, y: 2}, 3, {x: 5, y: 7})) == simplify(
         m({x: 5, y: 7}) * m({x: 8, y: 9}) * m({x: 11, y: 11})
     )
+
+
+def test_zero_vector():
+    assert zero() == Matrix([0, 1])
+
+
+def test_inf_vector():
+    assert inf() == Matrix([1, 0])
