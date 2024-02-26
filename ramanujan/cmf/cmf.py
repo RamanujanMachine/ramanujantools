@@ -114,7 +114,7 @@ class CMF:
         """
         Returns the convergence limit of walking in a certain trajectory.
 
-        This is essentially the same as `self.walk(trajectory, iterations, start).limit(vector)`
+        This is essentially the same as `self.walk(trajectory, iterations, start) * vector`
 
         Args:
             trajectory: a dict containing the amount of steps in each direction.
@@ -124,4 +124,4 @@ class CMF:
         Returns:
             the limit of the walk multiplication as defined above.
         """
-        return self.walk(trajectory, iterations, start).limit(vector)
+        return self.walk(trajectory, iterations, start) * vector

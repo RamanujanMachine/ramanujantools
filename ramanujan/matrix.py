@@ -39,14 +39,6 @@ class Matrix(sp.Matrix):
         """Returns a simplified version of matrix"""
         return Matrix(sp.simplify(self))
 
-    def limit(self, v):
-        """
-        Returns the limit of the matrix.
-
-        The limit of the matrix is defined as the ratio of the vector M*v for a given v.
-        """
-        return self * v
-
     def walk(self, trajectory, iterations, start):
         r"""
         Returns the multiplication result of walking in a certain trajectory.
