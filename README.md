@@ -26,5 +26,5 @@ The most relevant pieces of code of this library are:
 ```python
 from ramanujan.cmf import known_cmfs
 
-known_cmfs.zeta3().limit([1,1], 100)
+known_cmfs.zeta3().limit([1,1], 100).ratio()
 ```
