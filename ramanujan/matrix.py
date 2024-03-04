@@ -1,15 +1,33 @@
 import math
+
+import mpmath as mp
 import sympy as sp
 
 
 class Matrix(sp.Matrix):
-    def __call__(self, substitutions):
-        """Same as 'subs', but in a math-like syntax."""
-        return self.subs(substitutions)
+    """
+    Represens a marix.
+
+    Inherits from sympy's matrix and supports all of its methods and operators:
+    https://docs.sympy.org/latest/modules/matrices/matrices.html
+    """
+
+    def __call__(self, *args, **kwargs):
+        """
+        Substitutes variables in the matrix, in a more math-like syntax.
+
+        Calls the underlying sympy `subs` method:
+        https://docs.sympy.org/latest/modules/core.html#sympy.core.basic.Basic.subs
+        """
+        return self.subs(*args, **kwargs)
 
     def gcd(self):
-        """Returns gcd of the matrix"""
-        return math.gcd(math.gcd(self[0], self[1]), math.gcd(self[1], self[2]))
+        """
+        Returns the gcd of the matrix
+        """
+        import functools
+
+        return functools.reduce(math.gcd, self)
 
     def reduce(self):
         """Reduces gcd from the matrix"""
@@ -22,13 +40,23 @@ class Matrix(sp.Matrix):
         """Returns a simplified version of matrix"""
         return Matrix(sp.simplify(self))
 
-    def limit(self, vector=sp.Matrix([[0], [1]])):
-        """Returns the limit of the matrix, i.e, the ratio of M * v for some vector v"""
-        p, q = self * vector
-        return sp.Float(p / q)
-
     def walk(self, trajectory, iterations, start):
-        """Returns the multiplication result of walking in a certain trajectory."""
+        r"""
+        Returns the multiplication result of walking in a certain trajectory.
+
+        The `walk` operation is defined as $\prod_{i=0}^{n-1}M(s_0 + i \cdot t_0, ..., s_k + i \cdot t_k)$,
+        where `M=self`, `(t_0, ..., t_k)=trajectory`, `n=iterations` and `(s_0, ..., s_k)=start`.
+
+        This is a generalization of the basic (and most common) case $\prod_{i=0}^{n-1}M(s+i)$,
+        where `M=self`, `n=iterations` and `s=start`.
+
+        Args:
+            trajectory: the trajectory of a single step in the walk, as defined above.
+            iterations: the amount of multiplications to perform
+            start: the starting point of the matrix multiplication
+        Returns:
+            the walk multiplication as defined above.
+        """
         position = start
         retval = Matrix.eye(2)
         for _ in range(iterations):
@@ -36,16 +64,30 @@ class Matrix(sp.Matrix):
             position = {key: trajectory[key] + value for key, value in position.items()}
         return retval.simplify()
 
-    def as_pcf(self, deflate_all=True):
-        """Returns the matrix's equivalent PCF with an equal limit up to a mobius transformation"""
-        from ramanujan.pcf import PCF
-        from sympy.abc import n
+    def ratio(self):
+        assert len(self) == 2, "Ratio only supported for vectors of length 2"
+        return sp.Float(self[0] / self[1], mp.mp.dps)
 
-        U = Matrix([[self[1, 0], -self[0, 0]], [0, 1]])
-        Uinv = Matrix([[1, self[0, 0]], [0, self[1, 0]]])
-        commutated = U * self * Uinv({n: n + 1})
-        normalized = (commutated / commutated[1, 0]).simplify()
-        pcf = PCF.from_matrix(normalized).inflate(self[1, 0])
-        if deflate_all:
-            pcf = pcf.deflate_all()
-        return pcf
+    def as_pcf(self, deflate_all=True):
+        """
+        Converts a `Matrix` to an equivalent `PCF`
+
+        Args:
+            deflate_all: if `True`, the function will also deflate the returned PCF to the fullest.
+        Returns:
+            a `PCFFRomMatrix` object, containing a `PCF` whose limit is equal to
+            a mobius transform of the original `Matrix`.
+        """
+        from ramanujan.pcf import PCFFromMatrix
+
+        return PCFFromMatrix(self, deflate_all)
+
+
+def zero():
+    r"""Returns the zero vector $\begin{pmatrix} 0 \cr 1 \end{pmatrix}$"""
+    return Matrix([0, 1])
+
+
+def inf():
+    r"""Returns the infinity vector $\begin{pmatrix} 1 \cr 0 \end{pmatrix}$"""
+    return Matrix([1, 0])

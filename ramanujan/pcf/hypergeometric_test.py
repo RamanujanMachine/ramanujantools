@@ -62,12 +62,12 @@ def test_1f1_limit_numerically():
     hyp = HypergeometricLimit(pcf)
     print(hyp.alpha, hyp.beta, hyp.z)
     print(hyp.as_mathematica_prompt())
-    assert pcf.limit(1000) == approx(float(Hypergeometric1F1Limit(pcf).limit()))
+    assert pcf.limit(1000).ratio() == approx(float(Hypergeometric1F1Limit(pcf).limit()))
 
 
 def test_2f1_limit_numerically():
     pcf = PCF(5 + 10 * n, 1 - 9 * n**2)
-    assert pcf.limit(1000) == approx(float(Hypergeometric2F1Limit(pcf).limit()))
+    assert pcf.limit(1000).ratio() == approx(float(Hypergeometric2F1Limit(pcf).limit()))
 
 
 def test_1f1_subs():

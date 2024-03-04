@@ -1,15 +1,16 @@
-from pytest import approx
-from sympy.abc import n, x, y
+from sympy.abc import x, y
 
-from ramanujan import Matrix, simplify
+from ramanujan import Matrix, simplify, zero, inf
 
 
-def test_limit():
-    a, b, c, d = (8, 2, 19, 5)
+def test_gcd():
+    a = 2 * 3 * 5
+    b = 2 * 3 * 7
+    c = 2 * 5 * 7
+    d = 3 * 5 * 7
     m = Matrix([[a, b], [c, d]])
-    assert m.limit(Matrix([[1], [0]])) == approx(a / c)
-    assert m.limit(Matrix([[0], [1]])) == approx(b / d)
-    assert m.limit(Matrix([[1], [1]])) == approx((a + b) / (c + d))
+    m *= 11
+    assert 11 == m.gcd()
 
 
 def test_gcd_reduce():
@@ -61,22 +62,9 @@ def test_walk_different_start():
     )
 
 
-def test_as_pcf():
-    from ramanujan.pcf import PCF
-    from ramanujan.cmf.known_cmfs import cmf1, c0, c1, c2, c3
-
-    cmf = cmf1.subs([[c0, 0], [c1, 1], [c2, 1], [c3, 3]])
-    matrix = cmf.trajectory_matrix([1, 1], [1, 1])
-    pcf = matrix.as_pcf()
-    assert pcf == PCF(5 + 10 * n, 1 - 9 * n**2)
+def test_zero_vector():
+    assert zero() == Matrix([0, 1])
 
 
-def test_as_pcf_parametric():
-    from sympy.abc import c
-    from ramanujan.pcf import PCF
-    from ramanujan.cmf.known_cmfs import cmf1, c0, c1, c2, c3
-
-    cmf = cmf1.subs([[c0, 0], [c1, 1], [c2, 1], [c3, c]])
-    matrix = cmf.trajectory_matrix({x: 1, y: 1}, {x: 1, y: 1})
-    pcf = matrix.as_pcf(True)
-    assert pcf == PCF((1 + 2 * n) * (c + 2), 1 - (c * n) ** 2)
+def test_inf_vector():
+    assert inf() == Matrix([1, 0])
