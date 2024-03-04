@@ -1,15 +1,6 @@
-from pytest import approx
 from sympy.abc import x, y
 
-from ramanujan import Matrix, simplify
-
-
-def test_limit():
-    a, b, c, d = (8, 2, 19, 5)
-    m = Matrix([[a, b], [c, d]])
-    assert m.limit(Matrix([[1], [0]])) == approx(a / c)
-    assert m.limit(Matrix([[0], [1]])) == approx(b / d)
-    assert m.limit(Matrix([[1], [1]])) == approx((a + b) / (c + d))
+from ramanujan import Matrix, simplify, zero, inf
 
 
 def test_gcd():
@@ -69,3 +60,11 @@ def test_walk_different_start():
     assert simplify(m.walk({x: 3, y: 2}, 3, {x: 5, y: 7})) == simplify(
         m({x: 5, y: 7}) * m({x: 8, y: 9}) * m({x: 11, y: 11})
     )
+
+
+def test_zero_vector():
+    assert zero() == Matrix([0, 1])
+
+
+def test_inf_vector():
+    assert inf() == Matrix([1, 0])

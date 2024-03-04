@@ -142,11 +142,11 @@ class PCF:
         """
         return self.A() * self.M().walk({n: 1}, iterations, {n: start})
 
-    def limit(self, depth, start=1, vector=ramanujan.Vector.zero()) -> sp.Float:
+    def limit(self, depth, start=1, vector=ramanujan.zero()) -> ramanujan.Matrix:
         r"""
         Calculates the convergence limit of the PCF up to a certain `depth`.
 
-        This is essentially the same as `self.walk(depth, start).limit(vector)`
+        This is essentially the same as `self.walk(depth, start) * vector`
 
         Args:
             depth: The desired depth of the calculation
@@ -155,7 +155,7 @@ class PCF:
         Returns:
             The pcf convergence limit as defined above.
         """
-        return self.walk(depth, start).limit(vector)
+        return self.walk(depth, start) * vector
 
     def delta(self, depth, limit=None):
         r"""
@@ -172,8 +172,8 @@ class PCF:
             the delta value as defined above.
         """
         m = self.walk(depth)
-        p, q = m * ramanujan.Vector.zero()
+        p, q = m * ramanujan.zero()
         if limit is None:
             m *= self.M().walk({n: 1}, depth, {n: depth})
-            limit = m.limit(ramanujan.Vector.zero())
+            limit = (m * ramanujan.zero()).ratio()
         return ramanujan.delta(p, q, limit)

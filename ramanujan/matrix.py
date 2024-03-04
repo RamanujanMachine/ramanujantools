@@ -40,14 +40,6 @@ class Matrix(sp.Matrix):
         """Returns a simplified version of matrix"""
         return Matrix(sp.simplify(self))
 
-    def limit(self, v):
-        """
-        Returns the limit of the matrix.
-        The limit of the matrix is defined as the ratio of the vector M*v for a given v
-        """
-        p, q = self * v
-        return sp.Float(p / q, mp.mp.dps)
-
     def walk(self, trajectory, iterations, start):
         r"""
         Returns the multiplication result of walking in a certain trajectory.
@@ -72,6 +64,10 @@ class Matrix(sp.Matrix):
             position = {key: trajectory[key] + value for key, value in position.items()}
         return retval.simplify()
 
+    def ratio(self):
+        assert len(self) == 2, "Ratio only supported for vectors of length 2"
+        return sp.Float(self[0] / self[1], mp.mp.dps)
+
     def as_pcf(self, deflate_all=True):
         """
         Converts a `Matrix` to an equivalent `PCF`
@@ -85,3 +81,13 @@ class Matrix(sp.Matrix):
         from ramanujan.pcf import PCFFromMatrix
 
         return PCFFromMatrix(self, deflate_all)
+
+
+def zero():
+    r"""Returns the zero vector $\begin{pmatrix} 0 \cr 1 \end{pmatrix}$"""
+    return Matrix([0, 1])
+
+
+def inf():
+    r"""Returns the infinity vector $\begin{pmatrix} 1 \cr 0 \end{pmatrix}$"""
+    return Matrix([1, 0])

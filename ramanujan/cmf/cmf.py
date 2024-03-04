@@ -1,7 +1,6 @@
-import sympy as sp
 from sympy.abc import n, x, y
 
-from ramanujan import Matrix, Vector, simplify
+from ramanujan import Matrix, simplify, zero
 from ramanujan.pcf import PCFFromMatrix
 
 
@@ -110,12 +109,12 @@ class CMF:
         trajectory: dict,
         iterations: int,
         start: dict = {x: 1, y: 1},
-        vector: Vector = Vector.zero(),
-    ) -> sp.Float:
+        vector: Matrix = zero(),
+    ) -> Matrix:
         """
         Returns the convergence limit of walking in a certain trajectory.
 
-        This is essentially the same as `self.walk(trajectory, iterations, start).limit(vector)`
+        This is essentially the same as `self.walk(trajectory, iterations, start) * vector`
 
         Args:
             trajectory: a dict containing the amount of steps in each direction.
@@ -123,6 +122,6 @@ class CMF:
             start: a dict representing the starting point of the multiplication.
             vector: The final vector to multiply the matrix by (the zero vector by default)
         Returns:
-            the walk multiplication as defined above.
+            the limit of the walk multiplication as defined above.
         """
-        return self.walk(trajectory, iterations, start).limit(vector)
+        return self.walk(trajectory, iterations, start) * vector
