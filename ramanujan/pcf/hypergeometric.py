@@ -45,7 +45,7 @@ class Hypergeometric1F1Limit(HypLimitInterface):
         a, c = sp.Poly(pcf.a_n, n).all_coeffs()
         b, d = sp.Poly(pcf.b_n, n).all_coeffs()
 
-        self.alpha = b / d
+        self.alpha = d / b
         self.beta = (c * a + b) / a**2
         self.z = b / a**2
         self.a = a
@@ -99,8 +99,8 @@ class Hypergeometric2F1Limit(HypLimitInterface):
                 [],
             )
 
-        [e, d] = sp.Poly(pcf.a_n, n).all_coeffs()
-        [c, b, a] = sp.Poly(pcf.b_n, n).all_coeffs()
+        e, d = sp.Poly(pcf.a_n, n).all_coeffs()
+        c, b, a = sp.Poly(pcf.b_n, n).all_coeffs()
         delta = e**2 + 4 * c
         # assert delta > 0, "Delta is less than 0!"
         self.sqrt_delta = sp.simplify(sp.sign(e) * sp.root(delta, 2))

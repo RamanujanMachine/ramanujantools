@@ -58,10 +58,8 @@ def test_2f1_limit_parameteric():
 
 
 def test_1f1_limit_numerically():
-    pcf = PCF(1 + n, 3 + n)
+    pcf = PCF(1 + 2 * n, 3 + 4 * n)
     hyp = HypergeometricLimit(pcf)
-    print(hyp.alpha, hyp.beta, hyp.z)
-    print(hyp.as_mathematica_prompt())
     assert pcf.limit(1000).ratio() == approx(float(Hypergeometric1F1Limit(pcf).limit()))
 
 
