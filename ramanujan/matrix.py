@@ -40,29 +40,42 @@ class Matrix(sp.Matrix):
         """Returns a simplified version of matrix"""
         return Matrix(sp.simplify(self))
 
-    def walk(self, trajectory, iterations, start):
+    def walk(self, trajectory, iterations, start, scoops = set()):
         r"""
         Returns the multiplication result of walking in a certain trajectory.
 
-        The `walk` operation is defined as $\prod_{i=0}^{n-1}M(s_0 + i \cdot t_0, ..., s_k + i \cdot t_k)$,
-        where `M=self`, `(t_0, ..., t_k)=trajectory`, `n=iterations` and `(s_0, ..., s_k)=start`.
+        The walk operation is defined as $\prod_{i=0}^{n-1}M(s_0 + i \cdot t_0, ..., s_k + i \cdot t_k)$,
+        where M=self, (t_0, ..., t_k)=trajectory, n=iterations and (s_0, ..., s_k)=start.
 
         This is a generalization of the basic (and most common) case $\prod_{i=0}^{n-1}M(s+i)$,
-        where `M=self`, `n=iterations` and `s=start`.
+        where M=self, n=iterations and s=start.
 
         Args:
             trajectory: the trajectory of a single step in the walk, as defined above.
             iterations: the amount of multiplications to perform
             start: the starting point of the matrix multiplication
         Returns:
-            the walk multiplication as defined above.
+            steps from the walk multiplication as defined above.
         """
+
+        if(type(scoops) != type(set())):
+            raise ValueError("Please supply a set of numbers as the scoop indexes.")
+
+        scoops.add(iterations - 1)
+        
         position = start
-        retval = Matrix.eye(2)
+        value_matrix = Matrix.eye(2)
+
+        retval = [value_matrix]
+
         for _ in range(iterations):
-            retval *= self.subs(position)
+            value_matrix *= self.subs(position)
+
+            if(_ in scoops):
+                retval.append(value_matrix.simplify())
+
             position = {key: trajectory[key] + value for key, value in position.items()}
-        return retval.simplify()
+        return retval
 
     def ratio(self):
         assert len(self) == 2, "Ratio only supported for vectors of length 2"

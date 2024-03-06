@@ -1,5 +1,8 @@
 import sympy as sp
 from sympy.abc import n
+import mpmath as mp
+
+from typing import List
 
 import ramanujan
 
@@ -128,7 +131,7 @@ class PCF:
         """Substitutes parameters in the PCF"""
         return PCF(self.a_n.subs(*args, **kwargs), self.b_n.subs(*args, **kwargs))
 
-    def walk(self, iterations, start=1) -> ramanujan.Matrix:
+    def walk(self, iterations, start=1, scoops = set()) -> List[ramanujan.Matrix]:
         r"""
         Returns the matrix corresponding to calculating the PCF up to a certain depth, including $a_0$
 
@@ -138,15 +141,15 @@ class PCF:
             iterations: The multiplication iterations amount
             start: The n value of the first matrix to be multiplied (1 by default)
         Returns:
-            The walk multiplication as defined above.
+            Steps from the walk multiplication as defined above.
         """
-        return self.A() * self.M().walk({n: 1}, iterations, {n: start})
+        return [self.A() * mat for mat in self.M().walk({n: 1}, iterations, {n: start},scoops=scoops)]
 
     def limit(self, depth, start=1, vector=ramanujan.zero()) -> ramanujan.Matrix:
         r"""
         Calculates the convergence limit of the PCF up to a certain `depth`.
 
-        This is essentially the same as `self.walk(depth, start) * vector`
+        This is essentially the same as `(self.walk(depth, start)[-1]) * vector`
 
         Args:
             depth: The desired depth of the calculation
@@ -155,15 +158,15 @@ class PCF:
         Returns:
             The pcf convergence limit as defined above.
         """
-        return self.walk(depth, start) * vector
+        return (self.walk(depth, start)[-1]) * vector
 
     def delta(self, depth, limit=None):
         r"""
         Calculates the irrationality measure $\delta$ defined, as:
         $|\frac{p_n}{q_n} - L| = \frac{1}{q_n}^{1+\delta}$
 
-        If `limit` is not specified (i.e, `limit is None`),
-        then `limit` is approximated as `limit = self.limit(2 * depth)`
+        If limit is not specified (i.e, limit is None),
+        then limit is approximated as limit = self.limit(2 * depth)
 
         Args:
             depth: $n$
@@ -171,9 +174,9 @@ class PCF:
         Returns:
             the delta value as defined above.
         """
-        m = self.walk(depth)
+        m = self.walk(depth)[-1]
         p, q = m * ramanujan.zero()
         if limit is None:
-            m *= self.M().walk({n: 1}, depth, {n: depth})
+            m *= (self.M().walk({n: 1}, depth, {n: depth}))[-1]
             limit = (m * ramanujan.zero()).ratio()
         return ramanujan.delta(p, q, limit)

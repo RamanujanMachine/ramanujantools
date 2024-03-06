@@ -17,10 +17,10 @@ def test_non_conserving_throws():
 def test_trajectory_matrix_axis():
     cmf = known_cmfs.e()
     assert cmf.trajectory_matrix({x: 3, y: 0}) == simplify(
-        cmf.Mx.walk({x: 1, y: 0}, 3, DEFAULT_START)
+        cmf.Mx.walk({x: 1, y: 0}, 3, DEFAULT_START)[-1]
     )
     assert cmf.trajectory_matrix({x: 0, y: 2}) == simplify(
-        cmf.My.walk({x: 0, y: 1}, 2, DEFAULT_START)
+        cmf.My.walk({x: 0, y: 1}, 2, DEFAULT_START)[-1]
     )
 
 
@@ -40,14 +40,14 @@ def test_trajectory_matrix_diagonal_substitute():
 
 def test_walk_axis():
     cmf = known_cmfs.e()
-    assert cmf.walk({x: 1, y: 0}, 17) == cmf.Mx.walk({x: 1, y: 0}, 17, {x: 1, y: 1})
-    assert cmf.walk({x: 0, y: 1}, 17) == cmf.My.walk({x: 0, y: 1}, 17, {x: 1, y: 1})
+    assert cmf.walk({x: 1, y: 0}, 17)[-1] == cmf.Mx.walk({x: 1, y: 0}, 17, {x: 1, y: 1})[-1]
+    assert cmf.walk({x: 0, y: 1}, 17)[-1] == cmf.My.walk({x: 0, y: 1}, 17, {x: 1, y: 1})[-1]
 
 
 def test_walk_diagonal():
     cmf = known_cmfs.e()
     Mxy = cmf.trajectory_matrix({x: 1, y: 1})
-    assert cmf.walk({x: 1, y: 1}, 17) == Mxy.walk({x: 1, y: 1}, 17 // 2, {x: 1, y: 1})
+    assert cmf.walk({x: 1, y: 1}, 17)[-1] == Mxy.walk({x: 1, y: 1}, 17 // 2, {x: 1, y: 1})[-1]
 
 
 def test_substitute_trajectory_axis():
@@ -74,6 +74,6 @@ def test_substitute_trajectory_walk_equivalence():
     start = {x: 3, y: 5}
     unsubbed = cmf.trajectory_matrix(trajectory)
     subbed = cmf.trajectory_matrix(trajectory, start)
-    assert subbed.walk({n: 1}, iterations, {n: 1}) == unsubbed.walk(
+    assert subbed.walk({n: 1}, iterations, {n: 1})[-1] == unsubbed.walk(
         trajectory, iterations, start
-    )
+    )[-1]

@@ -23,20 +23,20 @@ def test_gcd_reduce():
 
 def test_walk_0():
     m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
-    assert m.walk({x: 0, y: 1}, 0, {x: x, y: y}) == Matrix.eye(2)
+    assert m.walk({x: 0, y: 1}, 0, {x: x, y: y})[-1] == Matrix.eye(2)
 
 
 def test_walk_1():
     m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
-    assert m.walk({x: 1, y: 0}, 1, {x: x, y: y}) == m
+    assert m.walk({x: 1, y: 0}, 1, {x: x, y: y})[-1] == m
 
 
 def test_walk_axis():
     m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
-    assert simplify(m.walk({x: 1, y: 0}, 3, {x: 1, y: 1})) == simplify(
+    assert simplify(m.walk({x: 1, y: 0}, 3, {x: 1, y: 1})[-1]) == simplify(
         m({x: 1, y: 1}) * m({x: 2, y: 1}) * m({x: 3, y: 1})
     )
-    assert simplify(m.walk({x: 0, y: 1}, 5, {x: 1, y: 1})) == simplify(
+    assert simplify(m.walk({x: 0, y: 1}, 5, {x: 1, y: 1})[-1]) == simplify(
         m({x: 1, y: 1})
         * m({x: 1, y: 2})
         * m({x: 1, y: 3})
@@ -47,17 +47,17 @@ def test_walk_axis():
 
 def test_walk_diagonal():
     m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
-    assert simplify(m.walk({x: 1, y: 1}, 4, {x: 1, y: 1})) == simplify(
+    assert simplify(m.walk({x: 1, y: 1}, 4, {x: 1, y: 1})[-1]) == simplify(
         m({x: 1, y: 1}) * m({x: 2, y: 2}) * m({x: 3, y: 3}) * m({x: 4, y: 4})
     )
-    assert simplify(m.walk({x: 3, y: 2}, 3, {x: 1, y: 1})) == simplify(
+    assert simplify(m.walk({x: 3, y: 2}, 3, {x: 1, y: 1})[-1]) == simplify(
         m({x: 1, y: 1}) * m({x: 4, y: 3}) * m({x: 7, y: 5})
     )
 
 
 def test_walk_different_start():
     m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
-    assert simplify(m.walk({x: 3, y: 2}, 3, {x: 5, y: 7})) == simplify(
+    assert simplify(m.walk({x: 3, y: 2}, 3, {x: 5, y: 7})[-1]) == simplify(
         m({x: 5, y: 7}) * m({x: 8, y: 9}) * m({x: 11, y: 11})
     )
 

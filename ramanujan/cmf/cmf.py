@@ -1,5 +1,7 @@
 from sympy.abc import n, x, y
 
+from typing import List
+
 from ramanujan import Matrix, simplify, zero
 from ramanujan.pcf import PCFFromMatrix
 
@@ -52,8 +54,8 @@ class CMF:
         Returns:
             A matrix that represents a single step in the desired trajectory
         """
-        m = self.Mx.walk({x: 1, y: 0}, trajectory[x], {x: x, y: y})
-        m *= self.My.walk({x: 0, y: 1}, trajectory[y], {x: x + trajectory[x], y: y})
+        m = self.Mx.walk({x: 1, y: 0}, trajectory[x], {x: x, y: y})[-1]
+        m *= self.My.walk({x: 0, y: 1}, trajectory[y], {x: x + trajectory[x], y: y})[-1]
         if start is not None:
             m = CMF.substitute_trajectory(m, trajectory, start)
         return simplify(m)
@@ -82,10 +84,10 @@ class CMF:
         return trajectory_matrix.subs([(x, sub(x)), (y, sub(y))])
 
     def walk(
-        self, trajectory: dict, iterations: int, start: dict = {x: 1, y: 1}
-    ) -> Matrix:
+        self, trajectory: dict, iterations: int, start: dict = {x: 1, y: 1},scoops = set()
+        ) -> List[Matrix]:
         r"""
-        Returns the multiplication matrix of walking in a certain trajectory.
+        Returns the multiplication matrix(ces) of walking in a certain trajectory.
 
         The walk operation is defined as $\prod_{i=0}^{n-1}M(s_0 + i \cdot t_0, ..., s_k + i \cdot t_k)$,
         where `M=trajectory_matrix(trajectory, start)`, and `n / size(trajectory)` (L1 size - total amount of steps)
@@ -95,13 +97,14 @@ class CMF:
             iterations: the amount of multiplications to perform
             start: a dict representing the starting point of the multiplication.
         Returns:
-            the walk multiplication as defined above.
+            Steps from the walk multiplication as defined above.
         """
         trajectory_matrix = self.trajectory_matrix(trajectory, start)
         return trajectory_matrix.walk(
             {n: 1},
             iterations // sum(trajectory.values()),
             {n: 1},
+            scoops = scoops
         )
 
     def limit(
@@ -114,7 +117,7 @@ class CMF:
         """
         Returns the convergence limit of walking in a certain trajectory.
 
-        This is essentially the same as `self.walk(trajectory, iterations, start) * vector`
+        This is essentially the same as `self.walk(trajectory, iterations, start)[-1] * vector`
 
         Args:
             trajectory: a dict containing the amount of steps in each direction.
@@ -124,4 +127,4 @@ class CMF:
         Returns:
             the limit of the walk multiplication as defined above.
         """
-        return self.walk(trajectory, iterations, start) * vector
+        return self.walk(trajectory, iterations, start)[-1] * vector
