@@ -40,39 +40,47 @@ class Matrix(sp.Matrix):
         """Returns a simplified version of matrix"""
         return Matrix(sp.simplify(self))
 
-    def walk(self, trajectory, iterations, start, scoops = set()):
+    def walk(self, trajectory, iterations, start):
         r"""
         Returns the multiplication result of walking in a certain trajectory.
 
-        The walk operation is defined as $\prod_{i=0}^{n-1}M(s_0 + i \cdot t_0, ..., s_k + i \cdot t_k)$,
-        where M=self, (t_0, ..., t_k)=trajectory, n=iterations and (s_0, ..., s_k)=start.
+        The `walk` operation is defined as $\prod_{i=0}^{n-1}M(s_0 + i \cdot t_0, ..., s_k + i \cdot t_k)$,
+        where `M=self`, `(t_0, ..., t_k)=trajectory`, `n=iterations` and `(s_0, ..., s_k)=start`.
 
         This is a generalization of the basic (and most common) case $\prod_{i=0}^{n-1}M(s+i)$,
         where M=self, n=iterations and s=start.
 
         Args:
             trajectory: the trajectory of a single step in the walk, as defined above.
-            iterations: the amount of multiplications to perform
+            iterations: The amount of multiplications to perform or a list of integers representing indexes along the multipication proccess to be returned. 
+                        If it's a list, the iterations will be sorted in ascending order to improve efficiency. 
             start: the starting point of the matrix multiplication
         Returns:
-            steps from the walk multiplication as defined above.
+            Steps from the walk multiplication as defined above.
         """
 
-        if(type(scoops) != type(set())):
-            raise ValueError("Please supply a set of numbers as the scoop indexes.")
-
-        scoops.add(iterations - 1)
-        
         position = start
         value_matrix = Matrix.eye(2)
 
         retval = [value_matrix]
 
-        for _ in range(iterations):
+
+        islist = isinstance(iterations, list)
+
+        if islist: iterations.sort()
+
+        endpoint = iterations[-1] if islist else iterations
+        curr = iterations[0] if islist else iterations
+
+        i = 1
+
+        for _ in range(endpoint):
             value_matrix *= self.subs(position)
 
-            if(_ in scoops):
-                retval.append(value_matrix.simplify())
+            if(_ == curr-1):
+                retval.append(value_matrix)
+                curr = iterations[i] if islist and i < len(iterations) else None
+                i += 1
 
             position = {key: trajectory[key] + value for key, value in position.items()}
         return retval

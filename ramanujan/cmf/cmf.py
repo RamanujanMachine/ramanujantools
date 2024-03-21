@@ -84,10 +84,10 @@ class CMF:
         return trajectory_matrix.subs([(x, sub(x)), (y, sub(y))])
 
     def walk(
-        self, trajectory: dict, iterations: int, start: dict = {x: 1, y: 1},scoops = set()
+        self, trajectory: dict, iterations: int, start: dict = {x: 1, y: 1}
         ) -> List[Matrix]:
         r"""
-        Returns the multiplication matrix(ces) of walking in a certain trajectory.
+        Returns a list of trajectorial walk multiplication matrices in the desired depths.
 
         The walk operation is defined as $\prod_{i=0}^{n-1}M(s_0 + i \cdot t_0, ..., s_k + i \cdot t_k)$,
         where `M=trajectory_matrix(trajectory, start)`, and `n / size(trajectory)` (L1 size - total amount of steps)
@@ -103,8 +103,7 @@ class CMF:
         return trajectory_matrix.walk(
             {n: 1},
             iterations // sum(trajectory.values()),
-            {n: 1},
-            scoops = scoops
+            {n: 1}
         )
 
     def limit(

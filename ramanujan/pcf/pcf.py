@@ -131,19 +131,19 @@ class PCF:
         """Substitutes parameters in the PCF"""
         return PCF(self.a_n.subs(*args, **kwargs), self.b_n.subs(*args, **kwargs))
 
-    def walk(self, iterations, start=1, scoops = set()) -> List[ramanujan.Matrix]:
+    def walk(self, iterations, start=1) -> List[ramanujan.Matrix]:
         r"""
         Returns the matrix corresponding to calculating the PCF up to a certain depth, including $a_0$
 
         This is essentially $A \cdot \prod_{i=0}^{n-1}M(s + i)$ where `n=iterations` and `s=start`
 
         Args:
-            iterations: The multiplication iterations amount
+            iterations: The amount of multiplications to perform or a list of integers representing indexes along the multipication proccess to be returned.
             start: The n value of the first matrix to be multiplied (1 by default)
         Returns:
             Steps from the walk multiplication as defined above.
         """
-        return [self.A() * mat for mat in self.M().walk({n: 1}, iterations, {n: start},scoops=scoops)]
+        return [self.A() * mat for mat in self.M().walk({n: 1}, iterations, {n: start})]
 
     def limit(self, depth, start=1, vector=ramanujan.zero()) -> ramanujan.Matrix:
         r"""
@@ -174,9 +174,14 @@ class PCF:
         Returns:
             the delta value as defined above.
         """
-        m = self.walk(depth)[-1]
-        p, q = m * ramanujan.zero()
+
         if limit is None:
-            m *= (self.M().walk({n: 1}, depth, {n: depth}))[-1]
-            limit = (m * ramanujan.zero()).ratio()
+            _,m,mlim = self.walk([depth,2*depth])
+            limit = (mlim * ramanujan.zero()).ratio()
+            
+        else:
+            m = self.walk(depth)[-1]
+
+        p, q = m * ramanujan.zero()
+        
         return ramanujan.delta(p, q, limit)
