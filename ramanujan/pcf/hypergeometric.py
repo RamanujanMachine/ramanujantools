@@ -4,6 +4,11 @@ from sympy.abc import n
 from ramanujan.pcf import PCF
 
 
+def p2m(expression: sp.Expr) -> str:
+    """Function converts syntax from python to mathematica"""
+    return str(expression).replace("(", "[").replace(")", "]").replace("sqrt", "Sqrt")
+
+
 def HypergeometricLimit(pcf: PCF):
     """Factory function that creates an instance of a hpyergeometric limit class (either 1f1 or 2f1)."""
     supported_degrees = {
@@ -71,9 +76,9 @@ class Hypergeometric1F1Limit(HypLimitInterface):
     def as_mathematica_prompt(self):
         """Returns a mathematica prompt that will calculate the limit of this pcf"""
         return (
-            f"{self.a} * {self.beta} * "
-            f"Hypergeometric1F1[{self.alpha}, {self.beta}, {self.z}] / "
-            f"Hypergeometric1F1[{self.alpha + 1}, {self.beta + 1}, {self.z}]"
+            f"({p2m(self.a)}) * ({p2m(self.beta)}) * "
+            f"Hypergeometric1F1[{p2m(self.alpha)}, {p2m(self.beta)}, {p2m(self.z)}] / "
+            f"Hypergeometric1F1[{p2m(self.alpha + 1)}, {p2m(self.beta + 1)}, {p2m(self.z)}]"
         )
 
     def subs(self, *args, **kwargs):
@@ -135,9 +140,9 @@ class Hypergeometric2F1Limit(HypLimitInterface):
     def as_mathematica_prompt(self):
         """Returns a mathematica prompt that will calculate the limit of this pcf"""
         return (
-            f"{self.sqrt_delta} * {self.gamma} * "
-            f"Hypergeometric2F1[{self.alpha}, {self.beta}, {self.gamma}, {self.z}] / "
-            f"Hypergeometric2F1[{self.alpha + 1}, {self.beta + 1}, {self.gamma + 1}, {self.z}]"
+            f"({p2m(self.sqrt_delta)}) * ({p2m(self.gamma)}) * "
+            f"Hypergeometric2F1[{p2m(self.alpha)}, {p2m(self.beta)}, {p2m(self.gamma)}, {p2m(self.z)}] / "
+            f"Hypergeometric2F1[{p2m(self.alpha + 1)}, {p2m(self.beta + 1)}, {p2m(self.gamma + 1)}, {p2m(self.z)}]"
         )
 
     def subs(self, *args, **kwargs):
