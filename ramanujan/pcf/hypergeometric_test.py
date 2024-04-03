@@ -40,9 +40,8 @@ def test_1f1_limit_parametric():
 
 def test_2f1_limit():
     pcf = PCF(5 + 10 * n, 1 - 9 * n**2)
-    # limit = (sp.root(4, 3) + 1) / (sp.root(4, 3) - 1) - this is the exact same thing, but sympy struggles
-    limit_as_prompt = "8 * 1/2 * Hypergeometric2F1[-1/3, 1/3, 1/2, -1/8] / Hypergeometric2F1[2/3, 4/3, 3/2, -1/8]"
-    assert limit_as_prompt == Hypergeometric2F1Limit(pcf).as_mathematica_prompt()
+    limit = (sp.root(4, 3) + 1) / (sp.root(4, 3) - 1)
+    assert float(limit - Hypergeometric2F1Limit(pcf).limit()) < 10e-50
 
 
 def test_2f1_limit_parameteric():
