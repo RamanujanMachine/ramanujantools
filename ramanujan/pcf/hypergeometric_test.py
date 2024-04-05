@@ -50,15 +50,14 @@ def test_2f1_limit_parameteric():
     pcf = PCF((1 + 2 * n) * (c + 2), 1 - (c * n) ** 2)
     # limit = (sp.root(c + 1, c) + 1) / (sp.root(c + 1, c) - 1)
     hyp = Hypergeometric2F1Limit(pcf)
-    assert hyp.alpha == -1 / c
-    assert hyp.beta == 1 / c
-    assert hyp.gamma == 1 / 2
+    assert hyp.alpha1 == -1 / c
+    assert hyp.alpha2 == 1 / c
+    assert hyp.beta == 1 / 2
     assert hyp.z == (-c + 2 * sp.sqrt(c + 1) - 2) / (4 * sp.sqrt(c + 1))
 
 
 def test_1f1_limit_numerically():
     pcf = PCF(1 + 2 * n, 3 + 4 * n)
-    hyp = HypergeometricLimit(pcf)
     assert pcf.limit(1000).ratio() == approx(float(Hypergeometric1F1Limit(pcf).limit()))
 
 
