@@ -107,17 +107,16 @@ class Hypergeometric2F1Limit(HypLimitInterface):
         e, d = sp.Poly(pcf.a_n, n).all_coeffs()
         c, b, a = sp.Poly(pcf.b_n, n).all_coeffs()
         delta = e**2 + 4 * c
-        # assert delta > 0, "Delta is less than 0!"
         self.sqrt_delta = sp.simplify(sp.sign(e) * sp.root(delta, 2))
-        self.alpha, self.beta = solve(c * n**2 - b * n + a)
+        self.alpha1, self.alpha2 = solve(c * n**2 - b * n + a)
         self.z = sp.simplify((1 - e / self.sqrt_delta) / 2)
-        self.gamma = sp.simplify(((b + c) * self.z) / c + d / self.sqrt_delta)
+        self.beta = sp.simplify(((b + c) * self.z) / c + d / self.sqrt_delta)
 
     def __eq__(self, other):
         return (
-            self.alpha == other.alpha
+            self.alpha1 == other.alpha1
+            and self.alpha2 == other.alpha2
             and self.beta == other.beta
-            and self.gamma == other.gamma
             and self.z == other.z
             and self.sqrt_delta == other.sqrt_delta
         )
@@ -127,11 +126,11 @@ class Hypergeometric2F1Limit(HypLimitInterface):
         return sp.simplify(
             sp.hyperexpand(
                 self.sqrt_delta
-                * self.gamma
+                * self.beta
                 * (
-                    sp.hyper([self.alpha, self.beta], [self.gamma], self.z)
+                    sp.hyper([self.alpha1, self.alpha2], [self.beta], self.z)
                     / sp.hyper(
-                        [self.alpha + 1, self.beta + 1], [self.gamma + 1], self.z
+                        [self.alpha1 + 1, self.alpha2 + 1], [self.beta + 1], self.z
                     )
                 )
             )
@@ -140,9 +139,9 @@ class Hypergeometric2F1Limit(HypLimitInterface):
     def as_mathematica_prompt(self):
         """Returns a mathematica prompt that will calculate the limit of this pcf"""
         return (
-            f"({p2m(self.sqrt_delta)}) * ({p2m(self.gamma)}) * "
-            f"Hypergeometric2F1[{p2m(self.alpha)}, {p2m(self.beta)}, {p2m(self.gamma)}, {p2m(self.z)}] / "
-            f"Hypergeometric2F1[{p2m(self.alpha + 1)}, {p2m(self.beta + 1)}, {p2m(self.gamma + 1)}, {p2m(self.z)}]"
+            f"({p2m(self.sqrt_delta)}) * ({p2m(self.beta)}) * "
+            f"Hypergeometric2F1[{p2m(self.alpha1)}, {p2m(self.alpha2)}, {p2m(self.beta)}, {p2m(self.z)}] / "
+            f"Hypergeometric2F1[{p2m(self.alpha1 + 1)}, {p2m(self.alpha2 + 1)}, {p2m(self.beta + 1)}, {p2m(self.z)}]"
         )
 
     def subs(self, *args, **kwargs):
@@ -150,9 +149,9 @@ class Hypergeometric2F1Limit(HypLimitInterface):
         import copy
 
         retval = copy.deepcopy(self)
-        retval.alpha = retval.alpha.subs(*args, **kwargs)
+        retval.alpha1 = retval.alpha1.subs(*args, **kwargs)
+        retval.alpha2 = retval.alpha2.subs(*args, **kwargs)
         retval.beta = retval.beta.subs(*args, **kwargs)
-        retval.gamma = retval.gamma.subs(*args, **kwargs)
         retval.z = retval.z.subs(*args, **kwargs)
         retval.sqrt_delta = retval.sqrt_delta.subs(*args, **kwargs)
         return retval
