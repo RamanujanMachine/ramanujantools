@@ -57,7 +57,6 @@ class Matrix(sp.Matrix):
         Args:
             trajectory: the trajectory of a single step in the walk, as defined above.
             iterations: The amount of multiplications to perform. Can be an integer value or a list of values.
-                        If it's a list, the iterations will be sorted in ascending order to improve efficiency.
             start: the starting point of the matrix multiplication
         Returns:
             The walk multiplication matrix as defined above.
@@ -71,7 +70,7 @@ class Matrix(sp.Matrix):
         is_list = isinstance(iterations, list)
         if not is_list:
             iterations = [iterations]
-        iterations.sort()
+        iterations = sorted(iterations)
 
         position = start
         matrix = Matrix.eye(2)
