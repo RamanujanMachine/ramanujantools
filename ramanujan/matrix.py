@@ -1,4 +1,8 @@
+from __future__ import annotations
+
 import math
+
+from typing import List, Union
 
 import mpmath as mp
 import sympy as sp
@@ -40,7 +44,7 @@ class Matrix(sp.Matrix):
         """Returns a simplified version of matrix"""
         return Matrix(sp.simplify(self))
 
-    def walk(self, trajectory, iterations, start):
+    def walk(self, trajectory, iterations, start) -> Union[Matrix, list[Matrix]]:
         r"""
         Returns the multiplication result of walking in a certain trajectory.
 
@@ -52,38 +56,34 @@ class Matrix(sp.Matrix):
 
         Args:
             trajectory: the trajectory of a single step in the walk, as defined above.
-            iterations: The amount of multiplications to perform or a list of integers representing indexes along the multipication proccess to be returned. 
-                        If it's a list, the iterations will be sorted in ascending order to improve efficiency. 
+            iterations: The amount of multiplications to perform. Can be an integer value or a list of values.
+                        If it's a list, the iterations will be sorted in ascending order to improve efficiency.
             start: the starting point of the matrix multiplication
         Returns:
-            Steps from the walk multiplication as defined above.
+            The walk multiplication matrix as defined above.
+            If iterations is list, returns a list of matrices.
         """
 
+        assert (
+            start.keys() == trajectory.keys()
+        ), "`start` and `trajectory` must contain same keys"
+
+        is_list = isinstance(iterations, list)
+        if not is_list:
+            iterations = [iterations]
+        iterations.sort()
+
         position = start
-        value_matrix = Matrix.eye(2)
-
-        retval = [value_matrix]
-
-
-        islist = isinstance(iterations, list)
-
-        if islist: iterations.sort()
-
-        endpoint = iterations[-1] if islist else iterations
-        curr = iterations[0] if islist else iterations
-
-        i = 1
-
-        for _ in range(endpoint):
-            value_matrix *= self.subs(position)
-
-            if(_ == curr-1):
-                retval.append(value_matrix)
-                curr = iterations[i] if islist and i < len(iterations) else None
-                i += 1
-
+        matrix = Matrix.eye(2)
+        results = []
+        for i in range(iterations[-1]):
+            if i in iterations:
+                results.append(matrix)
+            matrix *= self.subs(position)
             position = {key: trajectory[key] + value for key, value in position.items()}
-        return retval
+        results.append(matrix)  # The last requested `iterations` value
+
+        return results if is_list else results[0]
 
     def ratio(self):
         assert len(self) == 2, "Ratio only supported for vectors of length 2"

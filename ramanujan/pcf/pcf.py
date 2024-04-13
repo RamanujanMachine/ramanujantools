@@ -1,8 +1,7 @@
 import sympy as sp
 from sympy.abc import n
-import mpmath as mp
 
-from typing import List
+from typing import List, Union
 
 import ramanujan
 
@@ -131,7 +130,9 @@ class PCF:
         """Substitutes parameters in the PCF"""
         return PCF(self.a_n.subs(*args, **kwargs), self.b_n.subs(*args, **kwargs))
 
-    def walk(self, iterations, start=1) -> List[ramanujan.Matrix]:
+    def walk(
+        self, iterations, start=1
+    ) -> Union[ramanujan.Matrix, List[ramanujan.Matrix]]:
         r"""
         Returns the matrix corresponding to calculating the PCF up to a certain depth, including $a_0$
 
@@ -143,13 +144,17 @@ class PCF:
         Returns:
             Steps from the walk multiplication as defined above.
         """
-        return [self.A() * mat for mat in self.M().walk({n: 1}, iterations, {n: start})]
+        m_walk = self.M().walk({n: 1}, iterations, {n: start})
+        if isinstance(m_walk, List):
+            return [self.A() * mat for mat in m_walk]
+        else:
+            return self.A() * m_walk
 
     def limit(self, depth, start=1, vector=ramanujan.zero()) -> ramanujan.Matrix:
         r"""
         Calculates the convergence limit of the PCF up to a certain `depth`.
 
-        This is essentially the same as `(self.walk(depth, start)[-1]) * vector`
+        This is essentially the same as `(self.walk(depth, start)) * vector`
 
         Args:
             depth: The desired depth of the calculation
@@ -158,7 +163,7 @@ class PCF:
         Returns:
             The pcf convergence limit as defined above.
         """
-        return (self.walk(depth, start)[-1]) * vector
+        return (self.walk(depth, start)) * vector
 
     def delta(self, depth, limit=None):
         r"""
@@ -176,12 +181,9 @@ class PCF:
         """
 
         if limit is None:
-            _,m,mlim = self.walk([depth,2*depth])
+            m, mlim = self.walk([depth, 2 * depth])
             limit = (mlim * ramanujan.zero()).ratio()
-            
         else:
-            m = self.walk(depth)[-1]
-
+            m = self.walk(depth)
         p, q = m * ramanujan.zero()
-        
         return ramanujan.delta(p, q, limit)

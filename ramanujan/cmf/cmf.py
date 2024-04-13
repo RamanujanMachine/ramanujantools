@@ -54,8 +54,8 @@ class CMF:
         Returns:
             A matrix that represents a single step in the desired trajectory
         """
-        m = self.Mx.walk({x: 1, y: 0}, trajectory[x], {x: x, y: y})[-1]
-        m *= self.My.walk({x: 0, y: 1}, trajectory[y], {x: x + trajectory[x], y: y})[-1]
+        m = self.Mx.walk({x: 1, y: 0}, trajectory[x], {x: x, y: y})
+        m *= self.My.walk({x: 0, y: 1}, trajectory[y], {x: x + trajectory[x], y: y})
         if start is not None:
             m = CMF.substitute_trajectory(m, trajectory, start)
         return simplify(m)
@@ -85,7 +85,7 @@ class CMF:
 
     def walk(
         self, trajectory: dict, iterations: int, start: dict = {x: 1, y: 1}
-        ) -> List[Matrix]:
+    ) -> List[Matrix]:
         r"""
         Returns a list of trajectorial walk multiplication matrices in the desired depths.
 
@@ -101,9 +101,7 @@ class CMF:
         """
         trajectory_matrix = self.trajectory_matrix(trajectory, start)
         return trajectory_matrix.walk(
-            {n: 1},
-            iterations // sum(trajectory.values()),
-            {n: 1}
+            {n: 1}, iterations // sum(trajectory.values()), {n: 1}
         )
 
     def limit(
@@ -116,7 +114,7 @@ class CMF:
         """
         Returns the convergence limit of walking in a certain trajectory.
 
-        This is essentially the same as `self.walk(trajectory, iterations, start)[-1] * vector`
+        This is essentially the same as `self.walk(trajectory, iterations, start) * vector`
 
         Args:
             trajectory: a dict containing the amount of steps in each direction.
@@ -126,4 +124,4 @@ class CMF:
         Returns:
             the limit of the walk multiplication as defined above.
         """
-        return self.walk(trajectory, iterations, start)[-1] * vector
+        return self.walk(trajectory, iterations, start) * vector
