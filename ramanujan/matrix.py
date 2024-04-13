@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import math
 
-from typing import List, Union
+from typing import Dict, List
+from multimethod import multimethod
 
 import mpmath as mp
 import sympy as sp
@@ -44,7 +45,8 @@ class Matrix(sp.Matrix):
         """Returns a simplified version of matrix"""
         return Matrix(sp.simplify(self))
 
-    def walk(self, trajectory, iterations, start) -> Union[Matrix, list[Matrix]]:
+    @multimethod
+    def walk(self, trajectory: Dict, iterations: List, start: Dict) -> List[Matrix]:
         r"""
         Returns the multiplication result of walking in a certain trajectory.
 
@@ -67,11 +69,7 @@ class Matrix(sp.Matrix):
             start.keys() == trajectory.keys()
         ), "`start` and `trajectory` must contain same keys"
 
-        is_list = isinstance(iterations, list)
-        if not is_list:
-            iterations = [iterations]
         iterations = sorted(iterations)
-
         position = start
         matrix = Matrix.eye(2)
         results = []
@@ -81,8 +79,13 @@ class Matrix(sp.Matrix):
             matrix *= self.subs(position)
             position = {key: trajectory[key] + value for key, value in position.items()}
         results.append(matrix)  # The last requested `iterations` value
+        return results
 
-        return results if is_list else results[0]
+    @multimethod
+    def walk(  # noqa: F811
+        self, trajectory: Dict, iterations: int, start: Dict
+    ) -> Matrix:
+        return self.walk(trajectory, [iterations], start)[0]
 
     def ratio(self):
         assert len(self) == 2, "Ratio only supported for vectors of length 2"

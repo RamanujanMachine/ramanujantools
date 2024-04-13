@@ -1,6 +1,7 @@
 from sympy.abc import n, x, y
 
-from typing import List, Union
+from typing import List
+from multimethod import multimethod
 
 from ramanujan import Matrix, simplify, zero
 from ramanujan.pcf import PCFFromMatrix
@@ -83,12 +84,13 @@ class CMF:
 
         return trajectory_matrix.subs([(x, sub(x)), (y, sub(y))])
 
+    @multimethod
     def walk(
         self,
         trajectory: dict,
-        iterations: Union[int, List[int]],
+        iterations: List[int],
         start: dict = {x: 1, y: 1},
-    ) -> Union[Matrix, List[Matrix]]:
+    ) -> List[Matrix]:
         r"""
         Returns a list of trajectorial walk multiplication matrices in the desired depths.
 
@@ -104,19 +106,26 @@ class CMF:
             If `iterations` is a list, returns a list of matrices.
         """
         trajectory_matrix = self.trajectory_matrix(trajectory, start)
-        if isinstance(iterations, list):
-            actual_iterations = [i // sum(trajectory.values()) for i in iterations]
-        else:
-            actual_iterations = iterations // sum(trajectory.values())
+        actual_iterations = [i // sum(trajectory.values()) for i in iterations]
         return trajectory_matrix.walk({n: 1}, actual_iterations, {n: 1})
 
+    @multimethod
+    def walk(  # noqa: F811
+        self,
+        trajectory: dict,
+        iterations: int,
+        start: dict = {x: 1, y: 1},
+    ) -> Matrix:
+        return self.walk(trajectory, [iterations], start)[0]
+
+    @multimethod
     def limit(
         self,
         trajectory: dict,
-        iterations: Union[int, List[int]],
+        iterations: List[int],
         start: dict = {x: 1, y: 1},
         vector: Matrix = zero(),
-    ) -> Union[Matrix, List[Matrix]]:
+    ) -> List[Matrix]:
         """
         Returns the convergence limit of walking in a certain trajectory.
 
@@ -132,7 +141,14 @@ class CMF:
             If `iterations` is a list, returns a list of matrices.
         """
         m_walk = self.walk(trajectory, iterations, start)
-        if isinstance(m_walk, list):
-            return [mat * vector for mat in m_walk]
-        else:
-            return m_walk * vector
+        return [mat * vector for mat in m_walk]
+
+    @multimethod
+    def limit(  # noqa: F811
+        self,
+        trajectory: dict,
+        iterations: int,
+        start: dict = {x: 1, y: 1},
+        vector: Matrix = zero(),
+    ) -> Matrix:
+        return self.limit(trajectory, [iterations], start, vector)[0]

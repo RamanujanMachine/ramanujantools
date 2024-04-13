@@ -1,9 +1,10 @@
 import sympy as sp
 from sympy.abc import n
 
-from typing import List, Union
+from typing import List
+from multimethod import multimethod
 
-import ramanujan
+from ramanujan import Matrix, zero, delta
 
 
 def is_deflatable(a_factors, b_factors, factor):
@@ -89,7 +90,7 @@ class PCF:
 
         $M = \begin{pmatrix} 0, b_n \cr 1, a_n \end{pmatrix}$
         """
-        return ramanujan.Matrix([[0, self.b_n], [1, self.a_n]])
+        return Matrix([[0, self.b_n], [1, self.a_n]])
 
     def A(self):
         r"""
@@ -97,7 +98,7 @@ class PCF:
 
         $A = \begin{pmatrix} 1, a_0 \cr 0, 1 \end{pmatrix}$
         """
-        return ramanujan.Matrix([[1, self.a_n.subs(n, 0)], [0, 1]])
+        return Matrix([[1, self.a_n.subs(n, 0)], [0, 1]])
 
     def inflate(self, c_n):
         """
@@ -130,9 +131,8 @@ class PCF:
         """Substitutes parameters in the PCF"""
         return PCF(self.a_n.subs(*args, **kwargs), self.b_n.subs(*args, **kwargs))
 
-    def walk(
-        self, iterations, start=1
-    ) -> Union[ramanujan.Matrix, List[ramanujan.Matrix]]:
+    @multimethod
+    def walk(self, iterations: List, start: int = 1) -> List[Matrix]:
         r"""
         Returns the matrix corresponding to calculating the PCF up to a certain depth, including $a_0$
 
@@ -145,14 +145,14 @@ class PCF:
             Steps from the walk multiplication as defined above.
         """
         m_walk = self.M().walk({n: 1}, iterations, {n: start})
-        if isinstance(m_walk, list):
-            return [self.A() * mat for mat in m_walk]
-        else:
-            return self.A() * m_walk
+        return [self.A() * mat for mat in m_walk]
 
-    def limit(
-        self, iterations, start=1, vector=ramanujan.zero()
-    ) -> Union[ramanujan.Matrix, List[ramanujan.Matrix]]:
+    @multimethod
+    def walk(self, iterations: int, start: int = 1) -> Matrix:  # noqa: F811
+        return self.walk([iterations], start)[0]
+
+    @multimethod
+    def limit(self, iterations: List, start=1, vector=zero()) -> List[Matrix]:
         r"""
         Calculates the convergence limit of the PCF up to a certain `iterations`.
 
@@ -167,10 +167,13 @@ class PCF:
             If iterations is a list, returns a list of limits.
         """
         m_walk = self.walk(iterations, start)
-        if isinstance(m_walk, list):
-            return [mat * vector for mat in m_walk]
-        else:
-            return m_walk * vector
+        return [mat * vector for mat in m_walk]
+
+    @multimethod
+    def limit(  # noqa: F811
+        self, iterations: int, start=1, vector=zero()
+    ) -> List[Matrix]:
+        return self.limit([iterations], start, vector)[0]
 
     def delta(self, depth, limit=None):
         r"""
@@ -193,4 +196,4 @@ class PCF:
         else:
             m = self.limit(depth)
         p, q = m
-        return ramanujan.delta(p, q, limit)
+        return delta(p, q, limit)
