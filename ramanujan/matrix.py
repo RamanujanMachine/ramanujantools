@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import math
 
-from typing import Dict, List
+from typing import Dict, List, Collection
 from multimethod import multimethod
 
 import mpmath as mp
@@ -46,7 +46,9 @@ class Matrix(sp.Matrix):
         return Matrix(sp.simplify(self))
 
     @multimethod
-    def walk(self, trajectory: Dict, iterations: List, start: Dict) -> List[Matrix]:
+    def walk(
+        self, trajectory: Dict, iterations: Collection[int], start: Dict
+    ) -> List[Matrix]:
         r"""
         Returns the multiplication result of walking in a certain trajectory.
 
@@ -69,11 +71,15 @@ class Matrix(sp.Matrix):
             start.keys() == trajectory.keys()
         ), "`start` and `trajectory` must contain same keys"
 
-        iterations = sorted(iterations)
+        iterations_set = set(iterations)
+        assert len(iterations_set) == len(
+            iterations
+        ), "`iterations` values must be unique"
+
         position = start
         matrix = Matrix.eye(2)
         results = []
-        for i in range(iterations[-1]):
+        for i in range(max(iterations_set)):
             if i in iterations:
                 results.append(matrix)
             matrix *= self.subs(position)

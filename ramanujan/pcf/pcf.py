@@ -1,7 +1,7 @@
 import sympy as sp
 from sympy.abc import n
 
-from typing import List
+from typing import List, Collection
 from multimethod import multimethod
 
 from ramanujan import Matrix, zero, delta
@@ -132,7 +132,7 @@ class PCF:
         return PCF(self.a_n.subs(*args, **kwargs), self.b_n.subs(*args, **kwargs))
 
     @multimethod
-    def walk(self, iterations: List, start: int = 1) -> List[Matrix]:
+    def walk(self, iterations: Collection[int], start: int = 1) -> List[Matrix]:
         r"""
         Returns the matrix corresponding to calculating the PCF up to a certain depth, including $a_0$
 
@@ -152,7 +152,9 @@ class PCF:
         return self.walk([iterations], start)[0]
 
     @multimethod
-    def limit(self, iterations: List, start=1, vector=zero()) -> List[Matrix]:
+    def limit(
+        self, iterations: Collection[int], start=1, vector=zero()
+    ) -> List[Matrix]:
         r"""
         Calculates the convergence limit of the PCF up to a certain `iterations`.
 

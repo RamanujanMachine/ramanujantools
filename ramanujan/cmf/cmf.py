@@ -1,6 +1,6 @@
 from sympy.abc import n, x, y
 
-from typing import List
+from typing import List, Collection
 from multimethod import multimethod
 
 from ramanujan import Matrix, simplify, zero
@@ -88,7 +88,7 @@ class CMF:
     def walk(
         self,
         trajectory: dict,
-        iterations: List[int],
+        iterations: Collection[int],
         start: dict = {x: 1, y: 1},
     ) -> List[Matrix]:
         r"""
@@ -122,7 +122,7 @@ class CMF:
     def limit(
         self,
         trajectory: dict,
-        iterations: List[int],
+        iterations: Collection[int],
         start: dict = {x: 1, y: 1},
         vector: Matrix = zero(),
     ) -> List[Matrix]:
