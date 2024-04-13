@@ -13,6 +13,8 @@ setup(
         "ramanujan.cmf.known_cmfs",
     ],
     install_requires=[
+        "mpmath>=1.3.0",
+        "multimethod>=1.10",
         "sympy>=1.11.1",
         "scipy>=1.10.1",
     ],
