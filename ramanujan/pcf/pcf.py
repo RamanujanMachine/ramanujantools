@@ -138,14 +138,14 @@ class PCF:
 
         This is essentially $A \cdot \prod_{i=0}^{n-1}M(s + i)$ where `n=iterations` and `s=start`
 
+            iterations: The amount of multiplications to perform. Can be an integer value or a list of values.
         Args:
-            iterations: The amount of multiplications to perform or a list of integers representing indexes along the multipication proccess to be returned.
             start: The n value of the first matrix to be multiplied (1 by default)
         Returns:
             Steps from the walk multiplication as defined above.
         """
         m_walk = self.M().walk({n: 1}, iterations, {n: start})
-        if isinstance(m_walk, List):
+        if isinstance(m_walk, list):
             return [self.A() * mat for mat in m_walk]
         else:
             return self.A() * m_walk
