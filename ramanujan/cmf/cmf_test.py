@@ -50,6 +50,24 @@ def test_walk_diagonal():
     assert cmf.walk({x: 1, y: 1}, 17) == Mxy.walk({x: 1, y: 1}, 17 // 2, {x: 1, y: 1})
 
 
+def test_walk_list():
+    cmf = known_cmfs.e()
+    trajectory = {x: 2, y: 3}
+    iterations = list(map(lambda x: x * sum(trajectory.values()), [1, 2, 3, 17, 29]))
+    assert cmf.walk(trajectory, iterations) == [
+        cmf.walk(trajectory, i) for i in iterations
+    ]
+
+
+def test_limit_list():
+    cmf = known_cmfs.e()
+    trajectory = {x: 2, y: 3}
+    iterations = list(map(lambda x: x * sum(trajectory.values()), [1, 2, 3, 17, 29]))
+    assert cmf.limit(trajectory, iterations) == [
+        cmf.limit(trajectory, i) for i in iterations
+    ]
+
+
 def test_substitute_trajectory_axis():
     cmf = known_cmfs.e()
     assert CMF.substitute_trajectory(cmf.Mx, {x: 1, y: 0}, {x: 1, y: 0}) == cmf.Mx(

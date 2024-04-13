@@ -138,8 +138,8 @@ class PCF:
 
         This is essentially $A \cdot \prod_{i=0}^{n-1}M(s + i)$ where `n=iterations` and `s=start`
 
-            iterations: The amount of multiplications to perform. Can be an integer value or a list of values.
         Args:
+            iterations: The amount of multiplications to perform. Can be an integer value or a list of values.
             start: The n value of the first matrix to be multiplied (1 by default)
         Returns:
             Steps from the walk multiplication as defined above.
@@ -150,20 +150,27 @@ class PCF:
         else:
             return self.A() * m_walk
 
-    def limit(self, depth, start=1, vector=ramanujan.zero()) -> ramanujan.Matrix:
+    def limit(
+        self, iterations, start=1, vector=ramanujan.zero()
+    ) -> Union[ramanujan.Matrix, List[ramanujan.Matrix]]:
         r"""
-        Calculates the convergence limit of the PCF up to a certain `depth`.
+        Calculates the convergence limit of the PCF up to a certain `iterations`.
 
-        This is essentially the same as `(self.walk(depth, start)) * vector`
+        This is essentially the same as `(self.walk(iterations, start)) * vector`
 
         Args:
-            depth: The desired depth of the calculation
+            iterations: The amount of multiplications to perform. Can be an integer value or a list of values.
             start: The n value of the first matrix to be multiplied (1 by default)
             vector: The final vector to multiply the matrix by (the zero vector by default)
         Returns:
             The pcf convergence limit as defined above.
+            If iterations is a list, returns a list of limits.
         """
-        return (self.walk(depth, start)) * vector
+        m_walk = self.walk(iterations, start)
+        if isinstance(m_walk, list):
+            return [mat * vector for mat in m_walk]
+        else:
+            return m_walk * vector
 
     def delta(self, depth, limit=None):
         r"""
@@ -181,9 +188,9 @@ class PCF:
         """
 
         if limit is None:
-            m, mlim = self.walk([depth, 2 * depth])
-            limit = (mlim * ramanujan.zero()).ratio()
+            m, mlim = self.limit([depth, 2 * depth])
+            limit = mlim.ratio()
         else:
-            m = self.walk(depth)
-        p, q = m * ramanujan.zero()
+            m = self.limit(depth)
+        p, q = m
         return ramanujan.delta(p, q, limit)

@@ -1,6 +1,6 @@
 from sympy.abc import n, x, y
 
-from typing import List
+from typing import List, Union
 
 from ramanujan import Matrix, simplify, zero
 from ramanujan.pcf import PCFFromMatrix
@@ -84,8 +84,11 @@ class CMF:
         return trajectory_matrix.subs([(x, sub(x)), (y, sub(y))])
 
     def walk(
-        self, trajectory: dict, iterations: int, start: dict = {x: 1, y: 1}
-    ) -> List[Matrix]:
+        self,
+        trajectory: dict,
+        iterations: Union[int, List[int]],
+        start: dict = {x: 1, y: 1},
+    ) -> Union[Matrix, List[Matrix]]:
         r"""
         Returns a list of trajectorial walk multiplication matrices in the desired depths.
 
@@ -94,23 +97,26 @@ class CMF:
 
         Args:
             trajectory: a dict containing the amount of steps in each direction.
-            iterations: the amount of multiplications to perform
+            iterations: the amount of multiplications to perform, either an integer or a list.
             start: a dict representing the starting point of the multiplication.
         Returns:
-            Steps from the walk multiplication as defined above.
+            The walk multiplication as defined above.
+            If `iterations` is a list, returns a list of matrices.
         """
         trajectory_matrix = self.trajectory_matrix(trajectory, start)
-        return trajectory_matrix.walk(
-            {n: 1}, iterations // sum(trajectory.values()), {n: 1}
-        )
+        if isinstance(iterations, list):
+            actual_iterations = [i // sum(trajectory.values()) for i in iterations]
+        else:
+            actual_iterations = iterations // sum(trajectory.values())
+        return trajectory_matrix.walk({n: 1}, actual_iterations, {n: 1})
 
     def limit(
         self,
         trajectory: dict,
-        iterations: int,
+        iterations: Union[int, List[int]],
         start: dict = {x: 1, y: 1},
         vector: Matrix = zero(),
-    ) -> Matrix:
+    ) -> Union[Matrix, List[Matrix]]:
         """
         Returns the convergence limit of walking in a certain trajectory.
 
@@ -118,10 +124,15 @@ class CMF:
 
         Args:
             trajectory: a dict containing the amount of steps in each direction.
-            iterations: the amount of multiplications to perform
+            iterations: the amount of multiplications to perform, either an integer or a list.
             start: a dict representing the starting point of the multiplication.
             vector: The final vector to multiply the matrix by (the zero vector by default)
         Returns:
-            the limit of the walk multiplication as defined above.
+            The limit of the walk multiplication as defined above.
+            If `iterations` is a list, returns a list of matrices.
         """
-        return self.walk(trajectory, iterations, start) * vector
+        m_walk = self.walk(trajectory, iterations, start)
+        if isinstance(m_walk, list):
+            return [mat * vector for mat in m_walk]
+        else:
+            return m_walk * vector

@@ -21,10 +21,16 @@ def test_limit():
     assert expected == approx(pcf.limit(100).ratio(), 1e-4)
 
 
-def test_walk_iterations():
+def test_walk_list():
     iterations = [1, 2, 3, 17, 29, 53, 99]
     pcf = PCF(5 + 10 * n, 1 - 9 * n**2)
     assert pcf.walk(iterations) == [pcf.walk(i) for i in iterations]
+
+
+def test_limit_list():
+    iterations = [1, 2, 3, 17, 29, 53, 99]
+    pcf = PCF(5 + 10 * n, 1 - 9 * n**2)
+    assert pcf.limit(iterations) == [pcf.limit(i) for i in iterations]
 
 
 def test_inflate_constant():
