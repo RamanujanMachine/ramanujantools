@@ -31,6 +31,26 @@ def test_walk_1():
     assert m.walk({x: 1, y: 0}, 1, {x: x, y: y}) == m
 
 
+def test_walk_list():
+    trajectory = {x: 2, y: 3}
+    start = {x: 5, y: 7}
+    iterations = [1, 2, 3, 17, 29, 53, 99]
+    m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
+    assert m.walk(trajectory, iterations, start) == [
+        m.walk(trajectory, i, start) for i in iterations
+    ]
+
+
+def test_walk_sequence():
+    trajectory = {x: 2, y: 3}
+    start = {x: 5, y: 7}
+    iterations = [1, 2, 3, 17, 29, 53, 99]
+    m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
+    assert m.walk(trajectory, tuple(iterations), start) == m.walk(
+        trajectory, set(iterations), start
+    )
+
+
 def test_walk_axis():
     m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
     assert simplify(m.walk({x: 1, y: 0}, 3, {x: 1, y: 1})) == simplify(

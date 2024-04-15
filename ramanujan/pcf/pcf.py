@@ -1,7 +1,10 @@
 import sympy as sp
 from sympy.abc import n
 
-import ramanujan
+from typing import List, Collection
+from multimethod import multimethod
+
+from ramanujan import Matrix, zero, delta
 
 
 def is_deflatable(a_factors, b_factors, factor):
@@ -87,7 +90,7 @@ class PCF:
 
         $M = \begin{pmatrix} 0, b_n \cr 1, a_n \end{pmatrix}$
         """
-        return ramanujan.Matrix([[0, self.b_n], [1, self.a_n]])
+        return Matrix([[0, self.b_n], [1, self.a_n]])
 
     def A(self):
         r"""
@@ -95,7 +98,7 @@ class PCF:
 
         $A = \begin{pmatrix} 1, a_0 \cr 0, 1 \end{pmatrix}$
         """
-        return ramanujan.Matrix([[1, self.a_n.subs(n, 0)], [0, 1]])
+        return Matrix([[1, self.a_n.subs(n, 0)], [0, 1]])
 
     def inflate(self, c_n):
         """
@@ -128,42 +131,59 @@ class PCF:
         """Substitutes parameters in the PCF"""
         return PCF(self.a_n.subs(*args, **kwargs), self.b_n.subs(*args, **kwargs))
 
-    def walk(self, iterations, start=1) -> ramanujan.Matrix:
+    @multimethod
+    def walk(self, iterations: Collection[int], start: int = 1) -> List[Matrix]:
         r"""
         Returns the matrix corresponding to calculating the PCF up to a certain depth, including $a_0$
 
         This is essentially $A \cdot \prod_{i=0}^{n-1}M(s + i)$ where `n=iterations` and `s=start`
 
         Args:
-            iterations: The multiplication iterations amount
+            iterations: The amount of multiplications to perform. Can be an integer value or a list of values.
             start: The n value of the first matrix to be multiplied (1 by default)
         Returns:
-            The walk multiplication as defined above.
+            Steps from the walk multiplication as defined above.
         """
-        return self.A() * self.M().walk({n: 1}, iterations, {n: start})
+        m_walk = self.M().walk({n: 1}, iterations, {n: start})
+        return [self.A() * mat for mat in m_walk]
 
-    def limit(self, depth, start=1, vector=ramanujan.zero()) -> ramanujan.Matrix:
+    @multimethod
+    def walk(self, iterations: int, start: int = 1) -> Matrix:  # noqa: F811
+        return self.walk([iterations], start)[0]
+
+    @multimethod
+    def limit(
+        self, iterations: Collection[int], start=1, vector=zero()
+    ) -> List[Matrix]:
         r"""
-        Calculates the convergence limit of the PCF up to a certain `depth`.
+        Calculates the convergence limit of the PCF up to a certain `iterations`.
 
-        This is essentially the same as `self.walk(depth, start) * vector`
+        This is essentially the same as `(self.walk(iterations, start)) * vector`
 
         Args:
-            depth: The desired depth of the calculation
+            iterations: The amount of multiplications to perform. Can be an integer value or a list of values.
             start: The n value of the first matrix to be multiplied (1 by default)
             vector: The final vector to multiply the matrix by (the zero vector by default)
         Returns:
             The pcf convergence limit as defined above.
+            If iterations is a list, returns a list of limits.
         """
-        return self.walk(depth, start) * vector
+        m_walk = self.walk(iterations, start)
+        return [mat * vector for mat in m_walk]
+
+    @multimethod
+    def limit(  # noqa: F811
+        self, iterations: int, start=1, vector=zero()
+    ) -> List[Matrix]:
+        return self.limit([iterations], start, vector)[0]
 
     def delta(self, depth, limit=None):
         r"""
         Calculates the irrationality measure $\delta$ defined, as:
         $|\frac{p_n}{q_n} - L| = \frac{1}{q_n}^{1+\delta}$
 
-        If `limit` is not specified (i.e, `limit is None`),
-        then `limit` is approximated as `limit = self.limit(2 * depth)`
+        If limit is not specified (i.e, limit is None),
+        then limit is approximated as limit = self.limit(2 * depth)
 
         Args:
             depth: $n$
@@ -171,9 +191,11 @@ class PCF:
         Returns:
             the delta value as defined above.
         """
-        m = self.walk(depth)
-        p, q = m * ramanujan.zero()
+
         if limit is None:
-            m *= self.M().walk({n: 1}, depth, {n: depth})
-            limit = (m * ramanujan.zero()).ratio()
-        return ramanujan.delta(p, q, limit)
+            m, mlim = self.limit([depth, 2 * depth])
+            limit = mlim.ratio()
+        else:
+            m = self.limit(depth)
+        p, q = m
+        return delta(p, q, limit)

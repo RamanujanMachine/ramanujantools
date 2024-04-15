@@ -1,4 +1,9 @@
+from __future__ import annotations
+
 import math
+
+from typing import Dict, List, Collection
+from multimethod import multimethod
 
 import mpmath as mp
 import sympy as sp
@@ -40,7 +45,10 @@ class Matrix(sp.Matrix):
         """Returns a simplified version of matrix"""
         return Matrix(sp.simplify(self))
 
-    def walk(self, trajectory, iterations, start):
+    @multimethod
+    def walk(
+        self, trajectory: Dict, iterations: Collection[int], start: Dict
+    ) -> List[Matrix]:
         r"""
         Returns the multiplication result of walking in a certain trajectory.
 
@@ -48,21 +56,42 @@ class Matrix(sp.Matrix):
         where `M=self`, `(t_0, ..., t_k)=trajectory`, `n=iterations` and `(s_0, ..., s_k)=start`.
 
         This is a generalization of the basic (and most common) case $\prod_{i=0}^{n-1}M(s+i)$,
-        where `M=self`, `n=iterations` and `s=start`.
+        where M=self, n=iterations and s=start.
 
         Args:
             trajectory: the trajectory of a single step in the walk, as defined above.
-            iterations: the amount of multiplications to perform
+            iterations: The amount of multiplications to perform. Can be an integer value or a list of values.
             start: the starting point of the matrix multiplication
         Returns:
-            the walk multiplication as defined above.
+            The walk multiplication matrix as defined above.
+            If iterations is list, returns a list of matrices.
         """
+
+        assert (
+            start.keys() == trajectory.keys()
+        ), "`start` and `trajectory` must contain same keys"
+
+        iterations_set = set(iterations)
+        assert len(iterations_set) == len(
+            iterations
+        ), "`iterations` values must be unique"
+
         position = start
-        retval = Matrix.eye(2)
-        for _ in range(iterations):
-            retval *= self.subs(position)
+        matrix = Matrix.eye(2)
+        results = []
+        for i in range(max(iterations_set)):
+            if i in iterations:
+                results.append(matrix)
+            matrix *= self.subs(position)
             position = {key: trajectory[key] + value for key, value in position.items()}
-        return retval.simplify()
+        results.append(matrix)  # The last requested `iterations` value
+        return results
+
+    @multimethod
+    def walk(  # noqa: F811
+        self, trajectory: Dict, iterations: int, start: Dict
+    ) -> Matrix:
+        return self.walk(trajectory, [iterations], start)[0]
 
     def ratio(self):
         assert len(self) == 2, "Ratio only supported for vectors of length 2"
