@@ -201,31 +201,40 @@ class PCF:
         return delta(p, q, limit)
 
     def delta_sequence(self, depths, limit=None):
+        """
+        This is a makeshift sentence
+        """
         deltas = []
         m = self.A()
 
         if limit is None:
-            # method 1: calc limit to depth needed and then return for the delta calculations (operation # inefficient)
-            # method 2: save first matrices and then advance to the max depth (storage inefficient)
+            # method 1: calc limit to depth needed (2*depths[-1]) and then redo matrix multiplications
+            # for the delta calculations (inefficient in number of operations)
+            # method 2: calc matrices in "depths" and then advance to the max depth (storage inefficient)
 
             # going with method 1 for now
-            if limit is None:
-                mlim = self.limit(2 * depths[-1])
-                limit = mlim.ratio()
+            mlim = self.limit(2 * depths[-1])
+            limit = mlim.ratio()
     
         if depths == list(range(1, depths[-1])):
             # calculate sequentially
             for i in depths:
-                m *= self.M.subs(n, i)
+                m *= self.M().subs(n, i)
                 p, q = m * zero()
                 deltas.append(delta(p, q, limit))
 
         else:
             # hop to the next depth, then evaluate
-            for ind, dep in enumerate(depths):
-                for i in range(depths[ind-1] + 1, dep + 1):
-                    m *= self.M.subs(n, i)
+
+            for i in range(1, depths[0] + 1):
+                m *= self.M().subs(n, i)
             p, q = m * zero()
             deltas.append(delta(p, q, limit))
+
+            for ind, dep in enumerate(depths[1:]):
+                for i in range(depths[ind-1] + 1, dep + 1):
+                    m *= self.M().subs(n, i)
+                p, q = m * zero()
+                deltas.append(delta(p, q, limit))
 
         return deltas
