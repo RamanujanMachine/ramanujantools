@@ -1,25 +1,33 @@
 from pytest import approx
-from sympy.abc import c, n
+import sympy as sp
+from sympy.abc import n, x, y
 import mpmath as mp
 
-from ramanujan.pcf import PCF 
+from ramanujan.pcf import PCF
+from ramanujan.cmf import CMF, known_cmfs
+from mpmath import zeta
 
-def test_delta_sequence():
+
+def test_delta_sequence_pi():
     pcf = PCF(2*n+1, n**2)
     lim = 4/mp.pi
-    depths = [1, 20, 100, 200]
+    depth = 300
     
-    test_deltas = pcf.delta_sequence(depths, limit=lim)
+    test_deltas = pcf.delta_sequence(depth, limit=lim)
     true_deltas = []
-    for dep in depths:
+    for dep in range(1, depth):
         true_deltas.append(pcf.delta(dep, lim))
 
-    # assert np.average(np.abs(true_deltas - test_deltas)) < 0.001
-    print(f"Test deltas: {test_deltas}")
-    print(f"True deltas: {true_deltas}")
-    # np.array(test_deltas) == approx(np.array(true_deltas), 1e-3)
     assert test_deltas == true_deltas
 
 
-if __name__ == "main":
-    test_delta_sequence()
+def test_delta_sequence_apery():
+    mp.mp.dps = 5000
+
+    # Apery's PCF
+    pcf = PCF(34 * n**3 + 51 * n**2 + 27 * n + 5, -(n**6))
+
+    limit = sp.Float(6 / zeta(3), mp.mp.dps)
+    depth = 400
+    deltas = pcf.delta_sequence(depth, limit)
+    assert deltas[-1] > 0.086 and deltas[-1] < 0.87 
