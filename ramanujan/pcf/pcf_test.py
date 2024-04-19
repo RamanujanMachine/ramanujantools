@@ -1,8 +1,6 @@
 from pytest import approx
-import sympy as sp
 from sympy.abc import c, n
 import mpmath as mp
-from mpmath import zeta
 
 from ramanujan.pcf import PCF
 
@@ -95,12 +93,13 @@ def test_delta_sequence_agrees_with_delta():
     limit = 4/mp.pi
     depth = 50
     
-    test_deltas = pcf.delta_sequence(depth, limit)
-    true_deltas = []
+    actual_deltas = pcf.delta_sequence(depth, limit)
+    expected_deltas = []
     for dep in range(1, depth + 1):
-        true_deltas.append(pcf.delta(dep, limit))
+        expected_deltas.append(pcf.delta(dep, limit))
 
-    assert test_deltas == true_deltas
+    assert expected_deltas == actual_deltas
+
 
 def test_blind_delta_sequence_agrees_with_blind_delta():
     pcf = PCF(2*n+1, n**2)
@@ -108,9 +107,9 @@ def test_blind_delta_sequence_agrees_with_blind_delta():
     mlim = pcf.limit(2 * depth)
     limit = mlim.ratio()
     
-    test_deltas = pcf.delta_sequence(depth)
-    true_deltas = []
+    actual_values = pcf.delta_sequence(depth)
+    expected_deltas = []
     for dep in range(1, depth + 1):
-        true_deltas.append(pcf.delta(dep, limit))
+        expected_deltas.append(pcf.delta(dep, limit))
 
-    assert test_deltas == true_deltas
+    assert expected_deltas == actual_values
