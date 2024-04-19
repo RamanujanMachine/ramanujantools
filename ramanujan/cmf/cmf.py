@@ -3,7 +3,7 @@ from sympy.abc import n, x, y
 from typing import List, Collection
 from multimethod import multimethod
 
-from ramanujan import Matrix, simplify, zero
+from ramanujan import Matrix, Limit, simplify, zero
 from ramanujan.pcf import PCFFromMatrix
 
 
@@ -90,9 +90,9 @@ class CMF:
         trajectory: dict,
         iterations: Collection[int],
         start: dict = {x: 1, y: 1},
-    ) -> List[Matrix]:
+    ) -> List[Limit]:
         r"""
-        Returns a list of trajectorial walk multiplication matrices in the desired depths.
+        Returns a list of limits of trajectorial walk multiplication matrices in the desired depths.
 
         The walk operation is defined as $\prod_{i=0}^{n-1}M(s_0 + i \cdot t_0, ..., s_k + i \cdot t_k)$,
         where `M=trajectory_matrix(trajectory, start)`, and `n / size(trajectory)` (L1 size - total amount of steps)
@@ -102,8 +102,8 @@ class CMF:
             iterations: the amount of multiplications to perform, either an integer or a list.
             start: a dict representing the starting point of the multiplication.
         Returns:
-            The walk multiplication as defined above.
-            If `iterations` is a list, returns a list of matrices.
+            The limit of the walk multiplication as defined above.
+            If `iterations` is a list, returns a list of limits.
         """
         trajectory_matrix = self.trajectory_matrix(trajectory, start)
         actual_iterations = [i // sum(trajectory.values()) for i in iterations]
@@ -115,40 +115,5 @@ class CMF:
         trajectory: dict,
         iterations: int,
         start: dict = {x: 1, y: 1},
-    ) -> Matrix:
+    ) -> Limit:
         return self.walk(trajectory, [iterations], start)[0]
-
-    @multimethod
-    def limit(
-        self,
-        trajectory: dict,
-        iterations: Collection[int],
-        start: dict = {x: 1, y: 1},
-        vector: Matrix = zero(),
-    ) -> List[Matrix]:
-        """
-        Returns the convergence limit of walking in a certain trajectory.
-
-        This is essentially the same as `self.walk(trajectory, iterations, start) * vector`
-
-        Args:
-            trajectory: a dict containing the amount of steps in each direction.
-            iterations: the amount of multiplications to perform, either an integer or a list.
-            start: a dict representing the starting point of the multiplication.
-            vector: The final vector to multiply the matrix by (the zero vector by default)
-        Returns:
-            The limit of the walk multiplication as defined above.
-            If `iterations` is a list, returns a list of matrices.
-        """
-        m_walk = self.walk(trajectory, iterations, start)
-        return [mat * vector for mat in m_walk]
-
-    @multimethod
-    def limit(  # noqa: F811
-        self,
-        trajectory: dict,
-        iterations: int,
-        start: dict = {x: 1, y: 1},
-        vector: Matrix = zero(),
-    ) -> Matrix:
-        return self.limit(trajectory, [iterations], start, vector)[0]

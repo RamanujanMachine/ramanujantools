@@ -15,22 +15,16 @@ def test_degree():
     assert (2, 9) == pcf.degree()
 
 
-def test_limit():
+def test_limit_as_float():
     pcf = PCF(5 + 10 * n, 1 - 9 * n**2)
     expected = (4 ** (1 / 3) + 1) / (4 ** (1 / 3) - 1)
-    assert expected == approx(pcf.limit(100).ratio(), 1e-4)
+    assert expected == approx(pcf.walk(100).as_float(), 1e-4)
 
 
 def test_walk_list():
     iterations = [1, 2, 3, 17, 29, 53, 99]
     pcf = PCF(5 + 10 * n, 1 - 9 * n**2)
     assert pcf.walk(iterations) == [pcf.walk(i) for i in iterations]
-
-
-def test_limit_list():
-    iterations = [1, 2, 3, 17, 29, 53, 99]
-    pcf = PCF(5 + 10 * n, 1 - 9 * n**2)
-    assert pcf.limit(iterations) == [pcf.limit(i) for i in iterations]
 
 
 def test_inflate_constant():
@@ -81,9 +75,9 @@ def test_blind_delta():
 
 def test_precision_e():
     pcf = PCF(n, n)
-    assert PCF.precision(pcf.walk(2**10)) == 2642
+    assert pcf.walk(2**10).precision() == 2642
 
 
 def test_precision_phi():
     pcf = PCF(1, 1)
-    assert PCF.precision(pcf.walk(2**10)) == 427
+    assert pcf.walk(2**10).precision() == 427

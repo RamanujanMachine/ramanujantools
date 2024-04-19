@@ -5,7 +5,7 @@ from sympy.abc import n
 from typing import List, Collection
 from multimethod import multimethod
 
-from ramanujan import Matrix, zero, inf, delta
+from ramanujan import Matrix, Limit, zero, inf, delta
 
 
 def is_deflatable(a_factors, b_factors, factor):
@@ -133,9 +133,9 @@ class PCF:
         return PCF(self.a_n.subs(*args, **kwargs), self.b_n.subs(*args, **kwargs))
 
     @multimethod
-    def walk(self, iterations: Collection[int], start: int = 1) -> List[Matrix]:
+    def walk(self, iterations: Collection[int], start: int = 1) -> List[Limit]:
         r"""
-        Returns the matrix corresponding to calculating the PCF up to a certain depth, including $a_0$
+        Returns the limit corresponding to calculating the PCF up to a certain depth, including $a_0$
 
         This is essentially $A \cdot \prod_{i=0}^{n-1}M(s + i)$ where `n=iterations` and `s=start`
 
@@ -143,34 +143,15 @@ class PCF:
             iterations: The amount of multiplications to perform. Can be an integer value or a list of values.
             start: The n value of the first matrix to be multiplied (1 by default)
         Returns:
-            Steps from the walk multiplication as defined above.
+            The pcf convergence limit as defined above.
+            If iterations is a list, returns a list of limits.
         """
         m_walk = self.M().walk({n: 1}, iterations, {n: start})
         return [self.A() * mat for mat in m_walk]
 
     @multimethod
-    def walk(self, iterations: int, start: int = 1) -> Matrix:  # noqa: F811
+    def walk(self, iterations: int, start: int = 1) -> Limit:  # noqa: F811
         return self.walk([iterations], start)[0]
-
-    @multimethod
-    def limit(
-        self, iterations: Collection[int], start=1, vector=zero()
-    ) -> List[Matrix]:
-        r"""
-        Calculates the convergence limit of the PCF up to a certain `iterations`.
-
-        This is essentially the same as `(self.walk(iterations, start)) * vector`
-
-        Args:
-            iterations: The amount of multiplications to perform. Can be an integer value or a list of values.
-            start: The n value of the first matrix to be multiplied (1 by default)
-            vector: The final vector to multiply the matrix by (the zero vector by default)
-        Returns:
-            The pcf convergence limit as defined above.
-            If iterations is a list, returns a list of limits.
-        """
-        m_walk = self.walk(iterations, start)
-        return [mat * vector for mat in m_walk]
 
     @staticmethod
     def precision(m: Matrix, base: int = 10) -> int:
@@ -183,12 +164,6 @@ class PCF:
         """
         diff = abs(mp.mpq(*(m * zero())) - mp.mpq(*(m * inf())))
         return int(mp.floor(-mp.log(diff, 10)))
-
-    @multimethod
-    def limit(  # noqa: F811
-        self, iterations: int, start=1, vector=zero()
-    ) -> List[Matrix]:
-        return self.limit([iterations], start, vector)[0]
 
     def delta(self, depth, limit=None):
         r"""
@@ -206,9 +181,9 @@ class PCF:
         """
 
         if limit is None:
-            m, mlim = self.limit([depth, 2 * depth])
-            limit = mlim.ratio()
+            m, mlim = self.walk([depth, 2 * depth])
+            limit = mlim.as_float()
         else:
-            m = self.limit(depth)
-        p, q = m
+            m = self.walk(depth)
+        p, q = m.as_rational()
         return delta(p, q, limit)

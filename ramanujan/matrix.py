@@ -83,7 +83,7 @@ class Matrix(sp.Matrix):
             max(iterations_set) + 1
         ):  # Plus one for the last requested `iterations` value
             if i in iterations:
-                results.append(Limit(matrix, self, position))
+                results.append(Limit(matrix))
             matrix *= self.subs(position)
             position = {key: trajectory[key] + value for key, value in position.items()}
         return results
@@ -91,10 +91,6 @@ class Matrix(sp.Matrix):
     @multimethod
     def walk(self, trajectory: Dict, iterations: int, start: Dict):  # noqa: F811
         return self.walk(trajectory, [iterations], start)[0]
-
-    def ratio(self):
-        assert len(self) == 2, "Ratio only supported for vectors of length 2"
-        return sp.Float(self[0] / self[1], mp.mp.dps)
 
     def as_pcf(self, deflate_all=True):
         """
