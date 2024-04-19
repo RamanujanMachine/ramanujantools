@@ -1,9 +1,10 @@
 from pytest import approx
+import sympy as sp
 from sympy.abc import c, n
 import mpmath as mp
+from mpmath import zeta
 
 from ramanujan.pcf import PCF
-
 
 def test_repr():
     pcf = PCF(1 + n, 3 - n)
@@ -87,3 +88,29 @@ def test_precision_e():
 def test_precision_phi():
     pcf = PCF(1, 1)
     assert PCF.precision(pcf.walk(2**10)) == 427
+
+
+def test_delta_sequence_agrees_with_delta():
+    pcf = PCF(2*n+1, n**2)
+    limit = 4/mp.pi
+    depth = 50
+    
+    test_deltas = pcf.delta_sequence(depth, limit)
+    true_deltas = []
+    for dep in range(1, depth + 1):
+        true_deltas.append(pcf.delta(dep, limit))
+
+    assert test_deltas == true_deltas
+
+def test_blind_delta_sequence_agrees_with_blind_delta():
+    pcf = PCF(2*n+1, n**2)
+    depth = 50
+    mlim = pcf.limit(2 * depth)
+    limit = mlim.ratio()
+    
+    test_deltas = pcf.delta_sequence(depth)
+    true_deltas = []
+    for dep in range(1, depth + 1):
+        true_deltas.append(pcf.delta(dep, limit))
+
+    assert test_deltas == true_deltas
