@@ -4,7 +4,6 @@ import mpmath as mp
 
 from ramanujan.pcf import PCF
 
-
 def test_repr():
     pcf = PCF(1 + n, 3 - n)
     assert pcf == eval(repr(pcf))
@@ -87,3 +86,30 @@ def test_precision_e():
 def test_precision_phi():
     pcf = PCF(1, 1)
     assert PCF.precision(pcf.walk(2**10)) == 427
+
+
+def test_delta_sequence_agrees_with_delta():
+    pcf = PCF(2*n+1, n**2)
+    limit = 4/mp.pi
+    depth = 50
+    
+    actual_deltas = pcf.delta_sequence(depth, limit)
+    expected_deltas = []
+    for dep in range(1, depth + 1):
+        expected_deltas.append(pcf.delta(dep, limit))
+
+    assert expected_deltas == actual_deltas
+
+
+def test_blind_delta_sequence_agrees_with_blind_delta():
+    pcf = PCF(2*n+1, n**2)
+    depth = 50
+    mlim = pcf.limit(2 * depth)
+    limit = mlim.ratio()
+    
+    actual_values = pcf.delta_sequence(depth)
+    expected_deltas = []
+    for dep in range(1, depth + 1):
+        expected_deltas.append(pcf.delta(dep, limit))
+
+    assert expected_deltas == actual_values
