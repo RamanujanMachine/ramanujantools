@@ -229,20 +229,20 @@ class PCF:
 
         Developer's note:
         In case limit is not specified, function currently calculates limit
-        to depth (2*depth[-1]) and then redoes matrix multiplications up to `depth`
+        to depth (2*depth) and then redoes matrix multiplications up to `depth`
         for the delta calculations (inefficient in number of operations).
         A possible alternative: calculate matrices up to `depth` and
-        then advance to depth (2*depth[-1]) (storage inefficient).
+        then advance to depth (2*depth) (storage inefficient).
         """
 
         deltas = []
         m = self.A()
 
         if limit is None:        
-            mlim = self.limit(2 * depth[-1])
+            mlim = self.limit(2 * depth)
             limit = mlim.ratio()
     
-        for i in range(1, depth):
+        for i in range(1, depth+1):
             m *= self.M().subs(n, i)
             p, q = m * zero()
             deltas.append(delta(p, q, limit))
