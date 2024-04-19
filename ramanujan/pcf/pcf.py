@@ -1,11 +1,10 @@
-from mpmath import mp
 import sympy as sp
 from sympy.abc import n
 
 from typing import List, Collection
 from multimethod import multimethod
 
-from ramanujan import Matrix, Limit, zero, inf, delta
+from ramanujan import Matrix, Limit, delta
 
 
 def is_deflatable(a_factors, b_factors, factor):

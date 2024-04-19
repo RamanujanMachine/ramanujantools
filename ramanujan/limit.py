@@ -41,15 +41,20 @@ class Limit(Matrix):
 
     def as_float(self) -> mp.mpf:
         r"""
-        Returns the limit as a floating point number f,
-        such that $m \cdot v = f$, where `m=self` and `v=vector`.
+        Returns the limit as a floating point number f, such that $m \cdot v = f$, where `m=self` and `v=vector`.
+
+        This function increases the global mpmath precision if needed.
         """
+        requested_precision = self.precision() + 1
+        mp.dps = max(mp.dps, requested_precision)
         p, q = self.as_rational()
         return mp.mpf(p) / mp.mpf(q)
 
     def as_rounded_number(self) -> str:
         """
         Same as `as_float`, but also rounds the result to the shortest number possible within the error range.
+
+        This function increases the global mpmath precision if needed.
         """
         return most_round_in_range(self.as_float(), 10 ** -self.precision())
 
@@ -57,9 +62,8 @@ class Limit(Matrix):
         """
         Returns the error in 'digits' for the PCF convergence.
 
-        If `m` is not a result of a `PCF.walk` multiplication,
-        or if the pcf does not converge this function is undefined.
-        By default, `base` is 10 (for digits).
+        Args:
+            base: The numerical base in which to return the precision (by default 10)
         """
         diff = abs(mp.mpq(*(self * zero())) - mp.mpq(*(self * inf())))
         return int(mp.floor(-mp.log(diff, 10)))
