@@ -4,7 +4,7 @@ from sympy.abc import n
 from typing import List, Collection
 from multimethod import multimethod
 
-from ramanujan import Matrix, Limit, delta
+from ramanujan import Matrix, Limit, delta, zero
 
 
 def is_deflatable(a_factors, b_factors, factor):
@@ -174,3 +174,31 @@ class PCF:
             m = self.walk(depth)
         p, q = m.as_rational()
         return delta(p, q, limit)
+
+    def delta_sequence(self, depth: int, limit: float = None):
+        r"""
+        Calculates the irrationality measure $\delta$ defined, as:
+        $|\frac{p_n}{q_n} - L| = \frac{1}{q_n}^{1+\delta}$
+
+        If limit is not specified (i.e, limit is None),
+        then limit is approximated as the limit at 2*depth.
+
+        Args:
+            depth: $n$
+            limit: $L$
+        Returns:
+            the delta values for all depths up to `depth` as defined above.
+        """
+
+        deltas = []
+        m = self.A()
+
+        if limit is None:
+            limit = self.walk(2 * depth).as_float()
+
+        for i in range(1, depth + 1):
+            m *= self.M().subs(n, i)
+            p, q = m * zero()
+            deltas.append(delta(p, q, limit))
+
+        return deltas

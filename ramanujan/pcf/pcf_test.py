@@ -81,3 +81,29 @@ def test_precision_e():
 def test_precision_phi():
     pcf = PCF(1, 1)
     assert pcf.walk(2**10).precision() == 427
+
+
+def test_delta_sequence_agrees_with_delta():
+    pcf = PCF(2 * n + 1, n**2)
+    depth = 50
+    limit = 4 / mp.pi
+
+    actual_deltas = pcf.delta_sequence(depth, limit)
+    expected_deltas = []
+    for dep in range(1, depth + 1):
+        expected_deltas.append(pcf.delta(dep, limit))
+
+    assert expected_deltas == actual_deltas
+
+
+def test_blind_delta_sequence_agrees_with_blind_delta():
+    pcf = PCF(2 * n + 1, n**2)
+    depth = 50
+    limit = pcf.walk(2 * depth).as_float()
+
+    actual_values = pcf.delta_sequence(depth)
+    expected_deltas = []
+    for dep in range(1, depth + 1):
+        expected_deltas.append(pcf.delta(dep, limit))
+
+    assert expected_deltas == actual_values
