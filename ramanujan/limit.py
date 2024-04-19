@@ -5,6 +5,28 @@ from mpmath import mp
 from ramanujan import Matrix, zero, inf
 
 
+def first_unmatch(a: str, b: str) -> int:
+    """
+    Returns the index of the biggest digit that does not match in a and b
+    """
+    size = min(len(a), len(b))
+    for i in range(size):
+        if a[i] != b[i]:
+            return i
+    return size
+
+
+def round_attempt(original: mp.mpf, with_error: mp.mpf) -> str:
+    original = str(original)
+    with_error = str(with_error)
+    up_to = first_unmatch(original, with_error) + 1
+    return with_error[0:up_to]
+
+
+def most_round_in_range(num: mp.mpf, err: mp.mpf) -> str:
+    return min(round_attempt(num, num + err), round_attempt(num, num - err), key=len)
+
+
 class Limit(Matrix):
     r"""
     Represents a mathematical limit of a `walk` operation.
@@ -24,6 +46,12 @@ class Limit(Matrix):
         """
         p, q = self.as_rational()
         return mp.mpf(p) / mp.mpf(q)
+
+    def as_rounded_number(self) -> str:
+        """
+        Same as `as_float`, but also rounds the result to the shortest number possible within the error range.
+        """
+        return most_round_in_range(self.as_float(), 10 ** -self.precision())
 
     def precision(self, base: int = 10) -> int:
         """

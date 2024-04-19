@@ -1,6 +1,9 @@
 from pytest import approx
 
+from mpmath import mp
+
 from ramanujan import Limit
+from .limit import most_round_in_range
 
 
 def test_as_rational():
@@ -33,3 +36,15 @@ def test_precision_floor():
     denominator = 10**desired_error
     limit = Limit([[a, b], [denominator, denominator]])
     assert desired_error - 1 == limit.precision()
+
+
+def test_rounding_whole_number():
+    num = 0.9999999
+    err = 5 * 1e-5
+    assert "1" == most_round_in_range(num, err)
+
+
+def test_rounding_small_change():
+    num = mp.mpf(0.9999999)
+    err = mp.mpf(5 * 1e-15)
+    assert "0.9999998" == most_round_in_range(num, err)

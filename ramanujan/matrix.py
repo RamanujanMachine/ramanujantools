@@ -5,7 +5,6 @@ import math
 from typing import Dict, List, Collection
 from multimethod import multimethod
 
-import mpmath as mp
 import sympy as sp
 
 

@@ -153,18 +153,6 @@ class PCF:
     def walk(self, iterations: int, start: int = 1) -> Limit:  # noqa: F811
         return self.walk([iterations], start)[0]
 
-    @staticmethod
-    def precision(m: Matrix, base: int = 10) -> int:
-        """
-        Returns the error in 'digits' for the PCF convergence.
-
-        If `m` is not a result of a `PCF.walk` multiplication,
-        or if the pcf does not converge this function is undefined.
-        By default, `base` is 10 (for digits).
-        """
-        diff = abs(mp.mpq(*(m * zero())) - mp.mpq(*(m * inf())))
-        return int(mp.floor(-mp.log(diff, 10)))
-
     def delta(self, depth, limit=None):
         r"""
         Calculates the irrationality measure $\delta$ defined, as:
