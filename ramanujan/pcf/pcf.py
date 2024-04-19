@@ -1,10 +1,11 @@
+from mpmath import mp
 import sympy as sp
 from sympy.abc import n
 
 from typing import List, Collection
 from multimethod import multimethod
 
-from ramanujan import Matrix, zero, delta
+from ramanujan import Matrix, zero, inf, delta
 
 
 def is_deflatable(a_factors, b_factors, factor):
@@ -170,6 +171,18 @@ class PCF:
         """
         m_walk = self.walk(iterations, start)
         return [mat * vector for mat in m_walk]
+
+    @staticmethod
+    def precision(m: Matrix, base: int = 10) -> int:
+        """
+        Returns the error in 'digits' for the PCF convergence.
+
+        If `m` is not a result of a `PCF.walk` multiplication,
+        or if the pcf does not converge this function is undefined.
+        By default, `base` is 10 (for digits).
+        """
+        diff = abs(mp.mpq(*(m * zero())) - mp.mpq(*(m * inf())))
+        return int(mp.floor(-mp.log(diff, 10)))
 
     @multimethod
     def limit(  # noqa: F811

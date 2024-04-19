@@ -77,3 +77,13 @@ def test_blind_delta():
     depth = 2000
     delta = pcf.delta(depth)
     assert delta > 0.086 and delta < 0.087
+
+
+def test_precision_e():
+    pcf = PCF(n, n)
+    assert PCF.precision(pcf.walk(2**10)) == 2642
+
+
+def test_precision_phi():
+    pcf = PCF(1, 1)
+    assert PCF.precision(pcf.walk(2**10)) == 427
