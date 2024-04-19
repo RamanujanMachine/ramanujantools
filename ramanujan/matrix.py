@@ -46,9 +46,7 @@ class Matrix(sp.Matrix):
         return Matrix(sp.simplify(self))
 
     @multimethod
-    def walk(
-        self, trajectory: Dict, iterations: Collection[int], start: Dict
-    ) -> List[Matrix]:
+    def walk(self, trajectory: Dict, iterations: Collection[int], start: Dict):
         r"""
         Returns the multiplication result of walking in a certain trajectory.
 
@@ -67,6 +65,8 @@ class Matrix(sp.Matrix):
             If iterations is list, returns a list of matrices.
         """
 
+        from ramanujan import Limit
+
         assert (
             start.keys() == trajectory.keys()
         ), "`start` and `trajectory` must contain same keys"
@@ -79,18 +79,17 @@ class Matrix(sp.Matrix):
         position = start
         matrix = Matrix.eye(2)
         results = []
-        for i in range(max(iterations_set)):
+        for i in range(
+            max(iterations_set) + 1
+        ):  # Plus one for the last requested `iterations` value
             if i in iterations:
-                results.append(matrix)
+                results.append(Limit(matrix, self, position))
             matrix *= self.subs(position)
             position = {key: trajectory[key] + value for key, value in position.items()}
-        results.append(matrix)  # The last requested `iterations` value
         return results
 
     @multimethod
-    def walk(  # noqa: F811
-        self, trajectory: Dict, iterations: int, start: Dict
-    ) -> Matrix:
+    def walk(self, trajectory: Dict, iterations: int, start: Dict):  # noqa: F811
         return self.walk(trajectory, [iterations], start)[0]
 
     def ratio(self):
