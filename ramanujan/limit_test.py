@@ -9,14 +9,14 @@ from .limit import most_round_in_range
 def test_as_rational():
     p = 2
     q = 3
-    limit = Limit([[0, p], [0, q]])
+    limit = Limit([[0, p], [1, q]])
     assert [p, q] == limit.as_rational()
 
 
 def test_as_float():
     p = 2
     q = 3
-    limit = Limit([[0, p], [0, q]])
+    limit = Limit([[0, p], [1, q]])
     assert p / q == approx(limit.as_float(), 1e-7)
 
 
