@@ -11,7 +11,7 @@ DEFAULT_START = {x: x, y: y}
 def test_non_conserving_throws():
     m = Matrix([[x, x + 17], [y * x, y * 3 - x + 5]])
     with raises(ValueError):
-        CMF(m, m)
+        CMF(matrices={x: m, y: m})
 
 
 def test_trajectory_matrix_axis():

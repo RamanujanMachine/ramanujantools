@@ -1,6 +1,7 @@
+import sympy as sp
 from sympy.abc import n, x, y
 
-from typing import List, Collection
+from typing import List, Collection, Dict
 from multimethod import multimethod
 
 from ramanujan import Matrix, simplify, zero
@@ -15,14 +16,14 @@ class CMF:
     $Mx(x, y) \cdot My(x+1, y) = My(x, y) \cdot Mx(x, y+1)$
     """
 
-    def __init__(self, Mx: Matrix, My: Matrix):
+    def __init__(self, matrices: Dict[sp.Symbol, Matrix]):
         """
         Initializes a CMF with `Mx` and `My` matrices
         """
 
-        self.Mx = Mx
+        self.Mx = matrices[x]
         """The Mx matrix of the CMF"""
-        self.My = My
+        self.My = matrices[y]
         """The My matrix of the CMF"""
 
         Mxy = simplify(self.Mx * self.My({x: x + 1}))
@@ -38,7 +39,12 @@ class CMF:
 
     def subs(self, *args, **kwrags):
         """Returns a new CMF with substituted Mx and My."""
-        return CMF(self.Mx.subs(*args, **kwrags), self.My.subs(*args, **kwrags))
+        return CMF(
+            matrices={
+                x: self.Mx.subs(*args, **kwrags),
+                y: self.My.subs(*args, **kwrags),
+            }
+        )
 
     def simplify(self):
         """Returns a new CMF with simplified Mx and My"""

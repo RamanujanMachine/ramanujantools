@@ -68,8 +68,10 @@ class FFbar(CMF):
         """The fbar function of the FFbar CMF"""
 
         super().__init__(
-            Matrix([[0, self.b()], [1, self.a()]]),
-            Matrix([[self.fbar, self.b()], [1, self.f]]),
+            matrices={
+                x: Matrix([[0, self.b()], [1, self.a()]]),
+                y: Matrix([[self.fbar, self.b()], [1, self.f]]),
+            }
         )
 
     def __repr__(self):
