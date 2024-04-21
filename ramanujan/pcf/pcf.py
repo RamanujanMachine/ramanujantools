@@ -145,8 +145,8 @@ class PCF:
             The pcf convergence limit as defined above.
             If iterations is a list, returns a list of limits.
         """
-        m_walk = self.M().walk({n: 1}, iterations, {n: start})
-        return [self.A() * mat for mat in m_walk]
+        limits = self.M().walk({n: 1}, iterations, {n: start})
+        return [self.A() * limit for limit in limits]
 
     @multimethod
     def walk(self, iterations: int, start: int = 1) -> Limit:  # noqa: F811

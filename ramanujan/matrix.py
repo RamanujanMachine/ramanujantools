@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import math
 
-from typing import Dict, List, Collection
+from typing import Dict, Collection
 from multimethod import multimethod
 
 import sympy as sp
