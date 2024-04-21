@@ -3,10 +3,8 @@ from pytest import approx
 import itertools
 from math import e, pi, log
 
-import mpmath as mp
-from mpmath import zeta
+from mpmath import mp, zeta
 
-import sympy as sp
 from sympy.abc import x, y, n
 
 from ramanujan.cmf import known_cmfs
@@ -31,16 +29,17 @@ def test_cmf_zeta3():
 
 
 def test_apery():
-    mp.mp.dps = 10000
     cmf = known_cmfs.zeta3()
     pcf = cmf.as_pcf({x: 1, y: 1}, {x: 1, y: 1}).pcf
     # This is Apery's PCF
     assert pcf == PCF(34 * n**3 + 51 * n**2 + 27 * n + 5, -(n**6))
 
-    limit = sp.Float(6 / zeta(3), mp.mp.dps)
     depth = 2000
-    assert pcf.walk(depth).as_float() == approx(float(limit))
-    delta = pcf.delta(depth, limit)
+    actual_limit = pcf.walk(depth)
+    actual_limit.increase_precision()  # Must before expected_limit, to ensure precision for zeta(3)
+    expected_limit = mp.mpf(6 / zeta(3))
+    assert actual_limit.as_float() == approx(float(expected_limit))
+    delta = pcf.delta(depth, expected_limit)
     assert delta > 0.086 and delta < 0.87
 
 

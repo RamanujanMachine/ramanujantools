@@ -66,7 +66,6 @@ def test_deflate_all():
 
 
 def test_blind_delta():
-    mp.mp.dps = 10**5
     pcf = PCF(34 * n**3 + 51 * n**2 + 27 * n + 5, -(n**6))
     depth = 2000
     delta = pcf.delta(depth)

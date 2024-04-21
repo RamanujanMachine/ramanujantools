@@ -32,6 +32,25 @@ class Limit(Matrix):
     Represents a mathematical limit of a `walk` operation.
     """
 
+    def precision(self, base: int = 10) -> int:
+        """
+        Returns the error in 'digits' for the PCF convergence.
+
+        Args:
+            base: The numerical base in which to return the precision (by default 10)
+        """
+        diff = abs(mp.mpq(*(self * zero())) - mp.mpq(*(self * inf())))
+        return int(mp.floor(-mp.log(diff, 10)))
+
+    def increase_precision(self) -> int:
+        """
+        Increases the global mpmath precision to the lever required to handle this limit.
+        Returns the current precision after the increase.
+        """
+        requested_precision = self.precision() * 1.1  # Taking 10% digits buffer
+        mp.dps = max(mp.dps, requested_precision)
+        return mp.dps
+
     def as_rational(self) -> List:
         r"""
         Returns the limit as a rational number as a list [p, q],
@@ -45,8 +64,7 @@ class Limit(Matrix):
 
         This function increases the global mpmath precision if needed.
         """
-        requested_precision = self.precision() + 1
-        mp.dps = max(mp.dps, requested_precision)
+        self.increase_precision()
         p, q = self.as_rational()
         return mp.mpf(p) / mp.mpf(q)
 
@@ -57,13 +75,3 @@ class Limit(Matrix):
         This function increases the global mpmath precision if needed.
         """
         return most_round_in_range(self.as_float(), 10 ** -self.precision())
-
-    def precision(self, base: int = 10) -> int:
-        """
-        Returns the error in 'digits' for the PCF convergence.
-
-        Args:
-            base: The numerical base in which to return the precision (by default 10)
-        """
-        diff = abs(mp.mpq(*(self * zero())) - mp.mpq(*(self * inf())))
-        return int(mp.floor(-mp.log(diff, 10)))
