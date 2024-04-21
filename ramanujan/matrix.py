@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import math
-
 from typing import Dict, List, Collection
 from multimethod import multimethod
 
@@ -17,7 +15,7 @@ class Matrix(sp.Matrix):
     https://docs.sympy.org/latest/modules/matrices/matrices.html
     """
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args, **kwargs) -> Matrix:
         """
         Substitutes variables in the matrix, in a more math-like syntax.
 
@@ -26,22 +24,21 @@ class Matrix(sp.Matrix):
         """
         return self.subs(*args, **kwargs)
 
-    def gcd(self):
+    def gcd(self) -> sp.Rational:
         """
-        Returns the gcd of the matrix
+        Returns the rational gcd of the matrix
         """
-        import functools
+        primitives = [
+            primitive for primitive, _ in list(map(lambda cell: cell.primitive(), self))
+        ]
+        return sp.gcd(primitives)
 
-        return functools.reduce(math.gcd, self)
-
-    def reduce(self):
-        """Reduces gcd from the matrix"""
+    def normalize(self) -> Matrix:
+        """Normalizes the matrix by reducing its rational gcd"""
         gcd = self.gcd()
-        for i in range(len(self)):
-            self[i] //= gcd
-        return self
+        return self / gcd
 
-    def simplify(self):
+    def simplify(self) -> Matrix:
         """Returns a simplified version of matrix"""
         return Matrix(sp.simplify(self))
 
