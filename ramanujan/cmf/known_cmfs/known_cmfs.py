@@ -1,5 +1,5 @@
 import sympy as sp
-from sympy.abc import x, y
+from sympy.abc import a, b, c, x, y
 
 from ramanujan import Matrix
 from ramanujan.cmf import CMF
@@ -92,4 +92,23 @@ def cmf3_3():
     return FFbar(
         f=(x + y) * (c0**2 - c0 * c1 * (x - y) - 2 * c1**2 * (x**2 + x * y + y**2)),
         fbar=(c0 + c1 * (x - y)) * (3 * c0 * (x - y) + 2 * c1 * (x**2 - x * y + y**2)),
+    )
+
+
+def hypergeometric_derived_3d():
+    return CMF(
+        matrices={
+            a: Matrix(
+                [[1 + 2 * a, (1 + 2 * a) * (1 + 2 * b)], [1, 5 + 4 * a + 2 * b + 4 * c]]
+            ),
+            b: Matrix(
+                [[1 + 2 * b, (1 + 2 * a) * (1 + 2 * b)], [1, 5 + 2 * a + 4 * b + 4 * c]]
+            ),
+            c: Matrix(
+                [
+                    [-1 - 2 * c, (1 + 2 * a) * (1 + 2 * b)],
+                    [1, 3 + 2 * a + 2 * b + 2 * c],
+                ]
+            ),
+        }
     )

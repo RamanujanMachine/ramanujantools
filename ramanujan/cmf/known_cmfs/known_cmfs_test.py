@@ -68,3 +68,4 @@ def test_all_cmfs():
     known_cmfs.cmf3_1()
     known_cmfs.cmf3_2()
     known_cmfs.cmf3_3()
+    known_cmfs.hypergeometric_derived_3d()

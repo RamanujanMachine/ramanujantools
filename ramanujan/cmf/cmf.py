@@ -120,7 +120,6 @@ class CMF:
         position = {axis: axis for axis in self.axes()}
         m = sp.eye(2)
         for axis in self.axes():
-            print(axis)
             m *= self.M(axis).walk(self.axis_vector(axis), trajectory[axis], position)
             position[axis] += trajectory[axis]
         if start:
