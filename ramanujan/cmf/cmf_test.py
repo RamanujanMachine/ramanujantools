@@ -5,28 +5,36 @@ from ramanujan import Matrix, simplify
 from ramanujan.cmf import CMF, known_cmfs
 
 
-DEFAULT_START = {x: x, y: y}
-
-
 def test_non_conserving_throws():
     m = Matrix([[x, x + 17], [y * x, y * 3 - x + 5]])
     with raises(ValueError):
         CMF(matrices={x: m, y: m})
 
 
+def test_symbols():
+    cmf = known_cmfs.cmf1()
+    expected_axes = {x, y}
+    expected_parameters = {known_cmfs.c0, known_cmfs.c1, known_cmfs.c2, known_cmfs.c3}
+    assert expected_axes == cmf.axes()
+    assert expected_parameters == cmf.parameters()
+    assert set().union(expected_axes, expected_parameters) == cmf.free_symbols()
+
+
 def test_trajectory_matrix_axis():
     cmf = known_cmfs.e()
     assert cmf.trajectory_matrix({x: 3, y: 0}) == simplify(
-        cmf.Mx.walk({x: 1, y: 0}, 3, DEFAULT_START)
+        cmf.M(x).walk({x: 1, y: 0}, 3, {x: x, y: y})
     )
     assert cmf.trajectory_matrix({x: 0, y: 2}) == simplify(
-        cmf.My.walk({x: 0, y: 1}, 2, DEFAULT_START)
+        cmf.M(y).walk({x: 0, y: 1}, 2, {x: x, y: y})
     )
 
 
 def test_trajectory_matrix_diagonal():
     cmf = known_cmfs.e()
-    assert cmf.trajectory_matrix({x: 1, y: 1}) == simplify(cmf.Mx * cmf.My({x: x + 1}))
+    assert cmf.trajectory_matrix({x: 1, y: 1}) == simplify(
+        cmf.M(x) * cmf.M(y)({x: x + 1})
+    )
 
 
 def test_trajectory_matrix_diagonal_substitute():
@@ -40,8 +48,8 @@ def test_trajectory_matrix_diagonal_substitute():
 
 def test_walk_axis():
     cmf = known_cmfs.e()
-    assert cmf.walk({x: 1, y: 0}, 17) == cmf.Mx.walk({x: 1, y: 0}, 17, {x: 1, y: 1})
-    assert cmf.walk({x: 0, y: 1}, 17) == cmf.My.walk({x: 0, y: 1}, 17, {x: 1, y: 1})
+    assert cmf.walk({x: 1, y: 0}, 17) == cmf.M(x).walk({x: 1, y: 0}, 17, {x: 1, y: 1})
+    assert cmf.walk({x: 0, y: 1}, 17) == cmf.M(y).walk({x: 0, y: 1}, 17, {x: 1, y: 1})
 
 
 def test_walk_diagonal():
@@ -70,10 +78,10 @@ def test_limit_list():
 
 def test_substitute_trajectory_axis():
     cmf = known_cmfs.e()
-    assert CMF.substitute_trajectory(cmf.Mx, {x: 1, y: 0}, {x: 1, y: 0}) == cmf.Mx(
+    assert CMF.substitute_trajectory(cmf.M(x), {x: 1, y: 0}, {x: 1, y: 0}) == cmf.M(x)(
         {x: n, y: 0}
     )
-    assert CMF.substitute_trajectory(cmf.My, {x: 0, y: 1}, {x: 0, y: 1}) == cmf.My(
+    assert CMF.substitute_trajectory(cmf.M(y), {x: 0, y: 1}, {x: 0, y: 1}) == cmf.M(y)(
         {x: 0, y: n}
     )
 
