@@ -26,17 +26,23 @@ class Matrix(sp.Matrix):
 
     def gcd(self) -> sp.Rational:
         """
-        Returns the rational gcd of the matrix
+        Returns the rational gcd of the matrix, which could also be parameteric.
         """
-        primitives = [
-            primitive for primitive, _ in list(map(lambda cell: cell.primitive(), self))
-        ]
-        return sp.gcd(primitives)
+        return sp.gcd(list(self))
 
     def normalize(self) -> Matrix:
         """Normalizes the matrix by reducing its rational gcd"""
-        gcd = self.gcd()
-        return self / gcd
+        return self / self.gcd()
+
+    def inverse(self, normalize: bool = True) -> Matrix:
+        """
+        Inverses the matrix.
+
+        If `normalize` is set, will also normalize it after inversing.
+        """
+        if normalize:
+            return self.inv().normalize()
+        return self.inv()
 
     def simplify(self) -> Matrix:
         """Returns a simplified version of matrix"""
