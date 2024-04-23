@@ -7,7 +7,7 @@ from ramanujan.cmf import CMF
 
 class FFbar(CMF):
     r"""
-    Represents a Conservative Matrix Field that was generated using the f, fbar construction:
+    Represents a 2D Conservative Matrix Field that was generated using the f, fbar construction:
     $a(x, y) = f(x, y) - \bar{f}(x+1, y) = f(x+1, y-1) - \bar{f}(x, y-1)$,
     $b(x) = f\bar{f}(x, 0) - f\bar{f}(0, 0) = f\bar{f}(x, y) - f\bar{f}(0, y)$,
 
@@ -68,8 +68,10 @@ class FFbar(CMF):
         """The fbar function of the FFbar CMF"""
 
         super().__init__(
-            Matrix([[0, self.b()], [1, self.a()]]),
-            Matrix([[self.fbar, self.b()], [1, self.f]]),
+            matrices={
+                x: Matrix([[0, self.b()], [1, self.a()]]),
+                y: Matrix([[self.fbar, self.b()], [1, self.f]]),
+            }
         )
 
     def __repr__(self):
