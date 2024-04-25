@@ -6,6 +6,13 @@ from ramanujan import Limit
 from .limit import most_round_in_range
 
 
+def test_equality():
+    base_limit = Limit([[1, 2], [3, 4]])
+    limit1 = base_limit * 17
+    limit2 = base_limit * 31
+    assert limit1 == limit2
+
+
 def test_as_rational():
     p = 2
     q = 3
