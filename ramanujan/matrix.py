@@ -45,7 +45,9 @@ class Matrix(sp.Matrix):
         return Matrix(sp.simplify(self))
 
     @multimethod
-    def walk(self, trajectory: Dict, iterations: Collection[int], start: Dict):
+    def walk(
+        self, trajectory: Dict, iterations: Collection[int], start: Dict
+    ) -> Matrix:
         r"""
         Returns the multiplication result of walking in a certain trajectory.
 
@@ -64,8 +66,6 @@ class Matrix(sp.Matrix):
             If iterations is list, returns a list of matrices.
         """
 
-        from ramanujan import Limit
-
         assert (
             start.keys() == trajectory.keys()
         ), "`start` and `trajectory` must contain same keys"
@@ -82,7 +82,7 @@ class Matrix(sp.Matrix):
             max(iterations_set) + 1
         ):  # Plus one for the last requested `iterations` value
             if i in iterations:
-                results.append(Limit(matrix))
+                results.append(matrix)
             matrix *= self.subs(position)
             position = {key: trajectory[key] + value for key, value in position.items()}
         return results

@@ -132,7 +132,28 @@ class PCF:
         return PCF(self.a_n.subs(*args, **kwargs), self.b_n.subs(*args, **kwargs))
 
     @multimethod
-    def walk(self, iterations: Collection[int], start: int = 1) -> List[Limit]:
+    def walk(self, iterations: Collection[int], start: int = 1) -> List[Matrix]:
+        r"""
+        Returns the matrix corresponding to calculating the PCF up to a certain depth, including $a_0$
+
+        This is essentially $A \cdot \prod_{i=0}^{n-1}M(s + i)$ where `n=iterations` and `s=start`
+
+        Args:
+            iterations: The amount of multiplications to perform. Can be an integer value or a list of values.
+            start: The n value of the first matrix to be multiplied (1 by default)
+        Returns:
+            The pcf convergence limit as defined above.
+            If iterations is a list, returns a list of limits.
+        """
+        matrices = self.M().walk({n: 1}, iterations, {n: start})
+        return [self.A() * matrix for matrix in matrices]
+
+    @multimethod
+    def walk(self, iterations: int, start: int = 1) -> Matrix:  # noqa: F811
+        return self.walk([iterations], start)[0]
+
+    @multimethod
+    def limit(self, iterations: Collection[int], start: int = 1) -> List[Limit]:
         r"""
         Returns the limit corresponding to calculating the PCF up to a certain depth, including $a_0$
 
@@ -145,12 +166,11 @@ class PCF:
             The pcf convergence limit as defined above.
             If iterations is a list, returns a list of limits.
         """
-        limits = self.M().walk({n: 1}, iterations, {n: start})
-        return [self.A() * limit for limit in limits]
+        return list(map(lambda matrix: Limit(matrix), self.walk(iterations, start)))
 
     @multimethod
-    def walk(self, iterations: int, start: int = 1) -> Limit:  # noqa: F811
-        return self.walk([iterations], start)[0]
+    def limit(self, iterations: int, start: int = 1) -> Limit:  # noqa: F811
+        return self.limit([iterations], start)[0]
 
     def delta(self, depth, limit=None):
         r"""
@@ -168,10 +188,10 @@ class PCF:
         """
 
         if limit is None:
-            m, mlim = self.walk([depth, 2 * depth])
+            m, mlim = self.limit([depth, 2 * depth])
             limit = mlim.as_float()
         else:
-            m = self.walk(depth)
+            m = self.limit(depth)
         p, q = m.as_rational()
         return delta(p, q, limit)
 
@@ -194,7 +214,7 @@ class PCF:
         m = self.A()
 
         if limit is None:
-            limit = self.walk(2 * depth).as_float()
+            limit = self.limit(2 * depth).as_float()
 
         for i in range(1, depth + 1):
             m *= self.M().subs(n, i)
