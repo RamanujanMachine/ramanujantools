@@ -28,9 +28,8 @@ def test_inverse():
     c = 3
     d = 7
     m = Matrix([[a, b], [c, d]])
-    inversed = Matrix([[d, -b], [-c, a]])
-    assert inversed == m.inverse()
-    assert inversed / (a * d - b * c) == m.inverse(normalize=False)
+    expected = Matrix([[d, -b], [-c, a]]) / (a * d - b * c)
+    assert expected == m.inverse()
 
 
 def test_walk_0():

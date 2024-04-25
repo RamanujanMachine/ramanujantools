@@ -35,16 +35,13 @@ class Matrix(sp.Matrix):
 
     def normalize(self) -> Matrix:
         """Normalizes the matrix by reducing its rational gcd"""
-        return self / self.gcd()
+        m = self.simplify()
+        return (m / m.gcd()).simplify()
 
-    def inverse(self, normalize: bool = True) -> Matrix:
+    def inverse(self) -> Matrix:
         """
         Inverses the matrix.
-
-        If `normalize` is set, will also normalize it after inversing.
         """
-        if normalize:
-            return self.inv().normalize()
         return self.inv()
 
     def simplify(self) -> Matrix:
