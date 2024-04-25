@@ -1,7 +1,7 @@
 from pytest import raises
 from sympy.abc import a, b, c, x, y, n
 
-from ramanujan import Matrix, simplify
+from ramanujan import Limit, Matrix, simplify
 from ramanujan.cmf import CMF, known_cmfs
 
 
@@ -94,8 +94,16 @@ def test_walk_axis():
 
 def test_walk_diagonal():
     cmf = known_cmfs.e()
+    Mxy = cmf.trajectory_matrix({x: 1, y: 1}, {x: 1, y: 1})
+    assert cmf.walk({x: 1, y: 1}, 17) == Mxy.walk({n: 1}, 17 // 2, {n: 1})
+
+
+def test_limit_diagonal():
+    cmf = known_cmfs.e()
     Mxy = cmf.trajectory_matrix({x: 1, y: 1})
-    assert cmf.walk({x: 1, y: 1}, 17) == Mxy.walk({x: 1, y: 1}, 17 // 2, {x: 1, y: 1})
+    assert cmf.limit({x: 1, y: 1}, 17) == Limit(
+        Mxy.walk({x: 1, y: 1}, 17 // 2, {x: 1, y: 1})
+    )
 
 
 def test_walk_list():
@@ -104,15 +112,6 @@ def test_walk_list():
     iterations = list(map(lambda x: x * sum(trajectory.values()), [1, 2, 3, 17, 29]))
     assert cmf.walk(trajectory, iterations) == [
         cmf.walk(trajectory, i) for i in iterations
-    ]
-
-
-def test_limit_list():
-    cmf = known_cmfs.e()
-    trajectory = {x: 2, y: 3}
-    iterations = list(map(lambda x: x * sum(trajectory.values()), [1, 2, 3, 17, 29]))
-    assert cmf.limit(trajectory, iterations) == [
-        cmf.limit(trajectory, i) for i in iterations
     ]
 
 
