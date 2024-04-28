@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Dict, Collection
+from typing import Dict, List, Collection
 
 from multimethod import multimethod
 
@@ -14,7 +14,7 @@ class Matrix(sp.Matrix):
     https://docs.sympy.org/latest/modules/matrices/matrices.html
     """
 
-    def __eq__(self, other: Matrix):
+    def __eq__(self, other: Matrix) -> bool:
         return all(sp.simplify(cell) == 0 for cell in self - other)
 
     def __call__(self, *args, **kwargs) -> Matrix:
@@ -50,7 +50,7 @@ class Matrix(sp.Matrix):
     @multimethod
     def walk(
         self, trajectory: Dict, iterations: Collection[int], start: Dict
-    ) -> Matrix:
+    ) -> List[Matrix]:
         r"""
         Returns the multiplication result of walking in a certain trajectory.
 
@@ -91,7 +91,9 @@ class Matrix(sp.Matrix):
         return results
 
     @multimethod
-    def walk(self, trajectory: Dict, iterations: int, start: Dict):  # noqa: F811
+    def walk(
+        self, trajectory: Dict, iterations: int, start: Dict
+    ) -> Matrix:  # noqa: F811
         return self.walk(trajectory, [iterations], start)[0]
 
     def as_pcf(self, deflate_all=True):
