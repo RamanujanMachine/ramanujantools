@@ -1,3 +1,4 @@
+import sympy as sp
 from sympy.abc import x, y
 
 from ramanujan import Matrix, simplify, zero, inf
@@ -13,12 +14,12 @@ def test_gcd():
     assert 11 == m.gcd()
 
 
-def test_gcd_reduce():
+def test_normalize():
     initial = Matrix([[2, 3], [5, 7]])
-    gcd = 17
+    gcd = sp.Rational(17, 13)
     m = gcd * initial
     assert m.gcd() == gcd
-    assert m.reduce() == initial
+    assert m.normalize() == initial
 
 
 def test_walk_0():
