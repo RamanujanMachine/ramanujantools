@@ -14,6 +14,9 @@ class Matrix(sp.Matrix):
     https://docs.sympy.org/latest/modules/matrices/matrices.html
     """
 
+    def __eq__(self, other: Matrix) -> bool:
+        return all(sp.simplify(cell) == 0 for cell in self - other)
+
     def __call__(self, *args, **kwargs) -> Matrix:
         """
         Substitutes variables in the matrix, in a more math-like syntax.

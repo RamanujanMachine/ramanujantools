@@ -30,7 +30,7 @@ def test_cmf_zeta3():
 
 def test_apery():
     cmf = known_cmfs.zeta3()
-    pcf = cmf.as_pcf({x: 1, y: 1}, {x: 1, y: 1}).pcf
+    pcf = cmf.as_pcf({x: 1, y: 1}).pcf
     # This is Apery's PCF
     assert pcf == PCF(34 * n**3 + 51 * n**2 + 27 * n + 5, -(n**6))
 
@@ -67,3 +67,4 @@ def test_all_cmfs():
     known_cmfs.cmf3_1()
     known_cmfs.cmf3_2()
     known_cmfs.cmf3_3()
+    known_cmfs.hypergeometric_derived_3d()
