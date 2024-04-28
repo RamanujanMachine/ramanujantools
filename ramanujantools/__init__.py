@@ -4,8 +4,8 @@ from .generic_polynomial import GenericPolynomial
 from .delta import delta
 from .simplify_object import simplify
 
-from .pcf import pcf
-from .cmf import cmf
+from . import pcf
+from . import cmf
 
 __all__ = [
     "Matrix",

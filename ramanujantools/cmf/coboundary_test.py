@@ -2,10 +2,10 @@ import pytest
 import random
 from sympy.abc import x, y
 
-from ramanujan.cmf.cmf import CMF
-from ramanujan.cmf import known_cmfs
-from ramanujan.cmf.coboundary import CoboundarySolver
-from ramanujan.matrix import Matrix
+from ramanujantools.cmf.cmf import CMF
+from ramanujantools.cmf import known_cmfs
+from ramanujantools.cmf.coboundary import CoboundarySolver
+from ramanujantools.matrix import Matrix
 
 
 known_cmf_list = [known_cmfs.e(), known_cmfs.pi(), known_cmfs.zeta3()]

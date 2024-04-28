@@ -3,7 +3,7 @@ from typing import List
 
 from mpmath import mp
 
-from ramanujan import Matrix, zero, inf
+from ramanujantools import Matrix, zero, inf
 
 
 def first_unmatch(a: str, b: str) -> int:

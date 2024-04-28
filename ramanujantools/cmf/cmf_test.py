@@ -1,8 +1,8 @@
 from pytest import raises
 from sympy.abc import x, y, n
 
-from ramanujan import Matrix, simplify
-from ramanujan.cmf import CMF, known_cmfs
+from ramanujantools import Matrix, simplify
+from ramanujantools.cmf import CMF, known_cmfs
 
 
 def test_non_conserving_throws():

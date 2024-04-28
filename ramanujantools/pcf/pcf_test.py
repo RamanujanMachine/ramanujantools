@@ -2,7 +2,7 @@ from pytest import approx
 from sympy.abc import c, n
 import mpmath as mp
 
-from ramanujan.pcf import PCF
+from ramanujantools.pcf import PCF
 
 
 def test_repr():

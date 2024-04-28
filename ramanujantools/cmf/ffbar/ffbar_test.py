@@ -1,9 +1,9 @@
 from sympy.abc import x, y
 
-from ramanujan import Matrix
-from ramanujan.cmf import CMF, known_cmfs
-from ramanujan.cmf.known_cmfs import c0, c1, c2, c3
-from ramanujan.cmf.ffbar import FFbar
+from ramanujantools import Matrix
+from ramanujantools.cmf import CMF, known_cmfs
+from ramanujantools.cmf.known_cmfs import c0, c1, c2, c3
+from ramanujantools.cmf.ffbar import FFbar
 
 
 def test_linear_condition():

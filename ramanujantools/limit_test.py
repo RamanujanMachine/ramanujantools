@@ -2,7 +2,7 @@ from pytest import approx
 
 from mpmath import mp
 
-from ramanujan import Limit
+from ramanujantools import Limit
 from .limit import most_round_in_range
 
 

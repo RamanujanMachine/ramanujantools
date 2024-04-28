@@ -3,9 +3,9 @@ from sympy.abc import x, y, n
 
 from typing import Collection, List
 
-from ramanujan import GenericPolynomial
-from ramanujan.pcf import PCF
-from ramanujan.cmf.ffbar import FFbar
+from ramanujantools import GenericPolynomial
+from ramanujantools.pcf import PCF
+from ramanujantools.cmf.ffbar import FFbar
 
 
 def polynomial_coefficients(poly, variables: Collection[sp.Symbol] = (x, y)) -> List:

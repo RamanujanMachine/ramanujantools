@@ -3,9 +3,9 @@ from sympy import Poly, Symbol
 from sympy.abc import x
 from typing import Dict, List, Optional, Tuple
 
-from ramanujan.generic_polynomial import GenericPolynomial
-from ramanujan.matrix import Matrix
-from ramanujan.simplify_object import simplify
+from ramanujantools.generic_polynomial import GenericPolynomial
+from ramanujantools.matrix import Matrix
+from ramanujantools.simplify_object import simplify
 
 
 class CoboundarySolver:

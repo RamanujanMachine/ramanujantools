@@ -5,7 +5,7 @@ from sympy import Poly
 from sympy.abc import x
 from typing import Dict, List, Union
 
-from ramanujan.generic_polynomial import GenericPolynomial
+from ramanujantools.generic_polynomial import GenericPolynomial
 
 
 r"""

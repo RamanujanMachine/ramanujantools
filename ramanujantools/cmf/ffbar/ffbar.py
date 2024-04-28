@@ -1,8 +1,8 @@
 import sympy as sp
 from sympy.abc import x, y
 
-from ramanujan import Matrix
-from ramanujan.cmf import CMF
+from ramanujantools import Matrix
+from ramanujantools.cmf import CMF
 
 
 class FFbar(CMF):

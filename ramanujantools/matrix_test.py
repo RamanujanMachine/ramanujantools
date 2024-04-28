@@ -1,7 +1,7 @@
 import sympy as sp
 from sympy.abc import x, y
 
-from ramanujan import Matrix, simplify, zero, inf
+from ramanujantools import Matrix, simplify, zero, inf
 
 
 def test_gcd():

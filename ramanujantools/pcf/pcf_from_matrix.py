@@ -1,7 +1,7 @@
 from sympy.abc import n
 
-from ramanujan import Matrix
-from ramanujan.pcf import PCF
+from ramanujantools import Matrix
+from ramanujantools.pcf import PCF
 
 
 class PCFFromMatrix:

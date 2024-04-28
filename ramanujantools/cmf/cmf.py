@@ -6,8 +6,8 @@ from typing import Collection, Dict, List, Set, Union
 import sympy as sp
 from sympy.abc import n
 
-from ramanujan import Matrix, Limit, simplify
-from ramanujan.pcf import PCFFromMatrix
+from ramanujantools import Matrix, Limit, simplify
+from ramanujantools.pcf import PCFFromMatrix
 
 
 class CMF:

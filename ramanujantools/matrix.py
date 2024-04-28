@@ -103,7 +103,7 @@ class Matrix(sp.Matrix):
             a `PCFFRomMatrix` object, containing a `PCF` whose limit is equal to
             a mobius transform of the original `Matrix`.
         """
-        from ramanujan.pcf import PCFFromMatrix
+        from ramanujantools.pcf import PCFFromMatrix
 
         return PCFFromMatrix(self, deflate_all)
 

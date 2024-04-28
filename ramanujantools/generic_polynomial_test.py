@@ -2,7 +2,7 @@ import pytest
 import sympy
 from sympy.abc import x, y, z
 from typing import List
-from ramanujan.generic_polynomial import GenericPolynomial
+from ramanujantools.generic_polynomial import GenericPolynomial
 
 
 @pytest.mark.parametrize("n, num_var, output", [

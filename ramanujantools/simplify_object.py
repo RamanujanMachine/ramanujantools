@@ -4,7 +4,7 @@ def get_parent_module(obj):
 
 
 def simplify(obj):
-    if get_parent_module(obj) == "ramanujan":
+    if get_parent_module(obj) == "ramanujantools":
         return obj.simplify()
     else:
         import sympy as sp

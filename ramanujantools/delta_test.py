@@ -1,6 +1,6 @@
 import mpmath as mp
 
-from ramanujan import delta
+from ramanujantools import delta
 
 
 def test_delta():

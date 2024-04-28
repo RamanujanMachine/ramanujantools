@@ -1,6 +1,5 @@
 from .cmf import CMF
 
-from .ffbar import ffbar
-from .known_cmfs import known_cmfs
+from . import ffbar, known_cmfs
 
 __all__ = ["CMF", "ffbar", "known_cmfs"]

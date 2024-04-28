@@ -1,12 +1,12 @@
 import pytest
 from sympy.abc import x, y, n
 
-from ramanujan import GenericPolynomial
-from ramanujan.pcf import PCF
-from ramanujan.cmf.ffbar import FFbar, solve_ffbar, from_pcf
+from ramanujantools import GenericPolynomial
+from ramanujantools.pcf import PCF
+from ramanujantools.cmf.ffbar import FFbar, solve_ffbar, from_pcf
 from .solver import solve
 
-from ramanujan.cmf.known_cmfs import cmf1
+from ramanujantools.cmf.known_cmfs import cmf1
 
 
 @pytest.mark.parametrize("deg", [1, 2])

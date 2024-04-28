@@ -7,8 +7,8 @@ from mpmath import mp, zeta
 
 from sympy.abc import x, y, n
 
-from ramanujan.cmf import known_cmfs
-from ramanujan.pcf import PCF
+from ramanujantools.cmf import known_cmfs
+from ramanujantools.pcf import PCF
 
 
 def test_cmf_e():
@@ -44,7 +44,7 @@ def test_apery():
 
 
 def test_cmf1():
-    from ramanujan.cmf.known_cmfs import c0, c1, c2, c3
+    from ramanujantools.cmf.known_cmfs import c0, c1, c2, c3
 
     cmf = known_cmfs.cmf1()
     for a, b in itertools.product(range(1, 10), range(1, 10)):
