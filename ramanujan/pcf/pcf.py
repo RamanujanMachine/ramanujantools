@@ -1,11 +1,10 @@
-from mpmath import mp
 import sympy as sp
 from sympy.abc import n
 
 from typing import List, Collection
 from multimethod import multimethod
 
-from ramanujan import Matrix, zero, inf, delta
+from ramanujan import Matrix, Limit, delta, zero
 
 
 def is_deflatable(a_factors, b_factors, factor):
@@ -143,52 +142,35 @@ class PCF:
             iterations: The amount of multiplications to perform. Can be an integer value or a list of values.
             start: The n value of the first matrix to be multiplied (1 by default)
         Returns:
-            Steps from the walk multiplication as defined above.
+            The pcf convergence limit as defined above.
+            If iterations is a list, returns a list of limits.
         """
-        m_walk = self.M().walk({n: 1}, iterations, {n: start})
-        return [self.A() * mat for mat in m_walk]
+        matrices = self.M().walk({n: 1}, iterations, {n: start})
+        return [self.A() * matrix for matrix in matrices]
 
     @multimethod
     def walk(self, iterations: int, start: int = 1) -> Matrix:  # noqa: F811
         return self.walk([iterations], start)[0]
 
     @multimethod
-    def limit(
-        self, iterations: Collection[int], start=1, vector=zero()
-    ) -> List[Matrix]:
+    def limit(self, iterations: Collection[int], start: int = 1) -> List[Limit]:
         r"""
-        Calculates the convergence limit of the PCF up to a certain `iterations`.
+        Returns the limit corresponding to calculating the PCF up to a certain depth, including $a_0$
 
-        This is essentially the same as `(self.walk(iterations, start)) * vector`
+        This is essentially $A \cdot \prod_{i=0}^{n-1}M(s + i)$ where `n=iterations` and `s=start`
 
         Args:
             iterations: The amount of multiplications to perform. Can be an integer value or a list of values.
             start: The n value of the first matrix to be multiplied (1 by default)
-            vector: The final vector to multiply the matrix by (the zero vector by default)
         Returns:
             The pcf convergence limit as defined above.
             If iterations is a list, returns a list of limits.
         """
-        m_walk = self.walk(iterations, start)
-        return [mat * vector for mat in m_walk]
-
-    @staticmethod
-    def precision(m: Matrix, base: int = 10) -> int:
-        """
-        Returns the error in 'digits' for the PCF convergence.
-
-        If `m` is not a result of a `PCF.walk` multiplication,
-        or if the pcf does not converge this function is undefined.
-        By default, `base` is 10 (for digits).
-        """
-        diff = abs(mp.mpq(*(m * zero())) - mp.mpq(*(m * inf())))
-        return int(mp.floor(-mp.log(diff, 10)))
+        return list(map(lambda matrix: Limit(matrix), self.walk(iterations, start)))
 
     @multimethod
-    def limit(  # noqa: F811
-        self, iterations: int, start=1, vector=zero()
-    ) -> List[Matrix]:
-        return self.limit([iterations], start, vector)[0]
+    def limit(self, iterations: int, start: int = 1) -> Limit:  # noqa: F811
+        return self.limit([iterations], start)[0]
 
     def delta(self, depth, limit=None):
         r"""
@@ -207,42 +189,34 @@ class PCF:
 
         if limit is None:
             m, mlim = self.limit([depth, 2 * depth])
-            limit = mlim.ratio()
+            limit = mlim.as_float()
         else:
             m = self.limit(depth)
-        p, q = m
+        p, q = m.as_rational()
         return delta(p, q, limit)
 
-    def delta_sequence(self, depth: int, limit: float=None):
+    def delta_sequence(self, depth: int, limit: float = None):
         r"""
         Calculates the irrationality measure $\delta$ defined, as:
         $|\frac{p_n}{q_n} - L| = \frac{1}{q_n}^{1+\delta}$
 
         If limit is not specified (i.e, limit is None),
-        then limit is approximated as limit = self.limit(2 * depth)
+        then limit is approximated as the limit at 2*depth.
 
         Args:
             depth: $n$
             limit: $L$
         Returns:
             the delta values for all depths up to `depth` as defined above.
-
-        Developer's note:
-        In case limit is not specified, function currently calculates limit
-        to depth (2*depth) and then redoes matrix multiplications up to `depth`
-        for the delta calculations (inefficient in number of operations).
-        A possible alternative: calculate matrices up to `depth` and
-        then advance to depth (2*depth) (storage inefficient).
         """
 
         deltas = []
         m = self.A()
 
-        if limit is None:        
-            mlim = self.limit(2 * depth)
-            limit = mlim.ratio()
-    
-        for i in range(1, depth+1):
+        if limit is None:
+            limit = self.limit(2 * depth).as_float()
+
+        for i in range(1, depth + 1):
             m *= self.M().subs(n, i)
             p, q = m * zero()
             deltas.append(delta(p, q, limit))
