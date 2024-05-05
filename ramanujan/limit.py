@@ -3,7 +3,7 @@ from typing import List
 
 from mpmath import mp
 
-from ramanujan import Matrix, zero, inf
+from ramanujan import SquareMatrix, zero, inf
 
 
 def first_unmatch(a: str, b: str) -> int:
@@ -28,7 +28,7 @@ def most_round_in_range(num: mp.mpf, err: mp.mpf) -> str:
     return min(round_attempt(num, num + err), round_attempt(num, num - err), key=len)
 
 
-class Limit(Matrix):
+class Limit(SquareMatrix):
     r"""
     Represents a mathematical limit of a `walk` operation.
     """

@@ -6,18 +6,25 @@ from multimethod import multimethod
 import sympy as sp
 
 
-class Matrix(sp.Matrix):
+class SquareMatrix(sp.Matrix):
     """
-    Represens a marix.
+    Represents an NxN marix.
 
     Inherits from sympy's matrix and supports all of its methods and operators:
     https://docs.sympy.org/latest/modules/matrices/matrices.html
     """
 
-    def __eq__(self, other: Matrix) -> bool:
+    def __init__(self, *args, **kwargs):
+        super().__init__()
+        assert (
+            self.rows == self.cols
+        ), f"Only square NxN matrices are supported, received {self.rows}x{self.cols}"
+        self.N = self.rows
+
+    def __eq__(self, other: SquareMatrix) -> bool:
         return all(sp.simplify(cell) == 0 for cell in self - other)
 
-    def __call__(self, *args, **kwargs) -> Matrix:
+    def __call__(self, *args, **kwargs) -> SquareMatrix:
         """
         Substitutes variables in the matrix, in a more math-like syntax.
 
@@ -35,19 +42,19 @@ class Matrix(sp.Matrix):
         ]
         return sp.gcd(primitives)
 
-    def normalize(self) -> Matrix:
+    def normalize(self) -> SquareMatrix:
         """Normalizes the matrix by reducing its rational gcd"""
         gcd = self.gcd()
         return self / gcd
 
-    def simplify(self) -> Matrix:
+    def simplify(self) -> SquareMatrix:
         """Returns a simplified version of matrix"""
-        return Matrix(sp.simplify(self))
+        return SquareMatrix(sp.simplify(self))
 
     @multimethod
     def walk(
         self, trajectory: Dict, iterations: Collection[int], start: Dict
-    ) -> List[Matrix]:
+    ) -> List[SquareMatrix]:
         r"""
         Returns the multiplication result of walking in a certain trajectory.
 
@@ -76,7 +83,7 @@ class Matrix(sp.Matrix):
         ), "`iterations` values must be unique"
 
         position = start
-        matrix = Matrix.eye(2)
+        matrix = SquareMatrix.eye(2)
         results = []
         for i in range(
             max(iterations_set) + 1
@@ -90,29 +97,29 @@ class Matrix(sp.Matrix):
     @multimethod
     def walk(
         self, trajectory: Dict, iterations: int, start: Dict
-    ) -> Matrix:  # noqa: F811
+    ) -> SquareMatrix:  # noqa: F811
         return self.walk(trajectory, [iterations], start)[0]
 
     def as_pcf(self, deflate_all=True):
         """
-        Converts a `Matrix` to an equivalent `PCF`
+        Converts a `SquareMatrix` to an equivalent `PCF`
 
         Args:
             deflate_all: if `True`, the function will also deflate the returned PCF to the fullest.
         Returns:
-            a `PCFFRomMatrix` object, containing a `PCF` whose limit is equal to
-            a mobius transform of the original `Matrix`.
+            a `PCFFRomSquareMatrix` object, containing a `PCF` whose limit is equal to
+            a mobius transform of the original `SquareMatrix`.
         """
-        from ramanujan.pcf import PCFFromMatrix
+        from ramanujan.pcf import PCFFromSquareMatrix
 
-        return PCFFromMatrix(self, deflate_all)
+        return PCFFromSquareMatrix(self, deflate_all)
 
 
-def zero():
+def zero() -> Matrix:
     r"""Returns the zero vector $\begin{pmatrix} 0 \cr 1 \end{pmatrix}$"""
-    return Matrix([0, 1])
+    return sp.Matrix([0, 1])
 
 
-def inf():
+def inf() -> Matrix:
     r"""Returns the infinity vector $\begin{pmatrix} 1 \cr 0 \end{pmatrix}$"""
-    return Matrix([1, 0])
+    return sp.Matrix([1, 0])

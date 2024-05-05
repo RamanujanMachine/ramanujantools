@@ -1,4 +1,4 @@
-from .matrix import Matrix, zero, inf
+from .square_matrix import SquareMatrix, zero, inf
 from .limit import Limit
 from .generic_polynomial import GenericPolynomial
 from .delta import delta
@@ -8,7 +8,7 @@ from .pcf import pcf
 from .cmf import cmf
 
 __all__ = [
-    "Matrix",
+    "SquareMatrix",
     "zero",
     "inf",
     "Limit",

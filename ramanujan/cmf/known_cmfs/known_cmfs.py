@@ -1,7 +1,7 @@
 import sympy as sp
 from sympy.abc import a, b, c, x, y
 
-from ramanujan import Matrix
+from ramanujan import SquareMatrix
 from ramanujan.cmf import CMF
 from ramanujan.cmf.ffbar import FFbar
 
@@ -11,8 +11,8 @@ c0, c1, c2, c3 = sp.symbols("c:4")
 def e():
     return CMF(
         matrices={
-            x: Matrix([[1, -y - 1], [-1, x + y + 2]]),
-            y: Matrix([[0, -y - 1], [-1, x + y + 1]]),
+            x: SquareMatrix([[1, -y - 1], [-1, x + y + 2]]),
+            y: SquareMatrix([[0, -y - 1], [-1, x + y + 1]]),
         }
     )
 
@@ -20,8 +20,8 @@ def e():
 def pi():
     return CMF(
         matrices={
-            x: Matrix([[x, -x], [-y, 2 * x + y + 1]]),
-            y: Matrix([[1 + y, -x], [-1 - y, x + 2 * y + 1]]),
+            x: SquareMatrix([[x, -x], [-y, 2 * x + y + 1]]),
+            y: SquareMatrix([[1 + y, -x], [-1 - y, x + 2 * y + 1]]),
         }
     )
 
@@ -29,13 +29,13 @@ def pi():
 def zeta3():
     return CMF(
         matrices={
-            x: Matrix(
+            x: SquareMatrix(
                 [
                     [0, -(x**3)],
                     [(x + 1) ** 3, x**3 + (x + 1) ** 3 + 2 * y * (y - 1) * (2 * x + 1)],
                 ]
             ),
-            y: Matrix(
+            y: SquareMatrix(
                 [
                     [-(x**3) + 2 * x**2 * y - 2 * x * y**2 + y**3, -(x**3)],
                     [x**3, x**3 + 2 * x**2 * y + 2 * x * y**2 + y**3],
@@ -55,7 +55,7 @@ def var_root_cmf():
     a = (2 * x + c1 + 1) * (2 * x + c0 + 1) - x * (x + 1)
     F = x**2 + x * (Y + 1) + (Y + 1 - c1) * (Y + 1 - c0)
     G = -(Y + 2 * x) * (x + c1 + c0 - (Y + 1))
-    return CMF(matrices={x: Matrix([[0, b], [1, a]]), y: Matrix([[G, b], [1, F]])})
+    return CMF(matrices={x: SquareMatrix([[0, b], [1, a]]), y: SquareMatrix([[G, b], [1, F]])})
 
 
 def cmf1():
@@ -98,13 +98,13 @@ def cmf3_3():
 def hypergeometric_derived_3d():
     return CMF(
         matrices={
-            a: Matrix(
+            a: SquareMatrix(
                 [[1 + 2 * a, (1 + 2 * a) * (1 + 2 * b)], [1, 5 + 4 * a + 2 * b + 4 * c]]
             ),
-            b: Matrix(
+            b: SquareMatrix(
                 [[1 + 2 * b, (1 + 2 * a) * (1 + 2 * b)], [1, 5 + 2 * a + 4 * b + 4 * c]]
             ),
-            c: Matrix(
+            c: SquareMatrix(
                 [
                     [-1 - 2 * c, (1 + 2 * a) * (1 + 2 * b)],
                     [1, 3 + 2 * a + 2 * b + 2 * c],

@@ -1,12 +1,12 @@
 from pytest import raises
 from sympy.abc import x, y, n
 
-from ramanujan import Matrix, simplify
+from ramanujan import SquareMatrix, simplify
 from ramanujan.cmf import CMF, known_cmfs
 
 
 def test_non_conserving_throws():
-    m = Matrix([[x, x + 17], [y * x, y * 3 - x + 5]])
+    m = SquareMatrix([[x, x + 17], [y * x, y * 3 - x + 5]])
     with raises(ValueError):
         CMF(matrices={x: m, y: m})
 

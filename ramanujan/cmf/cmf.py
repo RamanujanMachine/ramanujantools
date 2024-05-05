@@ -6,19 +6,19 @@ from typing import Collection, Dict, List, Set, Union
 import sympy as sp
 from sympy.abc import n
 
-from ramanujan import Matrix, Limit, simplify
-from ramanujan.pcf import PCFFromMatrix
+from ramanujan import SquareMatrix, Limit, simplify
+from ramanujan.pcf import PCFFromSquareMatrix
 
 
 class CMF:
     r"""
-    Represents a Conservative Matrix Field (CMF).
+    Represents a Conservative SquareMatrix Field (CMF).
 
     A CMF is defined by a set of axes and their relevant matrices that satisfy the perservation quality:
     for every two axes x and y, $Mx(x, y) \cdot My(x+1, y) = My(x, y) \cdot Mx(x, y+1)$
     """
 
-    def __init__(self, matrices: Dict[sp.Symbol, Matrix]):
+    def __init__(self, matrices: Dict[sp.Symbol, SquareMatrix]):
         """
         Initializes a CMF with `Mx` and `My` matrices
         """
@@ -34,7 +34,7 @@ class CMF:
             My = self.matrices[y]
             Mxy = simplify(Mx * My.subs({x: x + 1}))
             Myx = simplify(My * Mx.subs({y: y + 1}))
-            if simplify(Mxy - Myx) != Matrix([[0, 0], [0, 0]]):
+            if simplify(Mxy - Myx) != SquareMatrix([[0, 0], [0, 0]]):
                 raise ValueError(f"M{x} and M{y} matrices are not conserving!")
 
     def __eq__(self, other) -> bool:
@@ -43,7 +43,7 @@ class CMF:
     def __repr__(self) -> str:
         return f"CMF({self.matrices})"
 
-    def M(self, axis: sp.Symbol) -> Matrix:
+    def M(self, axis: sp.Symbol) -> SquareMatrix:
         """
         Returns the axis matrix for a given axis.
         """
@@ -97,7 +97,7 @@ class CMF:
         """
         return {axis: 1 for axis in self.axes()}
 
-    def trajectory_matrix(self, trajectory: dict, start: dict = None) -> Matrix:
+    def trajectory_matrix(self, trajectory: dict, start: dict = None) -> SquareMatrix:
         """
 
         Returns the corresponding matrix for walking in trajectory.
@@ -126,7 +126,7 @@ class CMF:
             m = CMF.substitute_trajectory(m, trajectory, start)
         return simplify(m)
 
-    def as_pcf(self, trajectory) -> PCFFromMatrix:
+    def as_pcf(self, trajectory) -> PCFFromSquareMatrix:
         """
         Returns the PCF equivalent to the CMF in a certain trajectory, up to a mobius transform.
         If `start` is None, will use the default origin value.
@@ -135,8 +135,8 @@ class CMF:
 
     @staticmethod
     def substitute_trajectory(
-        trajectory_matrix: Matrix, trajectory: dict, start: dict
-    ) -> Matrix:
+        trajectory_matrix: SquareMatrix, trajectory: dict, start: dict
+    ) -> SquareMatrix:
         """
         Returns trajectory_matrix reduced to a single variable `n`.
 
@@ -160,7 +160,7 @@ class CMF:
         trajectory: dict,
         iterations: Collection[int],
         start: Union[dict, type(None)] = None,
-    ) -> List[Matrix]:
+    ) -> List[SquareMatrix]:
         r"""
         Returns a list of trajectorial walk multiplication matrices in the desired depths.
 
@@ -187,7 +187,7 @@ class CMF:
         trajectory: dict,
         iterations: int,
         start: Union[dict, type(None)] = None,
-    ) -> Matrix:
+    ) -> SquareMatrix:
         return self.walk(trajectory, [iterations], start)[0]
 
     @multimethod

@@ -5,13 +5,15 @@ from sympy.abc import x, y
 from ramanujan.cmf.cmf import CMF
 from ramanujan.cmf import known_cmfs
 from ramanujan.cmf.coboundary import CoboundarySolver
-from ramanujan.matrix import Matrix
+from ramanujan.square_matrix import SquareMatrix
 
 
 known_cmf_list = [known_cmfs.e(), known_cmfs.pi(), known_cmfs.zeta3()]
 
 
-def verify_solution(mx1: Matrix, mx2: Matrix, solution: Matrix, deg: int):
+def verify_solution(
+    mx1: SquareMatrix, mx2: SquareMatrix, solution: SquareMatrix, deg: int
+):
     r"""
     Checks if the vector space of polynomial matrices m(x) of degree at most 'deg' satisfying
     mx1 * m(x+1) = m(x) * mx2
@@ -32,20 +34,20 @@ def verify_solution(mx1: Matrix, mx2: Matrix, solution: Matrix, deg: int):
 @pytest.mark.parametrize(
     "matrix",
     [
-        Matrix([[1, x], [x**2, x + 5]]),
-        Matrix([[1 + x + x**2, x], [x**5, x + 5 + x**3]]),
+        SquareMatrix([[1, x], [x**2, x + 5]]),
+        SquareMatrix([[1 + x + x**2, x], [x**5, x + 5 + x**3]]),
     ],
 )
-def test_self_coboundary(matrix: Matrix):
+def test_self_coboundary(matrix: SquareMatrix):
     """
     Every matrix is coboundary equivalent to itself via the identity matrix.
     """
     verify_solution(
         mx1=matrix,
         mx2=matrix,
-        solution=Matrix(
+        solution=SquareMatrix(
             [[1, 0], [0, 1]]
-        ),  # TODO : create Matrix.ID2() method which returns a 2x2 identity matrix
+        ),  # TODO : create SquareMatrix.ID2() method which returns a 2x2 identity matrix
         deg=1,
     )
 
@@ -71,9 +73,11 @@ def test_cmf_coboundary(cmf: CMF):
 
 
 def test_specific_coboundary():
-    mx1 = Matrix([[0, -(x**8)], [1, x**4 + (1 + x) ** 4]])
-    mx2 = Matrix([[0, -(x**8)], [1, x**4 + (1 + x) ** 4 + 2 * (x**2 + (1 + x) ** 2)]])
-    solution = Matrix(
+    mx1 = SquareMatrix([[0, -(x**8)], [1, x**4 + (1 + x) ** 4]])
+    mx2 = SquareMatrix(
+        [[0, -(x**8)], [1, x**4 + (1 + x) ** 4 + 2 * (x**2 + (1 + x) ** 2)]]
+    )
+    solution = SquareMatrix(
         [[x**4 * (1 - 2 * x), -(x**8) * (1 + 2 * x)], [2 * x - 1, x**4 * (1 + 2 * x)]]
     )
 
