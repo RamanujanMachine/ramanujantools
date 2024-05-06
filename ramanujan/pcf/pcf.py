@@ -107,6 +107,7 @@ class PCF:
         Inflation is the process of creating an almost equivalent PCF,
         such that $a_n' = a_n * c_n, b_n' = b_n * c_n * c_{n-1}$
         """
+        c_n = sp.simplify(c_n)
         return PCF(self.a_n * c_n, self.b_n * c_n.subs(n, n - 1) * c_n).simplify()
 
     def deflate(self, c_n):
@@ -115,6 +116,7 @@ class PCF:
 
         Deflation is the opposite process of inflation - or inflating by $c_n^{-1}$
         """
+        c_n = sp.simplify(c_n)
         return self.inflate(1 / c_n)
 
     def deflate_all(self):
