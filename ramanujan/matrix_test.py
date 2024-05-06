@@ -22,6 +22,16 @@ def test_normalize():
     assert m.normalize() == initial
 
 
+def test_inverse():
+    a = 5
+    b = 2
+    c = 3
+    d = 7
+    m = Matrix([[a, b], [c, d]])
+    expected = Matrix([[d, -b], [-c, a]]) / (a * d - b * c)
+    assert expected == m.inverse()
+
+
 def test_walk_0():
     m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
     assert m.walk({x: 0, y: 1}, 0, {x: x, y: y}) == Matrix.eye(2)

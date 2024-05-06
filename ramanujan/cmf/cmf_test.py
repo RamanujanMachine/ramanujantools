@@ -1,7 +1,7 @@
 from pytest import raises
-from sympy.abc import x, y, n
+from sympy.abc import a, b, c, x, y, n
 
-from ramanujan import Matrix, simplify
+from ramanujan import Limit, Matrix, simplify
 from ramanujan.cmf import CMF, known_cmfs
 
 
@@ -37,6 +37,46 @@ def test_trajectory_matrix_diagonal():
     )
 
 
+def test_back_negates_forward():
+    cmf = known_cmfs.e()
+    assert (
+        Matrix.eye(2) == (cmf.M(x, True) * cmf.M(x, False).subs({x: x + 1})).normalize()
+    )
+    assert (
+        Matrix.eye(2) == (cmf.M(x, False) * cmf.M(x, True).subs({x: x - 1})).normalize()
+    )
+    assert (
+        Matrix.eye(2) == (cmf.M(y, True) * cmf.M(y, False).subs({y: y + 1})).normalize()
+    )
+    assert (
+        Matrix.eye(2) == (cmf.M(y, False) * cmf.M(y, True).subs({y: y - 1})).normalize()
+    )
+
+
+def test_trajectory_matrix_negative_axis():
+    cmf = known_cmfs.e()
+    assert (
+        cmf.trajectory_matrix({x: -3, y: 0})
+        == cmf.M(x, False).walk({x: -1, y: 0}, 3, {x: x, y: y}).normalize()
+    )
+    assert (
+        cmf.trajectory_matrix({x: 0, y: -2})
+        == cmf.M(y, False).walk({x: 0, y: -1}, 2, {x: x, y: y}).normalize()
+    )
+
+
+def test_trajectory_matrix_negative():
+    cmf = known_cmfs.hypergeometric_derived_3d()
+    expected = (
+        cmf.M(a, sign=True)
+        * cmf.M(b, sign=False).subs({a: a + 1})
+        * cmf.M(b, sign=False).subs({a: a + 1, b: b - 1})
+        * cmf.M(c, sign=False).subs({a: a + 1, b: b - 2})
+    )
+
+    assert expected.normalize() == cmf.trajectory_matrix({a: 1, b: -2, c: -1})
+
+
 def test_trajectory_matrix_diagonal_substitute():
     from sympy.abc import n
 
@@ -54,8 +94,16 @@ def test_walk_axis():
 
 def test_walk_diagonal():
     cmf = known_cmfs.e()
+    Mxy = cmf.trajectory_matrix({x: 1, y: 1}, {x: 1, y: 1})
+    assert cmf.walk({x: 1, y: 1}, 17) == Mxy.walk({n: 1}, 17 // 2, {n: 1})
+
+
+def test_limit_diagonal():
+    cmf = known_cmfs.e()
     Mxy = cmf.trajectory_matrix({x: 1, y: 1})
-    assert cmf.walk({x: 1, y: 1}, 17) == Mxy.walk({x: 1, y: 1}, 17 // 2, {x: 1, y: 1})
+    assert cmf.limit({x: 1, y: 1}, 17) == Limit(
+        Mxy.walk({x: 1, y: 1}, 17 // 2, {x: 1, y: 1})
+    )
 
 
 def test_walk_list():

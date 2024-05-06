@@ -22,20 +22,11 @@ class CMF:
         """
         Initializes a CMF with `Mx` and `My` matrices
         """
-
         self.matrices = matrices
-
+        self.assert_conserving()
         assert (
             n not in self.matrices.keys()
         ), "Do not use symbol n as an axis, it's reserved for PCF conversions"
-
-        for x, y in itertools.combinations(self.matrices.keys(), 2):
-            Mx = self.matrices[x]
-            My = self.matrices[y]
-            Mxy = simplify(Mx * My.subs({x: x + 1}))
-            Myx = simplify(My * Mx.subs({y: y + 1}))
-            if simplify(Mxy - Myx) != Matrix([[0, 0], [0, 0]]):
-                raise ValueError(f"M{x} and M{y} matrices are not conserving!")
 
     def __eq__(self, other) -> bool:
         return self.matrices == other.matrices
@@ -43,11 +34,45 @@ class CMF:
     def __repr__(self) -> str:
         return f"CMF({self.matrices})"
 
-    def M(self, axis: sp.Symbol) -> Matrix:
+    def are_conserving(
+        self,
+        x: sp.Symbol,
+        y: sp.Symbol,
+        x_forward: bool = True,
+        y_forward: bool = True,
+    ) -> bool:
+        Mx = self.M(x, x_forward)
+        My = self.M(y, y_forward)
+        Mxy = simplify(Mx * My.subs({x: x + 1 if x_forward else x - 1}))
+        Myx = simplify(My * Mx.subs({y: y + 1 if y_forward else y - 1}))
+        return Mxy == Myx
+
+    def assert_conserving(self, check_negatives: bool = False) -> None:
+        for x, y in itertools.combinations(self.matrices.keys(), 2):
+            if not self.are_conserving(x, y, True, True):
+                raise ValueError(f"M({x}) and M({y}) matrices are not conserving!")
+
+            if check_negatives:
+                if not self.are_conserving(x, y, False, True):
+                    raise ValueError(f"M(-{x}) and M({y}) matrices are not conserving!")
+                if not self.are_conserving(x, y, True, False):
+                    raise ValueError(f"M({x}) and M(-{y}) matrices are not conserving!")
+                if not self.are_conserving(x, y, False, False):
+                    raise ValueError(
+                        f"M(-{x}) and M(-{y}) matrices are not conserving!"
+                    )
+
+    def M(self, axis: sp.Symbol, sign: bool = True) -> Matrix:
         """
         Returns the axis matrix for a given axis.
+
+        If sign is negative, returns the matrix corresponding a step back.
+        Note that we do not normalize M because it might impair the conservative property.
         """
-        return self.matrices[axis]
+        if sign:
+            return self.matrices[axis]
+        else:
+            return self.matrices[axis].inverse().subs({axis: axis - 1})
 
     def axes(self) -> Set[sp.Symbol]:
         """
@@ -55,12 +80,14 @@ class CMF:
         """
         return set(self.matrices.keys())
 
-    def axis_vector(self, axis: sp.Symbol) -> Dict[sp.Symbol, int]:
+    def axis_vector(self, axis: sp.Symbol, sign: bool = True) -> Dict[sp.Symbol, int]:
         """
         Given a CMF axis symbol `axis`,
-        Returns the vector which is 1 in that axis and 0 in all other axes.
+        Returns the vector which is a single step in that axis and 0 in all other axes.
+        The step is 1 with the sign of `sign`
         """
-        return {i: int(i == axis) for i in self.axes()}
+        step = 1 if sign else -1
+        return {i: step if i == axis else 0 for i in self.axes()}
 
     def parameters(self) -> Set[sp.Symbol]:
         """
@@ -120,11 +147,14 @@ class CMF:
         position = {axis: axis for axis in self.axes()}
         m = sp.eye(2)
         for axis in self.axes():
-            m *= self.M(axis).walk(self.axis_vector(axis), trajectory[axis], position)
+            sign = trajectory[axis] >= 0
+            m *= self.M(axis, sign).walk(
+                self.axis_vector(axis, sign), abs(trajectory[axis]), position
+            )
             position[axis] += trajectory[axis]
         if start:
             m = CMF.substitute_trajectory(m, trajectory, start)
-        return simplify(m)
+        return m.normalize()
 
     def as_pcf(self, trajectory) -> PCFFromMatrix:
         """
