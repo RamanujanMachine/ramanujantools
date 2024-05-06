@@ -56,7 +56,7 @@ class Limit(Matrix):
             base: The numerical base in which to return the precision (by default 10)
         """
         diff = abs(mp.mpq(*(self * zero())) - mp.mpq(*(self * inf())))
-        return int(mp.floor(-mp.log(diff, 10)))
+        return int(mp.floor(-mp.log(diff, base)))
 
     def increase_precision(self) -> int:
         """
