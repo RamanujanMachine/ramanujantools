@@ -33,6 +33,13 @@ class Limit(Matrix):
     Represents a mathematical limit of a `walk` operation.
     """
 
+    def __repr__(self) -> str:
+        matrix_string = repr(Matrix(self)).replace("Matrix(", "")[:-1]
+        return f"Limit({matrix_string})"
+
+    def __str__(self) -> str:
+        return repr(self)
+
     def __eq__(self, other: Limit) -> bool:
         """
         Returns true iff two limits converge to the same value.
