@@ -67,6 +67,7 @@ class CMF:
         Returns the axis matrix for a given axis.
 
         If sign is negative, returns the matrix corresponding a step back.
+        Note that we do not normalize M because it might impair the conservative property.
         """
         if sign:
             return self.matrices[axis]
