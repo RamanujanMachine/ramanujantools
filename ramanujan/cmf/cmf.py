@@ -129,7 +129,6 @@ class CMF:
     def as_pcf(self, trajectory) -> PCFFromMatrix:
         """
         Returns the PCF equivalent to the CMF in a certain trajectory, up to a mobius transform.
-        If `start` is None, will use the default origin value.
         """
         return self.trajectory_matrix(trajectory, self.default_origin()).as_pcf()
 
