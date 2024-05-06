@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing import List
+import math
 
 from mpmath import mp
 
@@ -91,3 +92,20 @@ class Limit(Matrix):
         This function increases the global mpmath precision if needed.
         """
         return most_round_in_range(self.as_float(), 10 ** -self.precision())
+
+    def delta(self, L: mp.mpf) -> mp.mpf:
+        r"""
+        Calculates the irrationality measure $\delta$ defined, as:
+        $|\frac{p_n}{q_n} - L| = \frac{1}{q_n}^{1+\delta}$
+
+        This function increases the global mpmath precision if needed.
+        Args:
+            L: $L$
+        Returns:
+            the delta value as defined above.
+        """
+        self.increase_precision()
+        p, q = self.as_rational()
+        gcd = math.gcd(p, q)
+        reduced_q = mp.fabs(q // gcd)
+        return -(1 + mp.log(mp.fabs(L - (p / q)), reduced_q))

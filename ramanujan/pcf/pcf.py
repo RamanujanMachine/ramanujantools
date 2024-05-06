@@ -4,7 +4,7 @@ from sympy.abc import n
 from typing import List, Collection
 from multimethod import multimethod
 
-from ramanujan import Matrix, Limit, delta, zero
+from ramanujan import Matrix, Limit, zero
 
 
 def is_deflatable(a_factors, b_factors, factor):
@@ -192,8 +192,7 @@ class PCF:
             limit = mlim.as_float()
         else:
             m = self.limit(depth)
-        p, q = m.as_rational()
-        return delta(p, q, limit)
+        return m.delta(limit)
 
     def delta_sequence(self, depth: int, limit: float = None):
         r"""
@@ -218,7 +217,6 @@ class PCF:
 
         for i in range(1, depth + 1):
             m *= self.M().subs(n, i)
-            p, q = m * zero()
-            deltas.append(delta(p, q, limit))
+            deltas.append(Limit(m).delta(limit))
 
         return deltas
