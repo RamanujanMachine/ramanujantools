@@ -28,6 +28,14 @@ def test_walk_list():
 
 
 def test_inflate_constant():
+    c = 3
+    a_n = n + 4
+    b_n = n**2
+    pcf = PCF(a_n, b_n)
+    assert PCF(c * a_n, c**2 * b_n) == pcf.inflate(c)
+
+
+def test_inflate_symbol():
     a_n = n + 4
     b_n = n**2
     pcf = PCF(a_n, b_n)

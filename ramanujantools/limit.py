@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing import List
+import math
 
 from mpmath import mp
 
@@ -33,6 +34,13 @@ class Limit(Matrix):
     Represents a mathematical limit of a `walk` operation.
     """
 
+    def __repr__(self) -> str:
+        matrix_string = repr(Matrix(self)).replace("Matrix(", "")[:-1]
+        return f"Limit({matrix_string})"
+
+    def __str__(self) -> str:
+        return repr(self)
+
     def __eq__(self, other: Limit) -> bool:
         """
         Returns true iff two limits converge to the same value.
@@ -49,7 +57,7 @@ class Limit(Matrix):
             base: The numerical base in which to return the precision (by default 10)
         """
         diff = abs(mp.mpq(*(self * zero())) - mp.mpq(*(self * inf())))
-        return int(mp.floor(-mp.log(diff, 10)))
+        return int(mp.floor(-mp.log(diff, base)))
 
     def increase_precision(self) -> int:
         """
@@ -84,3 +92,20 @@ class Limit(Matrix):
         This function increases the global mpmath precision if needed.
         """
         return most_round_in_range(self.as_float(), 10 ** -self.precision())
+
+    def delta(self, L: mp.mpf) -> mp.mpf:
+        r"""
+        Calculates the irrationality measure $\delta$ defined, as:
+        $|\frac{p_n}{q_n} - L| = \frac{1}{q_n}^{1+\delta}$
+
+        This function increases the global mpmath precision if needed.
+        Args:
+            L: $L$
+        Returns:
+            the delta value as defined above.
+        """
+        self.increase_precision()
+        p, q = self.as_rational()
+        gcd = math.gcd(p, q)
+        reduced_q = mp.fabs(q // gcd)
+        return -(1 + mp.log(mp.fabs(L - (p / q)), reduced_q))
