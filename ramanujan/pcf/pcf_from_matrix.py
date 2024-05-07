@@ -10,8 +10,6 @@ class PCFFromSquareMatrix:
         Constructs a PCF from a matrix using a a coboundry matrix U.
 
         The created PCF has the same convergence limit of the original matrix up to a certain mobius transformation.
-
-        `converted = PCFFromSquareMatrix(SquareMatrix, deflate_all=True)`
         """
         U = SquareMatrix([[matrix[1, 0], -matrix[0, 0]], [0, 1]])
         Uinv = SquareMatrix([[1, matrix[0, 0]], [0, matrix[1, 0]]])

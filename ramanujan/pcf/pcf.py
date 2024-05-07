@@ -4,7 +4,7 @@ from sympy.abc import n
 from typing import List, Collection
 from multimethod import multimethod
 
-from ramanujan import SquareMatrix, Limit, delta, zero
+from ramanujan import SquareMatrix, Limit, zero
 
 
 def is_deflatable(a_factors, b_factors, factor):
@@ -107,6 +107,7 @@ class PCF:
         Inflation is the process of creating an almost equivalent PCF,
         such that $a_n' = a_n * c_n, b_n' = b_n * c_n * c_{n-1}$
         """
+        c_n = sp.simplify(c_n)
         return PCF(self.a_n * c_n, self.b_n * c_n.subs(n, n - 1) * c_n).simplify()
 
     def deflate(self, c_n):
@@ -115,6 +116,7 @@ class PCF:
 
         Deflation is the opposite process of inflation - or inflating by $c_n^{-1}$
         """
+        c_n = sp.simplify(c_n)
         return self.inflate(1 / c_n)
 
     def deflate_all(self):
@@ -192,8 +194,7 @@ class PCF:
             limit = mlim.as_float()
         else:
             m = self.limit(depth)
-        p, q = m.as_rational()
-        return delta(p, q, limit)
+        return m.delta(limit)
 
     def delta_sequence(self, depth: int, limit: float = None):
         r"""
@@ -218,7 +219,6 @@ class PCF:
 
         for i in range(1, depth + 1):
             m *= self.M().subs(n, i)
-            p, q = m * zero()
-            deltas.append(delta(p, q, limit))
+            deltas.append(Limit(m).delta(limit))
 
         return deltas

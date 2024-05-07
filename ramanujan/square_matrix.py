@@ -1,6 +1,6 @@
 from __future__ import annotations
-
 from typing import Dict, List, Collection
+
 from multimethod import multimethod
 
 import sympy as sp
@@ -13,6 +13,12 @@ class SquareMatrix(sp.Matrix):
     Inherits from sympy's matrix and supports all of its methods and operators:
     https://docs.sympy.org/latest/modules/matrices/matrices.html
     """
+
+    def __repr__(self) -> str:
+        return repr(sp.Matrix(self)).replace("Matrix", "SquareMatrix")
+
+    def __str__(self) -> str:
+        return repr(self)
 
     def __init__(self, *args, **kwargs):
         super().__init__()
@@ -35,17 +41,20 @@ class SquareMatrix(sp.Matrix):
 
     def gcd(self) -> sp.Rational:
         """
-        Returns the rational gcd of the matrix
+        Returns the rational gcd of the matrix, which could also be parameteric.
         """
-        primitives = [
-            primitive for primitive, _ in list(map(lambda cell: cell.primitive(), self))
-        ]
-        return sp.gcd(primitives)
+        return sp.gcd(list(self))
 
     def normalize(self) -> SquareMatrix:
         """Normalizes the matrix by reducing its rational gcd"""
-        gcd = self.gcd()
-        return self / gcd
+        m = self.simplify()
+        return (m / m.gcd()).simplify()
+
+    def inverse(self) -> Matrix:
+        """
+        Inverses the matrix.
+        """
+        return self.inv()
 
     def simplify(self) -> SquareMatrix:
         """Returns a simplified version of matrix"""

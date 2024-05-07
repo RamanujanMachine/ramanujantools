@@ -40,7 +40,7 @@ def test_apery():
     expected_limit = mp.mpf(6 / zeta(3))
     assert actual_limit.as_float() == approx(float(expected_limit))
     delta = pcf.delta(depth, expected_limit)
-    assert delta > 0.086 and delta < 0.87
+    assert delta > 0.086 and delta < 0.087
 
 
 def test_cmf1():
@@ -68,3 +68,8 @@ def test_all_cmfs():
     known_cmfs.cmf3_2()
     known_cmfs.cmf3_3()
     known_cmfs.hypergeometric_derived_3d()
+
+
+def test_back_conserving():
+    cmf = known_cmfs.hypergeometric_derived_3d()
+    cmf.assert_conserving(check_negatives=True)
