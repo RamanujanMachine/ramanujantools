@@ -122,13 +122,3 @@ class SquareMatrix(sp.Matrix):
         from ramanujan.pcf import PCFFromSquareMatrix
 
         return PCFFromSquareMatrix(self, deflate_all)
-
-
-def zero() -> Matrix:
-    r"""Returns the zero vector $\begin{pmatrix} 0 \cr 1 \end{pmatrix}$"""
-    return sp.Matrix([0, 1])
-
-
-def inf() -> Matrix:
-    r"""Returns the infinity vector $\begin{pmatrix} 1 \cr 0 \end{pmatrix}$"""
-    return sp.Matrix([1, 0])

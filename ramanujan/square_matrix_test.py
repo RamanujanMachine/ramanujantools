@@ -3,7 +3,7 @@ import pytest
 import sympy as sp
 from sympy.abc import x, y
 
-from ramanujan import SquareMatrix, simplify, zero, inf
+from ramanujan import SquareMatrix, simplify
 
 
 def test_asserts_squared():
@@ -99,11 +99,3 @@ def test_walk_different_start():
     assert simplify(m.walk({x: 3, y: 2}, 3, {x: 5, y: 7})) == simplify(
         m({x: 5, y: 7}) * m({x: 8, y: 9}) * m({x: 11, y: 11})
     )
-
-
-def test_zero_vector():
-    assert zero() == sp.Matrix([0, 1])
-
-
-def test_inf_vector():
-    assert inf() == sp.Matrix([1, 0])

@@ -1,4 +1,4 @@
-from .square_matrix import SquareMatrix, zero, inf
+from .square_matrix import SquareMatrix
 from .limit import Limit
 from .generic_polynomial import GenericPolynomial
 from .simplify_object import simplify
@@ -8,8 +8,6 @@ from .cmf import cmf
 
 __all__ = [
     "SquareMatrix",
-    "zero",
-    "inf",
     "Limit",
     "GenericPolynomial",
     "simplify",
