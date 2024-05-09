@@ -4,7 +4,7 @@ import math
 
 from mpmath import mp
 
-from ramanujan import SquareMatrix, zero, inf
+from ramanujan import SquareMatrix
 
 
 def first_unmatch(a: str, b: str) -> int:
@@ -56,7 +56,7 @@ class Limit(SquareMatrix):
         Args:
             base: The numerical base in which to return the precision (by default 10)
         """
-        diff = abs(mp.mpq(*(self * zero())) - mp.mpq(*(self * inf())))
+        diff = abs(mp.mpq(*(self.as_rational(-2))) - mp.mpq(*(self.as_rational(-1))))
         return int(mp.floor(-mp.log(diff, base)))
 
     def increase_precision(self) -> int:
@@ -68,12 +68,15 @@ class Limit(SquareMatrix):
         mp.dps = max(mp.dps, requested_precision)
         return mp.dps
 
-    def as_rational(self) -> List:
+    def as_rational(self, col=-1) -> List:
         r"""
         Returns the limit as a rational number as a list [p, q],
-        such that $m \cdot v = p/q$, where `m=self` and `v=vector`.
+        which is defined as the 2 upper values of column `col` of the matrix, the last column by default.
+
+        Researcher's note: rational representation of the limit is so far only well-defined for 2x2 matrices,
+        and we are still looking for a generalization of this representation for NxN matrices.
         """
-        return list(self * zero())
+        return list(self.col(col))[0:2]
 
     def as_float(self) -> mp.mpf:
         r"""
