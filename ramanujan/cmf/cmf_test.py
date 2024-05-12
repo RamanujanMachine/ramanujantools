@@ -70,7 +70,7 @@ def test_trajectory_matrix_negative_axis():
 
 
 def test_trajectory_matrix_negative():
-    cmf = known_cmfs.hypergeometric_derived_3d()
+    cmf = known_cmfs.hypergeometric_dervied_2F1()
     expected = (
         cmf.M(a, sign=True)
         * cmf.M(b, sign=False).subs({a: a + 1})
@@ -137,12 +137,12 @@ def test_substitute_trajectory_diagonal():
 
 
 def test_N():
-    cmf = known_cmfs.hypergeometric_derived_3d()
+    cmf = known_cmfs.hypergeometric_dervied_2F1()
     assert 2 == cmf.N()
 
 
 def test_dim():
-    cmf = known_cmfs.hypergeometric_derived_3d()
+    cmf = known_cmfs.hypergeometric_dervied_2F1()
     assert 3 == cmf.dim()
 
 
