@@ -150,13 +150,9 @@ def hypergeometric_dervied_3F2():
     Px = x1 * x2 * x3
     M = SquareMatrix(
         [
-            [0, z, 0],
-            [0, 1, z],
-            [
-                Px / (z * (1 - z)),
-                ((1 + Sx + Tx) * z - Ty) / (z * (1 - z)),
-                1 + (((1 - Sy) + (1 + Sx) * z) / (1 - z)),
-            ],
+            [0, 0, Px / ((1 - z) * z)],
+            [z, 1, ((Tx + Sx + 1) * z - Ty) / ((1 - z) * z)],
+            [0, z, ((Sx + 1) * z + Sy + 1) / ((1 - z))],
         ],
     )
     I = sp.eye(3)
@@ -165,7 +161,7 @@ def hypergeometric_dervied_3F2():
             x1: M / x1 + I,
             x2: M / x2 + I,
             x3: M / x3 + I,
-            y1: M / (y1 - 1) + I,
-            y2: M / (y2 - 1) + I,
+            y1: -M / (y1 + 1) + I,
+            y2: -M / (y2 + 1) + I,
         }
     )
