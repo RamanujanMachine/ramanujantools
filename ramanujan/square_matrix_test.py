@@ -12,6 +12,11 @@ def test_asserts_squared():
     SquareMatrix([[1, 2], [3, 4]])
 
 
+def test_N():
+    m = SquareMatrix([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+    assert 3 == m.N()
+
+
 def test_gcd():
     a = 2 * 3 * 5
     b = 2 * 3 * 7

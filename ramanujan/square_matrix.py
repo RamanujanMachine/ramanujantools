@@ -25,7 +25,6 @@ class SquareMatrix(sp.Matrix):
         assert (
             self.rows == self.cols
         ), f"Only square NxN matrices are supported, received {self.rows}x{self.cols}"
-        self.N = self.rows
 
     def __eq__(self, other: SquareMatrix) -> bool:
         return all(sp.simplify(cell) == 0 for cell in self - other)
@@ -38,6 +37,12 @@ class SquareMatrix(sp.Matrix):
         https://docs.sympy.org/latest/modules/core.html#sympy.core.basic.Basic.subs
         """
         return self.subs(*args, **kwargs)
+
+    def N(self) -> int:
+        """
+        Returns the amount of rows/columns of the square matrix (which is of dimension NxN)
+        """
+        return self.rows
 
     def gcd(self) -> sp.Rational:
         """

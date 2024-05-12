@@ -136,6 +136,16 @@ def test_substitute_trajectory_diagonal():
     )
 
 
+def test_N():
+    cmf = known_cmfs.hypergeometric_derived_3d()
+    assert 2 == cmf.N()
+
+
+def test_dim():
+    cmf = known_cmfs.hypergeometric_derived_3d()
+    assert 3 == cmf.dim()
+
+
 def test_substitute_trajectory_walk_equivalence():
     cmf = known_cmfs.e()
     iterations = 7
