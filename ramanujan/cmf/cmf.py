@@ -23,11 +23,10 @@ class CMF:
         Initializes a CMF with `Mx` and `My` matrices
         """
         self.matrices = matrices
-        self.assert_matrices_same_dimension()
-        self.assert_conserving()
         assert (
             n not in self.matrices.keys()
         ), "Do not use symbol n as an axis, it's reserved for PCF conversions"
+        self.assert_matrices_same_dimension()
 
     def __eq__(self, other) -> bool:
         return self.matrices == other.matrices
@@ -35,7 +34,7 @@ class CMF:
     def __repr__(self) -> str:
         return f"CMF({self.matrices})"
 
-    def are_conserving(
+    def _are_conserving(
         self,
         x: sp.Symbol,
         y: sp.Symbol,
@@ -58,15 +57,15 @@ class CMF:
             AssertionError: in case the matrices are not conserving.
         """
         for x, y in itertools.combinations(self.matrices.keys(), 2):
-            if not self.are_conserving(x, y, True, True):
+            if not self._are_conserving(x, y, True, True):
                 raise ValueError(f"M({x}) and M({y}) matrices are not conserving!")
 
             if check_negatives:
-                if not self.are_conserving(x, y, False, True):
+                if not self._are_conserving(x, y, False, True):
                     raise ValueError(f"M(-{x}) and M({y}) matrices are not conserving!")
-                if not self.are_conserving(x, y, True, False):
+                if not self._are_conserving(x, y, True, False):
                     raise ValueError(f"M({x}) and M(-{y}) matrices are not conserving!")
-                if not self.are_conserving(x, y, False, False):
+                if not self._are_conserving(x, y, False, False):
                     raise ValueError(
                         f"M(-{x}) and M(-{y}) matrices are not conserving!"
                     )
@@ -81,7 +80,6 @@ class CMF:
         assert (
             len(matrices_dimensions) == 1
         ), f"Received matrices of different dimensions: {matrices_dimensions}"
-        self.assert_conserving()
 
     def M(self, axis: sp.Symbol, sign: bool = True) -> SquareMatrix:
         """
