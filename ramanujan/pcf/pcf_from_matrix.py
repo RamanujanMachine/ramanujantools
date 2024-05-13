@@ -11,6 +11,10 @@ class PCFFromSquareMatrix:
 
         The created PCF has the same convergence limit of the original matrix up to a certain mobius transformation.
         """
+        assert (
+            2 == matrix.N(),
+            "Conversion of arbitrary matrix to PCF is only supported for 2x2 matrices!",
+        )
         U = SquareMatrix([[matrix[1, 0], -matrix[0, 0]], [0, 1]])
         Uinv = SquareMatrix([[1, matrix[0, 0]], [0, matrix[1, 0]]])
         commutated = U * matrix * Uinv({n: n + 1})
