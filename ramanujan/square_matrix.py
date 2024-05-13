@@ -97,7 +97,7 @@ class SquareMatrix(sp.Matrix):
         ), "`iterations` values must be unique"
 
         position = start
-        matrix = SquareMatrix.eye(2)
+        matrix = SquareMatrix.eye(self.N())
         results = []
         for i in range(
             max(iterations_set) + 1

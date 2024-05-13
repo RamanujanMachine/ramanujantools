@@ -180,7 +180,7 @@ class CMF:
             ), f"Start axes {start.keys()} does not match CMF axes {self.axes()}"
 
         position = {axis: axis for axis in self.axes()}
-        m = sp.eye(2)
+        m = sp.eye(self.N())
         for axis in self.axes():
             sign = trajectory[axis] >= 0
             m *= self.M(axis, sign).walk(
