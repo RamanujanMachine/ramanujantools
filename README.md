@@ -12,10 +12,10 @@ pip install git+https://github.com/RamanujanMachine/ResearchTools.git
 
 The most relevant pieces of code of this library are:
 
-- `SquareMatrix` which inherits `sympy.Matrix` and adds the walk method,
+- `Matrix` which inherits `sympy.Matrix` and adds the walk method,
   which allows us to walk alongside a trajectory
 - `PCF` (Polynomial Continued Fraction) which can calculate the limit of a PCF
-- `CMF` (Conservative Matrix Field) which is made of multiple instances of `SquareMatrix`
+- `CMF` (Conservative Matrix Field) which is made of multiple instances of `Matrix`
   and methods such as walk and limit
 - `FFbar` which contains the conditions and logic for ffbar construction of CMFs
 - The `known_cmfs` module which contains most of our known CMFs

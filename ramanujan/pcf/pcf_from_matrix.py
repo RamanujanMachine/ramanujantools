@@ -1,22 +1,22 @@
 from sympy.abc import n
 
-from ramanujan import SquareMatrix
+from ramanujan import Matrix
 from ramanujan.pcf import PCF
 
 
-class PCFFromSquareMatrix:
-    def __init__(self, matrix: SquareMatrix, deflate_all=True):
+class PCFFromMatrix:
+    def __init__(self, matrix: Matrix, deflate_all=True):
         """
         Constructs a PCF from a matrix using a a coboundry matrix U.
 
         The created PCF has the same convergence limit of the original matrix up to a certain mobius transformation.
         """
         assert (
-            2 == matrix.N(),
+            2 == matrix.rows and 2 == matrix.cols,
             "Conversion of arbitrary matrix to PCF is only supported for 2x2 matrices!",
         )
-        U = SquareMatrix([[matrix[1, 0], -matrix[0, 0]], [0, 1]])
-        Uinv = SquareMatrix([[1, matrix[0, 0]], [0, matrix[1, 0]]])
+        U = Matrix([[matrix[1, 0], -matrix[0, 0]], [0, 1]])
+        Uinv = Matrix([[1, matrix[0, 0]], [0, matrix[1, 0]]])
         commutated = U * matrix * Uinv({n: n + 1})
         normalized = (commutated / commutated[1, 0]).simplify()
         if not (normalized[0, 0] == 0 and normalized[1, 0] == 1):

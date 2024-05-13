@@ -1,13 +1,13 @@
 import sympy as sp
 from sympy.abc import x, y
 
-from ramanujan import SquareMatrix
+from ramanujan import Matrix
 from ramanujan.cmf import CMF
 
 
 class FFbar(CMF):
     r"""
-    Represents a 2D Conservative SquareMatrix Field that was generated using the f, fbar construction:
+    Represents a 2D Conservative Matrix Field that was generated using the f, fbar construction:
     $a(x, y) = f(x, y) - \bar{f}(x+1, y) = f(x+1, y-1) - \bar{f}(x, y-1)$,
     $b(x) = f\bar{f}(x, 0) - f\bar{f}(0, 0) = f\bar{f}(x, y) - f\bar{f}(0, y)$,
 
@@ -69,8 +69,8 @@ class FFbar(CMF):
 
         super().__init__(
             matrices={
-                x: SquareMatrix([[0, self.b()], [1, self.a()]]),
-                y: SquareMatrix([[self.fbar, self.b()], [1, self.f]]),
+                x: Matrix([[0, self.b()], [1, self.a()]]),
+                y: Matrix([[self.fbar, self.b()], [1, self.f]]),
             }
         )
 

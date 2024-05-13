@@ -4,7 +4,7 @@ from sympy.abc import n
 from typing import List, Collection
 from multimethod import multimethod
 
-from ramanujan import SquareMatrix, Limit
+from ramanujan import Matrix, Limit
 
 
 def is_deflatable(a_factors, b_factors, factor):
@@ -90,7 +90,7 @@ class PCF:
 
         $M = \begin{pmatrix} 0, b_n \cr 1, a_n \end{pmatrix}$
         """
-        return SquareMatrix([[0, self.b_n], [1, self.a_n]])
+        return Matrix([[0, self.b_n], [1, self.a_n]])
 
     def A(self):
         r"""
@@ -98,7 +98,7 @@ class PCF:
 
         $A = \begin{pmatrix} 1, a_0 \cr 0, 1 \end{pmatrix}$
         """
-        return SquareMatrix([[1, self.a_n.subs(n, 0)], [0, 1]])
+        return Matrix([[1, self.a_n.subs(n, 0)], [0, 1]])
 
     def inflate(self, c_n):
         """
@@ -134,7 +134,7 @@ class PCF:
         return PCF(self.a_n.subs(*args, **kwargs), self.b_n.subs(*args, **kwargs))
 
     @multimethod
-    def walk(self, iterations: Collection[int], start: int = 1) -> List[SquareMatrix]:
+    def walk(self, iterations: Collection[int], start: int = 1) -> List[Matrix]:
         r"""
         Returns the matrix corresponding to calculating the PCF up to a certain depth, including $a_0$
 
@@ -151,7 +151,7 @@ class PCF:
         return [self.A() * matrix for matrix in matrices]
 
     @multimethod
-    def walk(self, iterations: int, start: int = 1) -> SquareMatrix:  # noqa: F811
+    def walk(self, iterations: int, start: int = 1) -> Matrix:  # noqa: F811
         return self.walk([iterations], start)[0]
 
     @multimethod

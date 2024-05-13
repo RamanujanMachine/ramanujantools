@@ -6,30 +6,24 @@ from multimethod import multimethod
 import sympy as sp
 
 
-class SquareMatrix(sp.Matrix):
+class Matrix(sp.Matrix):
     """
-    Represents an NxN marix.
+    Represents a Matrix.
 
     Inherits from sympy's matrix and supports all of its methods and operators:
     https://docs.sympy.org/latest/modules/matrices/matrices.html
     """
 
     def __repr__(self) -> str:
-        return repr(sp.Matrix(self)).replace("Matrix", "SquareMatrix")
+        return repr(sp.Matrix(self)).replace("Matrix", "Matrix")
 
     def __str__(self) -> str:
         return repr(self)
 
-    def __init__(self, *args, **kwargs):
-        super().__init__()
-        assert (
-            self.rows == self.cols
-        ), f"Only square NxN matrices are supported, received {self.rows}x{self.cols}"
-
-    def __eq__(self, other: SquareMatrix) -> bool:
+    def __eq__(self, other: Matrix) -> bool:
         return all(sp.simplify(cell) == 0 for cell in self - other)
 
-    def __call__(self, *args, **kwargs) -> SquareMatrix:
+    def __call__(self, *args, **kwargs) -> Matrix:
         """
         Substitutes variables in the matrix, in a more math-like syntax.
 
@@ -38,11 +32,11 @@ class SquareMatrix(sp.Matrix):
         """
         return self.subs(*args, **kwargs)
 
-    def N(self) -> int:
+    def is_square(self) -> int:
         """
         Returns the amount of rows/columns of the square matrix (which is of dimension NxN)
         """
-        return self.rows
+        return self.rows == self.cols
 
     def gcd(self) -> sp.Rational:
         """
@@ -50,7 +44,7 @@ class SquareMatrix(sp.Matrix):
         """
         return sp.gcd(list(self))
 
-    def normalize(self) -> SquareMatrix:
+    def normalize(self) -> Matrix:
         """Normalizes the matrix by reducing its rational gcd"""
         m = self.simplify()
         return (m / m.gcd()).simplify()
@@ -61,14 +55,14 @@ class SquareMatrix(sp.Matrix):
         """
         return self.inv()
 
-    def simplify(self) -> SquareMatrix:
+    def simplify(self) -> Matrix:
         """Returns a simplified version of matrix"""
-        return SquareMatrix(sp.simplify(self))
+        return Matrix(sp.simplify(self))
 
     @multimethod
     def walk(
         self, trajectory: Dict, iterations: Collection[int], start: Dict
-    ) -> List[SquareMatrix]:
+    ) -> List[Matrix]:
         r"""
         Returns the multiplication result of walking in a certain trajectory.
 
@@ -85,7 +79,11 @@ class SquareMatrix(sp.Matrix):
         Returns:
             The walk multiplication matrix as defined above.
             If iterations is list, returns a list of matrices.
+        Raises:
+            ValueError: If `self` is not a square matrix
         """
+        if not self.is_square():
+            raise ValueError("Matrix.walk is only supported for square matrices!")
 
         assert (
             start.keys() == trajectory.keys()
@@ -97,7 +95,7 @@ class SquareMatrix(sp.Matrix):
         ), "`iterations` values must be unique"
 
         position = start
-        matrix = SquareMatrix.eye(self.N())
+        matrix = Matrix.eye(self.rows)
         results = []
         for i in range(
             max(iterations_set) + 1
@@ -111,19 +109,19 @@ class SquareMatrix(sp.Matrix):
     @multimethod
     def walk(
         self, trajectory: Dict, iterations: int, start: Dict
-    ) -> SquareMatrix:  # noqa: F811
+    ) -> Matrix:  # noqa: F811
         return self.walk(trajectory, [iterations], start)[0]
 
     def as_pcf(self, deflate_all=True):
         """
-        Converts a `SquareMatrix` to an equivalent `PCF`
+        Converts a `Matrix` to an equivalent `PCF`
 
         Args:
             deflate_all: if `True`, the function will also deflate the returned PCF to the fullest.
         Returns:
-            a `PCFFRomSquareMatrix` object, containing a `PCF` whose limit is equal to
-            a mobius transform of the original `SquareMatrix`.
+            a `PCFFRomMatrix` object, containing a `PCF` whose limit is equal to
+            a mobius transform of the original `Matrix`.
         """
-        from ramanujan.pcf import PCFFromSquareMatrix
+        from ramanujan.pcf import PCFFromMatrix
 
-        return PCFFromSquareMatrix(self, deflate_all)
+        return PCFFromMatrix(self, deflate_all)

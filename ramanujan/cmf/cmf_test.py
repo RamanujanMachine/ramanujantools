@@ -1,14 +1,15 @@
 from pytest import raises
 from sympy.abc import a, b, c, x, y, n
 
-from ramanujan import Limit, SquareMatrix, simplify
+from ramanujan import Limit, Matrix, simplify
 from ramanujan.cmf import CMF, known_cmfs
 
 
 def test_non_conserving_throws():
-    m = SquareMatrix([[x, x + 17], [y * x, y * 3 - x + 5]])
+    m = Matrix([[x, x + 17], [y * x, y * 3 - x + 5]])
+    cmf = CMF(matrices={x: m, y: m})
     with raises(ValueError):
-        CMF(matrices={x: m, y: m})
+        cmf.assert_conserving()
 
 
 def test_symbols():
@@ -40,20 +41,16 @@ def test_trajectory_matrix_diagonal():
 def test_back_negates_forward():
     cmf = known_cmfs.e()
     assert (
-        SquareMatrix.eye(2)
-        == (cmf.M(x, True) * cmf.M(x, False).subs({x: x + 1})).normalize()
+        Matrix.eye(2) == (cmf.M(x, True) * cmf.M(x, False).subs({x: x + 1})).normalize()
     )
     assert (
-        SquareMatrix.eye(2)
-        == (cmf.M(x, False) * cmf.M(x, True).subs({x: x - 1})).normalize()
+        Matrix.eye(2) == (cmf.M(x, False) * cmf.M(x, True).subs({x: x - 1})).normalize()
     )
     assert (
-        SquareMatrix.eye(2)
-        == (cmf.M(y, True) * cmf.M(y, False).subs({y: y + 1})).normalize()
+        Matrix.eye(2) == (cmf.M(y, True) * cmf.M(y, False).subs({y: y + 1})).normalize()
     )
     assert (
-        SquareMatrix.eye(2)
-        == (cmf.M(y, False) * cmf.M(y, True).subs({y: y - 1})).normalize()
+        Matrix.eye(2) == (cmf.M(y, False) * cmf.M(y, True).subs({y: y - 1})).normalize()
     )
 
 

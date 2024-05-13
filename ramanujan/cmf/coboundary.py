@@ -4,7 +4,7 @@ from sympy.abc import x
 from typing import Dict, List, Optional, Tuple
 
 from ramanujan.generic_polynomial import GenericPolynomial
-from ramanujan.square_matrix import SquareMatrix
+from ramanujan.matrix import Matrix
 from ramanujan.simplify_object import simplify
 
 
@@ -17,7 +17,7 @@ class CoboundarySolver:
 
     @staticmethod
     def solve_polynomial_matrix(
-        matrix: SquareMatrix, symbol: Symbol, variables: List[Symbol]
+        matrix: Matrix, symbol: Symbol, variables: List[Symbol]
     ) -> Dict:
         r"""
         Given a polynomial matrix in symbol, such that the coefficients are over 'variables',
@@ -38,8 +38,8 @@ class CoboundarySolver:
 
     @staticmethod
     def find_coboundary(
-        m1: SquareMatrix, m2: SquareMatrix, max_deg: int, symbol: Symbol = x
-    ) -> Optional[Tuple[SquareMatrix, List[Symbol]]]:
+        m1: Matrix, m2: Matrix, max_deg: int, symbol: Symbol = x
+    ) -> Optional[Tuple[Matrix, List[Symbol]]]:
         r"""
         Given two parametrized matrices $m_1(s), m_2(s)$ over the given symbol,
         look for a parametrized polynomial matrix m(s) such that
@@ -63,7 +63,7 @@ class CoboundarySolver:
         # use '.expr' instead of just the polynomials, because calling subs(x,x+1) on polynomials in sympy
         # changes their "base" symbol to x+1 and then raises errors when trying to add them to polynomials
         # with base variable x.
-        generic_m = SquareMatrix([[f11.expr, f12.expr], [f21.expr, f22.expr]])
+        generic_m = Matrix([[f11.expr, f12.expr], [f21.expr, f22.expr]])
 
         equations = simplify(m1 * generic_m({symbol: symbol + 1}) - generic_m * m2)
         assignment = CoboundarySolver.solve_polynomial_matrix(
@@ -80,8 +80,8 @@ class CoboundarySolver:
 
     @staticmethod
     def check_unique_solution(
-        matrix: SquareMatrix, variables: List[Symbol]
-    ) -> Tuple[SquareMatrix, List[Symbol]]:
+        matrix: Matrix, variables: List[Symbol]
+    ) -> Tuple[Matrix, List[Symbol]]:
         r"""
         Assuming matrix is linearly dependent on the given variables, in case there is only 1 variable v in vars,
         check if matrix = v*matrix' and if so return (matrix', []).
@@ -89,7 +89,7 @@ class CoboundarySolver:
         """
         if len(variables) == 1:
             v = variables[0]
-            if matrix.subs({v: 0}) == SquareMatrix(
+            if matrix.subs({v: 0}) == Matrix(
                 [[0, 0], [0, 0]]
             ):  # the matrix m is linear in the variables
                 return matrix.subs({v: 1}), []

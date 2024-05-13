@@ -4,7 +4,7 @@ import math
 
 from mpmath import mp
 
-from ramanujan import SquareMatrix
+from ramanujan import Matrix
 
 
 def first_unmatch(a: str, b: str) -> int:
@@ -29,13 +29,13 @@ def most_round_in_range(num: mp.mpf, err: mp.mpf) -> str:
     return min(round_attempt(num, num + err), round_attempt(num, num - err), key=len)
 
 
-class Limit(SquareMatrix):
+class Limit(Matrix):
     r"""
     Represents a mathematical limit of a `walk` operation.
     """
 
     def __repr__(self) -> str:
-        matrix_string = repr(SquareMatrix(self)).replace("SquareMatrix(", "")[:-1]
+        matrix_string = repr(Matrix(self)).replace("Matrix(", "")[:-1]
         return f"Limit({matrix_string})"
 
     def __str__(self) -> str:

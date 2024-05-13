@@ -6,19 +6,19 @@ from typing import Collection, Dict, List, Set, Union
 import sympy as sp
 from sympy.abc import n
 
-from ramanujan import SquareMatrix, Limit, simplify
-from ramanujan.pcf import PCFFromSquareMatrix
+from ramanujan import Matrix, Limit, simplify
+from ramanujan.pcf import PCFFromMatrix
 
 
 class CMF:
     r"""
-    Represents a Conservative SquareMatrix Field (CMF).
+    Represents a Conservative Matrix Field (CMF).
 
     A CMF is defined by a set of axes and their relevant matrices that satisfy the perservation quality:
     for every two axes x and y, $Mx(x, y) \cdot My(x+1, y) = My(x, y) \cdot Mx(x, y+1)$
     """
 
-    def __init__(self, matrices: Dict[sp.Symbol, SquareMatrix]):
+    def __init__(self, matrices: Dict[sp.Symbol, Matrix]):
         """
         Initializes a CMF with `Mx` and `My` matrices
         """
@@ -74,14 +74,16 @@ class CMF:
         """
         Asserts that all of the matrices of the CMF have the same dimensions.
         Raises:
-            AssertionError: in case the matrices are not conserving.
+            ValueError: in case the matrices are not conserving.
         """
-        matrices_dimensions = set(map(lambda m: m.N(), self.matrices.values()))
-        assert (
-            len(matrices_dimensions) == 1
-        ), f"Received matrices of different dimensions: {matrices_dimensions}"
+        expected_N = self.N()
+        for symbol, matrix in self.matrices.items():
+            if not expected_N == matrix.rows and expected_N == matrix.cols:
+                raise ValueError(
+                    f"M({symbol}) is of dimension {matrix.rows}x{matrix.cols}, expected {expected_N}x{expected_N}"
+                )
 
-    def M(self, axis: sp.Symbol, sign: bool = True) -> SquareMatrix:
+    def M(self, axis: sp.Symbol, sign: bool = True) -> Matrix:
         """
         Returns the axis matrix for a given axis.
 
@@ -134,7 +136,7 @@ class CMF:
         Returns the row/column amount of matrices of the CMF.
         """
         random_matrix = list(self.matrices.values())[0]
-        return random_matrix.N()
+        return random_matrix.rows
 
     def subs(self, *args, **kwargs) -> CMF:
         """Returns a new CMF with substituted Mx and My."""
@@ -157,7 +159,7 @@ class CMF:
         """
         return {axis: 1 for axis in self.axes()}
 
-    def trajectory_matrix(self, trajectory: dict, start: dict = None) -> SquareMatrix:
+    def trajectory_matrix(self, trajectory: dict, start: dict = None) -> Matrix:
         """
 
         Returns the corresponding matrix for walking in trajectory.
@@ -189,7 +191,7 @@ class CMF:
             m = CMF.substitute_trajectory(m, trajectory, start)
         return m.normalize()
 
-    def as_pcf(self, trajectory) -> PCFFromSquareMatrix:
+    def as_pcf(self, trajectory) -> PCFFromMatrix:
         """
         Returns the PCF equivalent to the CMF in a certain trajectory, up to a mobius transform.
         """
@@ -197,8 +199,8 @@ class CMF:
 
     @staticmethod
     def substitute_trajectory(
-        trajectory_matrix: SquareMatrix, trajectory: dict, start: dict
-    ) -> SquareMatrix:
+        trajectory_matrix: Matrix, trajectory: dict, start: dict
+    ) -> Matrix:
         """
         Returns trajectory_matrix reduced to a single variable `n`.
 
@@ -222,7 +224,7 @@ class CMF:
         trajectory: dict,
         iterations: Collection[int],
         start: Union[dict, type(None)] = None,
-    ) -> List[SquareMatrix]:
+    ) -> List[Matrix]:
         r"""
         Returns a list of trajectorial walk multiplication matrices in the desired depths.
 
@@ -249,7 +251,7 @@ class CMF:
         trajectory: dict,
         iterations: int,
         start: Union[dict, type(None)] = None,
-    ) -> SquareMatrix:
+    ) -> Matrix:
         return self.walk(trajectory, [iterations], start)[0]
 
     @multimethod

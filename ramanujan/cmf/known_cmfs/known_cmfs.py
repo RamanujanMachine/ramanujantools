@@ -8,7 +8,7 @@ x3 = sp.Symbol("x3")
 y1 = sp.Symbol("y1")
 y2 = sp.Symbol("y2")
 
-from ramanujan import SquareMatrix
+from ramanujan import Matrix
 from ramanujan.cmf import CMF
 from ramanujan.cmf.ffbar import FFbar
 
@@ -18,8 +18,8 @@ c0, c1, c2, c3 = sp.symbols("c:4")
 def e():
     return CMF(
         matrices={
-            x: SquareMatrix([[1, -y - 1], [-1, x + y + 2]]),
-            y: SquareMatrix([[0, -y - 1], [-1, x + y + 1]]),
+            x: Matrix([[1, -y - 1], [-1, x + y + 2]]),
+            y: Matrix([[0, -y - 1], [-1, x + y + 1]]),
         }
     )
 
@@ -27,8 +27,8 @@ def e():
 def pi():
     return CMF(
         matrices={
-            x: SquareMatrix([[x, -x], [-y, 2 * x + y + 1]]),
-            y: SquareMatrix([[1 + y, -x], [-1 - y, x + 2 * y + 1]]),
+            x: Matrix([[x, -x], [-y, 2 * x + y + 1]]),
+            y: Matrix([[1 + y, -x], [-1 - y, x + 2 * y + 1]]),
         }
     )
 
@@ -36,13 +36,13 @@ def pi():
 def zeta3():
     return CMF(
         matrices={
-            x: SquareMatrix(
+            x: Matrix(
                 [
                     [0, -(x**3)],
                     [(x + 1) ** 3, x**3 + (x + 1) ** 3 + 2 * y * (y - 1) * (2 * x + 1)],
                 ]
             ),
-            y: SquareMatrix(
+            y: Matrix(
                 [
                     [-(x**3) + 2 * x**2 * y - 2 * x * y**2 + y**3, -(x**3)],
                     [x**3, x**3 + 2 * x**2 * y + 2 * x * y**2 + y**3],
@@ -63,7 +63,7 @@ def var_root_cmf():
     F = x**2 + x * (Y + 1) + (Y + 1 - c1) * (Y + 1 - c0)
     G = -(Y + 2 * x) * (x + c1 + c0 - (Y + 1))
     return CMF(
-        matrices={x: SquareMatrix([[0, b], [1, a]]), y: SquareMatrix([[G, b], [1, F]])}
+        matrices={x: Matrix([[0, b], [1, a]]), y: Matrix([[G, b], [1, F]])}
     )
 
 
@@ -107,13 +107,13 @@ def cmf3_3():
 def hypergeometric_dervied_2F1():
     return CMF(
         matrices={
-            a: SquareMatrix(
+            a: Matrix(
                 [[1 + 2 * a, (1 + 2 * a) * (1 + 2 * b)], [1, 5 + 4 * a + 2 * b + 4 * c]]
             ),
-            b: SquareMatrix(
+            b: Matrix(
                 [[1 + 2 * b, (1 + 2 * a) * (1 + 2 * b)], [1, 5 + 2 * a + 4 * b + 4 * c]]
             ),
-            c: SquareMatrix(
+            c: Matrix(
                 [
                     [-1 - 2 * c, (1 + 2 * a) * (1 + 2 * b)],
                     [1, 3 + 2 * a + 2 * b + 2 * c],
@@ -126,13 +126,13 @@ def hypergeometric_dervied_2F1():
 def hypergeometric_dervied_3F2():
     return CMF(
         matrices={
-            a: SquareMatrix(
+            a: Matrix(
                 [[1 + 2 * a, (1 + 2 * a) * (1 + 2 * b)], [1, 5 + 4 * a + 2 * b + 4 * c]]
             ),
-            b: SquareMatrix(
+            b: Matrix(
                 [[1 + 2 * b, (1 + 2 * a) * (1 + 2 * b)], [1, 5 + 2 * a + 4 * b + 4 * c]]
             ),
-            c: SquareMatrix(
+            c: Matrix(
                 [
                     [-1 - 2 * c, (1 + 2 * a) * (1 + 2 * b)],
                     [1, 3 + 2 * a + 2 * b + 2 * c],
@@ -148,7 +148,7 @@ def hypergeometric_dervied_3F2():
     Tx = x1 * x2 + x1 * x3 + x2 * x3
     Ty = y1 * y2
     Px = x1 * x2 * x3
-    M = SquareMatrix(
+    M = Matrix(
         [
             [0, 0, Px / ((1 - z) * z)],
             [z, 1, ((Tx + Sx + 1) * z - Ty) / ((1 - z) * z)],

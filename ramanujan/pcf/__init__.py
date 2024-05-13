@@ -1,4 +1,4 @@
 from .pcf import PCF
-from .pcf_from_matrix import PCFFromSquareMatrix
+from .pcf_from_matrix import PCFFromMatrix
 
-__all__ = ["PCF", "PCFFromSquareMatrix"]
+__all__ = ["PCF", "PCFFromMatrix"]
