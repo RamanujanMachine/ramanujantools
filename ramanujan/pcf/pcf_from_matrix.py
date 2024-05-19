@@ -12,9 +12,9 @@ class PCFFromMatrix:
         The created PCF has the same convergence limit of the original matrix up to a certain mobius transformation.
         """
         assert (
-            2 == matrix.rows and 2 == matrix.cols,
-            "Conversion of arbitrary matrix to PCF is only supported for 2x2 matrices!",
-        )
+            2 == matrix.rows and 2 == matrix.cols
+        ), "Conversion of arbitrary matrix to PCF is only supported for 2x2 matrices!"
+
         U = Matrix([[matrix[1, 0], -matrix[0, 0]], [0, 1]])
         Uinv = Matrix([[1, matrix[0, 0]], [0, matrix[1, 0]]])
         commutated = U * matrix * Uinv({n: n + 1})
