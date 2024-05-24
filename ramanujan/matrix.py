@@ -1,6 +1,8 @@
-import math
+from __future__ import annotations
+from typing import Dict, List, Collection
 
-import mpmath as mp
+from multimethod import multimethod
+
 import sympy as sp
 
 
@@ -12,7 +14,10 @@ class Matrix(sp.Matrix):
     https://docs.sympy.org/latest/modules/matrices/matrices.html
     """
 
-    def __call__(self, *args, **kwargs):
+    def __eq__(self, other: Matrix) -> bool:
+        return all(sp.simplify(cell) == 0 for cell in self - other)
+
+    def __call__(self, *args, **kwargs) -> Matrix:
         """
         Substitutes variables in the matrix, in a more math-like syntax.
 
@@ -21,26 +26,31 @@ class Matrix(sp.Matrix):
         """
         return self.subs(*args, **kwargs)
 
-    def gcd(self):
+    def gcd(self) -> sp.Rational:
         """
-        Returns the gcd of the matrix
+        Returns the rational gcd of the matrix, which could also be parameteric.
         """
-        import functools
+        return sp.gcd(list(self))
 
-        return functools.reduce(math.gcd, self)
+    def normalize(self) -> Matrix:
+        """Normalizes the matrix by reducing its rational gcd"""
+        m = self.simplify()
+        return (m / m.gcd()).simplify()
 
-    def reduce(self):
-        """Reduces gcd from the matrix"""
-        gcd = self.gcd()
-        for i in range(len(self)):
-            self[i] //= gcd
-        return self
+    def inverse(self) -> Matrix:
+        """
+        Inverses the matrix.
+        """
+        return self.inv()
 
-    def simplify(self):
+    def simplify(self) -> Matrix:
         """Returns a simplified version of matrix"""
         return Matrix(sp.simplify(self))
 
-    def walk(self, trajectory, iterations, start):
+    @multimethod
+    def walk(
+        self, trajectory: Dict, iterations: Collection[int], start: Dict
+    ) -> List[Matrix]:
         r"""
         Returns the multiplication result of walking in a certain trajectory.
 
@@ -48,25 +58,43 @@ class Matrix(sp.Matrix):
         where `M=self`, `(t_0, ..., t_k)=trajectory`, `n=iterations` and `(s_0, ..., s_k)=start`.
 
         This is a generalization of the basic (and most common) case $\prod_{i=0}^{n-1}M(s+i)$,
-        where `M=self`, `n=iterations` and `s=start`.
+        where M=self, n=iterations and s=start.
 
         Args:
             trajectory: the trajectory of a single step in the walk, as defined above.
-            iterations: the amount of multiplications to perform
+            iterations: The amount of multiplications to perform. Can be an integer value or a list of values.
             start: the starting point of the matrix multiplication
         Returns:
-            the walk multiplication as defined above.
+            The walk multiplication matrix as defined above.
+            If iterations is list, returns a list of matrices.
         """
-        position = start
-        retval = Matrix.eye(2)
-        for _ in range(iterations):
-            retval *= self.subs(position)
-            position = {key: trajectory[key] + value for key, value in position.items()}
-        return retval.simplify()
 
-    def ratio(self):
-        assert len(self) == 2, "Ratio only supported for vectors of length 2"
-        return sp.Float(self[0] / self[1], mp.mp.dps)
+        assert (
+            start.keys() == trajectory.keys()
+        ), "`start` and `trajectory` must contain same keys"
+
+        iterations_set = set(iterations)
+        assert len(iterations_set) == len(
+            iterations
+        ), "`iterations` values must be unique"
+
+        position = start
+        matrix = Matrix.eye(2)
+        results = []
+        for i in range(
+            max(iterations_set) + 1
+        ):  # Plus one for the last requested `iterations` value
+            if i in iterations:
+                results.append(matrix)
+            matrix *= self.subs(position)
+            position = {key: trajectory[key] + value for key, value in position.items()}
+        return results
+
+    @multimethod
+    def walk(
+        self, trajectory: Dict, iterations: int, start: Dict
+    ) -> Matrix:  # noqa: F811
+        return self.walk(trajectory, [iterations], start)[0]
 
     def as_pcf(self, deflate_all=True):
         """

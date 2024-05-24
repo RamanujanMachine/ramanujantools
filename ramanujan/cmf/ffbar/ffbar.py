@@ -7,7 +7,7 @@ from ramanujan.cmf import CMF
 
 class FFbar(CMF):
     r"""
-    Represents a Conservative Matrix Field that was generated using the f, fbar construction:
+    Represents a 2D Conservative Matrix Field that was generated using the f, fbar construction:
     $a(x, y) = f(x, y) - \bar{f}(x+1, y) = f(x+1, y-1) - \bar{f}(x, y-1)$,
     $b(x) = f\bar{f}(x, 0) - f\bar{f}(0, 0) = f\bar{f}(x, y) - f\bar{f}(0, y)$,
 
@@ -68,25 +68,41 @@ class FFbar(CMF):
         """The fbar function of the FFbar CMF"""
 
         super().__init__(
-            Matrix([[0, self.b()], [1, self.a()]]),
-            Matrix([[self.fbar, self.b()], [1, self.f]]),
+            matrices={
+                x: Matrix([[0, self.b()], [1, self.a()]]),
+                y: Matrix([[self.fbar, self.b()], [1, self.f]]),
+            }
         )
 
     def __repr__(self):
         return f"FFbar({self.f}, {self.fbar})"
 
-    def a(self) -> sp.Expr:
+    @staticmethod
+    def A(f, fbar) -> sp.Expr:
         r"""
         Returns the $a(x, y)$ function as constructed in the ffbar construction:
         $a(x, y) = f(x, y) - \bar{f}(x+1, y) = f(x+1, y-1) - \bar{f}(x, y-1)$
         """
-        return self.f - self.fbar.subs(x, x + 1)
+        return f - fbar.subs(x, x + 1)
 
-    def b(self) -> sp.Expr:
+    def a(self) -> sp.Expr:
+        r"""
+        Returns the $a(x, y)$ function for this FFbar CMF.
+        """
+        return FFbar.A(self.f, self.fbar)
+
+    @staticmethod
+    def B(f, fbar) -> sp.Expr:
         r"""
         Returns the $b(x)$ function as constructed in the ffbar construction:
         $b(x) = f\bar{f}(x, 0) - f\bar{f}(0, 0) = f\bar{f}(x, y) - f\bar{f}(0, y)$,
         where $f\bar{f}(x, y) = f(x, y) \cdot \bar{f}(x, y)$
         """
-        ffbar_x_0 = (self.f * self.fbar).subs(y, 0)
+        ffbar_x_0 = (f * fbar).subs(y, 0)
         return sp.simplify(ffbar_x_0 - ffbar_x_0.subs(x, 0))
+
+    def b(self) -> sp.Expr:
+        r"""
+        Returns the $b(x)$ function for this FFbar CMF.
+        """
+        return FFbar.B(self.f, self.fbar)

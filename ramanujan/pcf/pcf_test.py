@@ -15,13 +15,27 @@ def test_degree():
     assert (2, 9) == pcf.degree()
 
 
-def test_limit():
+def test_limit_as_float():
     pcf = PCF(5 + 10 * n, 1 - 9 * n**2)
     expected = (4 ** (1 / 3) + 1) / (4 ** (1 / 3) - 1)
-    assert expected == approx(pcf.limit(100).ratio(), 1e-4)
+    assert expected == approx(pcf.limit(100).as_float(), 1e-4)
+
+
+def test_walk_list():
+    iterations = [1, 2, 3, 17, 29, 53, 99]
+    pcf = PCF(5 + 10 * n, 1 - 9 * n**2)
+    assert pcf.walk(iterations) == [pcf.walk(i) for i in iterations]
 
 
 def test_inflate_constant():
+    c = 3
+    a_n = n + 4
+    b_n = n**2
+    pcf = PCF(a_n, b_n)
+    assert PCF(c * a_n, c**2 * b_n) == pcf.inflate(c)
+
+
+def test_inflate_symbol():
     a_n = n + 4
     b_n = n**2
     pcf = PCF(a_n, b_n)
@@ -60,8 +74,43 @@ def test_deflate_all():
 
 
 def test_blind_delta():
-    mp.mp.dps = 10**5
     pcf = PCF(34 * n**3 + 51 * n**2 + 27 * n + 5, -(n**6))
     depth = 2000
     delta = pcf.delta(depth)
     assert delta > 0.086 and delta < 0.087
+
+
+def test_precision_e():
+    pcf = PCF(n, n)
+    assert pcf.limit(2**10).precision() == 2642
+
+
+def test_precision_phi():
+    pcf = PCF(1, 1)
+    assert pcf.limit(2**10).precision() == 427
+
+
+def test_delta_sequence_agrees_with_delta():
+    pcf = PCF(2 * n + 1, n**2)
+    depth = 50
+    limit = 4 / mp.pi
+
+    actual_deltas = pcf.delta_sequence(depth, limit)
+    expected_deltas = []
+    for dep in range(1, depth + 1):
+        expected_deltas.append(pcf.delta(dep, limit))
+
+    assert expected_deltas == actual_deltas
+
+
+def test_blind_delta_sequence_agrees_with_blind_delta():
+    pcf = PCF(2 * n + 1, n**2)
+    depth = 50
+    limit = pcf.limit(2 * depth).as_float()
+
+    actual_values = pcf.delta_sequence(depth)
+    expected_deltas = []
+    for dep in range(1, depth + 1):
+        expected_deltas.append(pcf.delta(dep, limit))
+
+    assert expected_deltas == actual_values

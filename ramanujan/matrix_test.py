@@ -1,3 +1,4 @@
+import sympy as sp
 from sympy.abc import x, y
 
 from ramanujan import Matrix, simplify, zero, inf
@@ -13,12 +14,22 @@ def test_gcd():
     assert 11 == m.gcd()
 
 
-def test_gcd_reduce():
+def test_normalize():
     initial = Matrix([[2, 3], [5, 7]])
-    gcd = 17
+    gcd = sp.Rational(17, 13)
     m = gcd * initial
     assert m.gcd() == gcd
-    assert m.reduce() == initial
+    assert m.normalize() == initial
+
+
+def test_inverse():
+    a = 5
+    b = 2
+    c = 3
+    d = 7
+    m = Matrix([[a, b], [c, d]])
+    expected = Matrix([[d, -b], [-c, a]]) / (a * d - b * c)
+    assert expected == m.inverse()
 
 
 def test_walk_0():
@@ -29,6 +40,26 @@ def test_walk_0():
 def test_walk_1():
     m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
     assert m.walk({x: 1, y: 0}, 1, {x: x, y: y}) == m
+
+
+def test_walk_list():
+    trajectory = {x: 2, y: 3}
+    start = {x: 5, y: 7}
+    iterations = [1, 2, 3, 17, 29, 53, 99]
+    m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
+    assert m.walk(trajectory, iterations, start) == [
+        m.walk(trajectory, i, start) for i in iterations
+    ]
+
+
+def test_walk_sequence():
+    trajectory = {x: 2, y: 3}
+    start = {x: 5, y: 7}
+    iterations = [1, 2, 3, 17, 29, 53, 99]
+    m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
+    assert m.walk(trajectory, tuple(iterations), start) == m.walk(
+        trajectory, set(iterations), start
+    )
 
 
 def test_walk_axis():
