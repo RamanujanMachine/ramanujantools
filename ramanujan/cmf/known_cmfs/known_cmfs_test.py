@@ -67,10 +67,10 @@ def test_all_conserving():
     known_cmfs.cmf3_1().assert_conserving()
     known_cmfs.cmf3_2().assert_conserving()
     known_cmfs.cmf3_3().assert_conserving()
-    known_cmfs.hypergeometric_dervied_2F1().assert_conserving()
-    known_cmfs.hypergeometric_dervied_3F2().assert_conserving()
+    known_cmfs.hypergeometric_derived_2F1().assert_conserving()
+    known_cmfs.hypergeometric_derived_3F2().assert_conserving()
 
 
 def test_back_conserving():
-    cmf = known_cmfs.hypergeometric_dervied_2F1()
+    cmf = known_cmfs.hypergeometric_derived_2F1()
     cmf.assert_conserving(check_negatives=True)

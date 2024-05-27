@@ -62,9 +62,7 @@ def var_root_cmf():
     a = (2 * x + c1 + 1) * (2 * x + c0 + 1) - x * (x + 1)
     F = x**2 + x * (Y + 1) + (Y + 1 - c1) * (Y + 1 - c0)
     G = -(Y + 2 * x) * (x + c1 + c0 - (Y + 1))
-    return CMF(
-        matrices={x: Matrix([[0, b], [1, a]]), y: Matrix([[G, b], [1, F]])}
-    )
+    return CMF(matrices={x: Matrix([[0, b], [1, a]]), y: Matrix([[G, b], [1, F]])})
 
 
 def cmf1():
@@ -104,7 +102,7 @@ def cmf3_3():
     )
 
 
-def hypergeometric_dervied_2F1():
+def hypergeometric_derived_2F1():
     return CMF(
         matrices={
             a: Matrix(
@@ -123,26 +121,7 @@ def hypergeometric_dervied_2F1():
     )
 
 
-def hypergeometric_dervied_3F2():
-    return CMF(
-        matrices={
-            a: Matrix(
-                [[1 + 2 * a, (1 + 2 * a) * (1 + 2 * b)], [1, 5 + 4 * a + 2 * b + 4 * c]]
-            ),
-            b: Matrix(
-                [[1 + 2 * b, (1 + 2 * a) * (1 + 2 * b)], [1, 5 + 2 * a + 4 * b + 4 * c]]
-            ),
-            c: Matrix(
-                [
-                    [-1 - 2 * c, (1 + 2 * a) * (1 + 2 * b)],
-                    [1, 3 + 2 * a + 2 * b + 2 * c],
-                ]
-            ),
-        }
-    )
-
-
-def hypergeometric_dervied_3F2():
+def hypergeometric_derived_3F2():
     Sx = x1 + x2 + x3
     Sy = y1 + y2
     Tx = x1 * x2 + x1 * x3 + x2 * x3
