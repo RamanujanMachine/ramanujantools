@@ -92,7 +92,7 @@ class Limit(Matrix):
         Returns:
             a list of the form [p, q], representing the rational number.
         """
-        return [self[*p_indices], self[*q_indices]]
+        return [self[p_indices[0], p_indices[1]], self[q_indices[0], q_indices[1]]]
 
     def as_float(self, p_indices=[0, -1], q_indices=[1, -1]) -> mp.mpf:
         r"""
