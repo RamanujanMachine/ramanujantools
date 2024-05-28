@@ -1,5 +1,12 @@
 import sympy as sp
-from sympy.abc import a, b, c, x, y
+from sympy.abc import a, b, c, x, y, z
+
+x1 = sp.Symbol("x1")
+x2 = sp.Symbol("x2")
+x3 = sp.Symbol("x3")
+
+y1 = sp.Symbol("y1")
+y2 = sp.Symbol("y2")
 
 from ramanujan import Matrix
 from ramanujan.cmf import CMF
@@ -95,7 +102,7 @@ def cmf3_3():
     )
 
 
-def hypergeometric_derived_3d():
+def hypergeometric_derived_2F1():
     return CMF(
         matrices={
             a: Matrix(
@@ -110,5 +117,30 @@ def hypergeometric_derived_3d():
                     [1, 3 + 2 * a + 2 * b + 2 * c],
                 ]
             ),
+        }
+    )
+
+
+def hypergeometric_derived_3F2():
+    Sx = x1 + x2 + x3
+    Sy = y1 + y2
+    Tx = x1 * x2 + x1 * x3 + x2 * x3
+    Ty = y1 * y2
+    Px = x1 * x2 * x3
+    M = Matrix(
+        [
+            [0, 0, Px / ((1 - z) * z)],
+            [z, 1, ((Tx + Sx + 1) * z - Ty) / ((1 - z) * z)],
+            [0, z, ((Sx + 1) * z + Sy + 1) / ((1 - z))],
+        ],
+    )
+    I = sp.eye(3)
+    return CMF(
+        matrices={
+            x1: M / x1 + I,
+            x2: M / x2 + I,
+            x3: M / x3 + I,
+            y1: -M / (y1 + 1) + I,
+            y2: -M / (y2 + 1) + I,
         }
     )

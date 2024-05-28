@@ -11,7 +11,8 @@ from .known_cmfs import (
     cmf3_1,
     cmf3_2,
     cmf3_3,
-    hypergeometric_derived_3d,
+    hypergeometric_derived_2F1,
+    hypergeometric_derived_3F2,
 )
 
 __all__ = [
@@ -27,5 +28,6 @@ __all__ = [
     "cmf3_1",
     "cmf3_2",
     "cmf3_3",
-    "hypergeometric_derived_3d",
+    "hypergeometric_derived_2F1",
+    "hypergeometric_derived_3F2",
 ]

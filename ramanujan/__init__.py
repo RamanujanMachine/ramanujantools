@@ -1,4 +1,4 @@
-from .matrix import Matrix, zero, inf
+from .matrix import Matrix
 from .limit import Limit
 from .generic_polynomial import GenericPolynomial
 from .simplify_object import simplify
@@ -8,8 +8,6 @@ from .cmf import cmf
 
 __all__ = [
     "Matrix",
-    "zero",
-    "inf",
     "Limit",
     "GenericPolynomial",
     "simplify",

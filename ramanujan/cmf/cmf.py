@@ -23,10 +23,10 @@ class CMF:
         Initializes a CMF with `Mx` and `My` matrices
         """
         self.matrices = matrices
-        self.assert_conserving()
         assert (
             n not in self.matrices.keys()
         ), "Do not use symbol n as an axis, it's reserved for PCF conversions"
+        self.assert_matrices_same_dimension()
 
     def __eq__(self, other) -> bool:
         return self.matrices == other.matrices
@@ -34,7 +34,7 @@ class CMF:
     def __repr__(self) -> str:
         return f"CMF({self.matrices})"
 
-    def are_conserving(
+    def _are_conserving(
         self,
         x: sp.Symbol,
         y: sp.Symbol,
@@ -48,19 +48,40 @@ class CMF:
         return Mxy == Myx
 
     def assert_conserving(self, check_negatives: bool = False) -> None:
+        """
+        Asserts that all of the matrices of the CMF are conserving.
+        Args:
+            check_negatives: if `True`, will also check that the negative matrices are conserving.
+                             this should mathematically always be the case when the positive matrices are conserving.
+        Raises:
+            AssertionError: in case the matrices are not conserving.
+        """
         for x, y in itertools.combinations(self.matrices.keys(), 2):
-            if not self.are_conserving(x, y, True, True):
+            if not self._are_conserving(x, y, True, True):
                 raise ValueError(f"M({x}) and M({y}) matrices are not conserving!")
 
             if check_negatives:
-                if not self.are_conserving(x, y, False, True):
+                if not self._are_conserving(x, y, False, True):
                     raise ValueError(f"M(-{x}) and M({y}) matrices are not conserving!")
-                if not self.are_conserving(x, y, True, False):
+                if not self._are_conserving(x, y, True, False):
                     raise ValueError(f"M({x}) and M(-{y}) matrices are not conserving!")
-                if not self.are_conserving(x, y, False, False):
+                if not self._are_conserving(x, y, False, False):
                     raise ValueError(
                         f"M(-{x}) and M(-{y}) matrices are not conserving!"
                     )
+
+    def assert_matrices_same_dimension(self) -> None:
+        """
+        Asserts that all of the matrices of the CMF have the same dimensions.
+        Raises:
+            ValueError: in case the matrices are not conserving.
+        """
+        expected_N = self.N()
+        for symbol, matrix in self.matrices.items():
+            if not expected_N == matrix.rows and expected_N == matrix.cols:
+                raise ValueError(
+                    f"M({symbol}) is of dimension {matrix.rows}x{matrix.cols}, expected {expected_N}x{expected_N}"
+                )
 
     def M(self, axis: sp.Symbol, sign: bool = True) -> Matrix:
         """
@@ -102,6 +123,20 @@ class CMF:
         return set.union(
             *list(map(lambda matrix: matrix.free_symbols, self.matrices.values()))
         )
+
+    def dim(self) -> int:
+        """
+        Returns the dimension of the CMF,
+        which is defined as the amount of axes of the CMF.
+        """
+        return len(self.axes())
+
+    def N(self) -> int:
+        """
+        Returns the row/column amount of matrices of the CMF.
+        """
+        random_matrix = list(self.matrices.values())[0]
+        return random_matrix.rows
 
     def subs(self, *args, **kwargs) -> CMF:
         """Returns a new CMF with substituted Mx and My."""
@@ -145,7 +180,7 @@ class CMF:
             ), f"Start axes {start.keys()} does not match CMF axes {self.axes()}"
 
         position = {axis: axis for axis in self.axes()}
-        m = sp.eye(2)
+        m = sp.eye(self.N())
         for axis in self.axes():
             sign = trajectory[axis] >= 0
             m *= self.M(axis, sign).walk(

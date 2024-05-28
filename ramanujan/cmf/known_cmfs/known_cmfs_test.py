@@ -53,23 +53,24 @@ def test_cmf1():
         ).as_float() == approx(-a + b / log(1 + b / a), 1e-4)
 
 
-def test_all_cmfs():
+def test_all_conserving():
     r"""
     Checks that all cmfs are indeed cmfs.
     If one of these is not a cmf, an exception will be thrown.
     """
-    known_cmfs.e()
-    known_cmfs.pi()
-    known_cmfs.zeta3()
-    known_cmfs.var_root_cmf()
-    known_cmfs.cmf1()
-    known_cmfs.cmf2()
-    known_cmfs.cmf3_1()
-    known_cmfs.cmf3_2()
-    known_cmfs.cmf3_3()
-    known_cmfs.hypergeometric_derived_3d()
+    known_cmfs.e().assert_conserving()
+    known_cmfs.pi().assert_conserving()
+    known_cmfs.zeta3().assert_conserving()
+    known_cmfs.var_root_cmf().assert_conserving()
+    known_cmfs.cmf1().assert_conserving()
+    known_cmfs.cmf2().assert_conserving()
+    known_cmfs.cmf3_1().assert_conserving()
+    known_cmfs.cmf3_2().assert_conserving()
+    known_cmfs.cmf3_3().assert_conserving()
+    known_cmfs.hypergeometric_derived_2F1().assert_conserving()
+    known_cmfs.hypergeometric_derived_3F2().assert_conserving()
 
 
 def test_back_conserving():
-    cmf = known_cmfs.hypergeometric_derived_3d()
+    cmf = known_cmfs.hypergeometric_derived_2F1()
     cmf.assert_conserving(check_negatives=True)

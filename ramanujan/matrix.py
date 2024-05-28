@@ -8,11 +8,17 @@ import sympy as sp
 
 class Matrix(sp.Matrix):
     """
-    Represens a marix.
+    Represents a Matrix.
 
     Inherits from sympy's matrix and supports all of its methods and operators:
     https://docs.sympy.org/latest/modules/matrices/matrices.html
     """
+
+    def __repr__(self) -> str:
+        return repr(sp.Matrix(self)).replace("Matrix", "Matrix")
+
+    def __str__(self) -> str:
+        return repr(self)
 
     def __eq__(self, other: Matrix) -> bool:
         return all(sp.simplify(cell) == 0 for cell in self - other)
@@ -25,6 +31,12 @@ class Matrix(sp.Matrix):
         https://docs.sympy.org/latest/modules/core.html#sympy.core.basic.Basic.subs
         """
         return self.subs(*args, **kwargs)
+
+    def is_square(self) -> int:
+        """
+        Returns the amount of rows/columns of the square matrix (which is of dimension NxN)
+        """
+        return self.rows == self.cols
 
     def gcd(self) -> sp.Rational:
         """
@@ -67,7 +79,11 @@ class Matrix(sp.Matrix):
         Returns:
             The walk multiplication matrix as defined above.
             If iterations is list, returns a list of matrices.
+        Raises:
+            ValueError: If `self` is not a square matrix
         """
+        if not self.is_square():
+            raise ValueError("Matrix.walk is only supported for square matrices!")
 
         assert (
             start.keys() == trajectory.keys()
@@ -79,7 +95,7 @@ class Matrix(sp.Matrix):
         ), "`iterations` values must be unique"
 
         position = start
-        matrix = Matrix.eye(2)
+        matrix = Matrix.eye(self.rows)
         results = []
         for i in range(
             max(iterations_set) + 1
@@ -109,13 +125,3 @@ class Matrix(sp.Matrix):
         from ramanujan.pcf import PCFFromMatrix
 
         return PCFFromMatrix(self, deflate_all)
-
-
-def zero():
-    r"""Returns the zero vector $\begin{pmatrix} 0 \cr 1 \end{pmatrix}$"""
-    return Matrix([0, 1])
-
-
-def inf():
-    r"""Returns the infinity vector $\begin{pmatrix} 1 \cr 0 \end{pmatrix}$"""
-    return Matrix([1, 0])
