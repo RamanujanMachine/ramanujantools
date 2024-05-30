@@ -23,9 +23,10 @@ class CMF:
         Initializes a CMF with `Mx` and `My` matrices
         """
         self.matrices = matrices
-        assert (
-            n not in self.matrices.keys()
-        ), "Do not use symbol n as an axis, it's reserved for PCF conversions"
+        if n in self.matrices.keys():
+            raise ValueError(
+                "Do not use symbol n as an axis, it's reserved for PCF conversions"
+            )
         self.assert_matrices_same_dimension()
 
     def __eq__(self, other) -> bool:
@@ -170,14 +171,15 @@ class CMF:
         Returns:
             A matrix that represents a single step in the desired trajectory
         """
-        assert (
-            self.axes() == trajectory.keys()
-        ), f"Trajectory axes {trajectory.keys()} does not match CMF axes {self.axes()}"
+        if self.axes() != trajectory.keys():
+            raise ValueError(
+                f"Trajectory axes {trajectory.keys()} do not match CMF axes {self.axes()}"
+            )
 
-        if start:
-            assert (
-                self.axes() == start.keys()
-            ), f"Start axes {start.keys()} does not match CMF axes {self.axes()}"
+        if start and self.axes() != start.keys():
+            raise ValueError(
+                f"Start axes {start.keys()} do not match CMF axes {self.axes()}"
+            )
 
         position = {axis: axis for axis in self.axes()}
         m = sp.eye(self.N())
@@ -209,9 +211,10 @@ class CMF:
         """
         from sympy.abc import n
 
-        assert (
-            trajectory.keys() == start.keys()
-        ), f"Key mismatch between trajectory ({trajectory.keys()}) and start ({start.keys()})"
+        if start.keys() != trajectory.keys():
+            raise ValueError(
+                f"Trajectory axes {trajectory.keys()} do not match start axes {start.keys()}"
+            )
 
         def sub(i):
             return start[i] + (n - 1) * trajectory[i]

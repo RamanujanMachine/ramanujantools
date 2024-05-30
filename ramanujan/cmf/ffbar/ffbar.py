@@ -50,18 +50,15 @@ class FFbar(CMF):
 
         Asserts that `f` and `fbar` functions satisfy both linear and quadratic conditions.
         """
-        assert FFbar.linear_condition(f, fbar) == 0, (
-            "given f and fbar do not satisfy the linear condition! f="
-            + str(f)
-            + ", fbar="
-            + str(fbar)
-        )
-        assert FFbar.quadratic_condition(f, fbar) == 0, (
-            "given f and fbar do not satisfy the quadratic condition! f="
-            + str(f)
-            + ", fbar="
-            + str(fbar)
-        )
+        if FFbar.linear_condition(f, fbar) != 0:
+            raise ValueError(
+                f"given f and fbar do not satisfy the linear condition! f={f}, fbar={fbar}"
+            )
+        if FFbar.quadratic_condition(f, fbar) != 0:
+            raise ValueError(
+                f"given f and fbar do not satisfy the quadratic condition! f={f}, fbar={fbar}"
+            )
+
         self.f = f
         """The f function of the FFbar CMF"""
         self.fbar = fbar
