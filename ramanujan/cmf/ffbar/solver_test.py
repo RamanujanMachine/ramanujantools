@@ -3,7 +3,7 @@ from sympy.abc import x, y, n
 
 from ramanujan import GenericPolynomial
 from ramanujan.pcf import PCF
-from ramanujan.cmf.ffbar import FFbar, solve_ffbar, from_pcf
+from ramanujan.cmf.ffbar import solve_ffbar, from_pcf
 from .solver import solve
 
 from ramanujan.cmf.known_cmfs import cmf1

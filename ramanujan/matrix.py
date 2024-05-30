@@ -60,7 +60,7 @@ class Matrix(sp.Matrix):
         return Matrix(sp.simplify(self))
 
     @multimethod
-    def walk(
+    def walk(  # noqa: F811
         self, trajectory: Dict, iterations: Collection[int], start: Dict
     ) -> List[Matrix]:
         r"""
@@ -107,9 +107,9 @@ class Matrix(sp.Matrix):
         return results
 
     @multimethod
-    def walk(
+    def walk(  # noqa: F811
         self, trajectory: Dict, iterations: int, start: Dict
-    ) -> Matrix:  # noqa: F811
+    ) -> Matrix:
         return self.walk(trajectory, [iterations], start)[0]
 
     def as_pcf(self, deflate_all=True):

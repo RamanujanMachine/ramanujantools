@@ -1,16 +1,17 @@
 import sympy as sp
 from sympy.abc import a, b, c, x, y, z
 
+from ramanujan import Matrix
+from ramanujan.cmf import CMF
+from ramanujan.cmf.ffbar import FFbar
+
+
 x1 = sp.Symbol("x1")
 x2 = sp.Symbol("x2")
 x3 = sp.Symbol("x3")
 
 y1 = sp.Symbol("y1")
 y2 = sp.Symbol("y2")
-
-from ramanujan import Matrix
-from ramanujan.cmf import CMF
-from ramanujan.cmf.ffbar import FFbar
 
 c0, c1, c2, c3 = sp.symbols("c:4")
 
@@ -134,13 +135,13 @@ def hypergeometric_derived_3F2():
             [0, z, ((Sx + 1) * z + Sy + 1) / ((1 - z))],
         ],
     )
-    I = sp.eye(3)
+    I3 = sp.eye(3)
     return CMF(
         matrices={
-            x1: M / x1 + I,
-            x2: M / x2 + I,
-            x3: M / x3 + I,
-            y1: -M / (y1 + 1) + I,
-            y2: -M / (y2 + 1) + I,
+            x1: M / x1 + I3,
+            x2: M / x2 + I3,
+            x3: M / x3 + I3,
+            y1: -M / (y1 + 1) + I3,
+            y2: -M / (y2 + 1) + I3,
         }
     )
