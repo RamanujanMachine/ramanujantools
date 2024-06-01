@@ -77,7 +77,9 @@ class Matrix(sp.Matrix):
             The walk multiplication matrix as defined above.
             If iterations is list, returns a list of matrices.
         Raises:
-            ValueError: If `self` is not a square matrix
+            ValueError: If `self` is not a square matrix,
+                        if `start` and `trajectory` have different keys,
+                        if `iterations` contains duplicate values
         """
         if not self.is_square():
             raise ValueError(

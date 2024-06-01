@@ -46,9 +46,14 @@ class FFbar(CMF):
 
     def __init__(self, f, fbar):
         r"""
-        Constructs an `FFbar` `CMF`
+        Constructs an FFbar CMF.
 
-        Asserts that `f` and `fbar` functions satisfy both linear and quadratic conditions.
+        Args:
+            f: the $f$ function
+            fbar: the $\bar{f}$ function
+
+        Raises:
+            ValueError: if f and fbar do not satisfy the linear condition or the quadratic condition.
         """
         if FFbar.linear_condition(f, fbar) != 0:
             raise ValueError(
