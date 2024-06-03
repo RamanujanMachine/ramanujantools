@@ -5,11 +5,13 @@ from ramanujan import Limit, Matrix, simplify
 from ramanujan.cmf import CMF, known_cmfs
 
 
-def test_non_conserving_throws():
+def test_assert_conserving():
     m = Matrix([[x, x + 17], [y * x, y * 3 - x + 5]])
-    cmf = CMF(matrices={x: m, y: m})
+    cmf = CMF(matrices={x: m, y: m}, validate=False)
     with raises(ValueError):
         cmf.assert_conserving()
+    with raises(ValueError):
+        cmf = CMF(matrices={x: m, y: m}, validate=True)
 
 
 def test_symbols():
