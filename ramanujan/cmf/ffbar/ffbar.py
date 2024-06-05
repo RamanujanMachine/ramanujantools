@@ -73,7 +73,8 @@ class FFbar(CMF):
             matrices={
                 x: Matrix([[0, self.b()], [1, self.a()]]),
                 y: Matrix([[self.fbar, self.b()], [1, self.f]]),
-            }
+            },
+            validate=False,
         )
 
     def __repr__(self):
