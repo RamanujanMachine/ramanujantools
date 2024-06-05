@@ -15,17 +15,25 @@ class CMF:
     Represents a Conservative Matrix Field (CMF).
 
     A CMF is defined by a set of axes and their relevant matrices that satisfy the perservation quality:
-    for every two axes x and y, $Mx(x, y) \cdot My(x+1, y) = My(x, y) \cdot Mx(x, y+1)$
+    for every two axes x and y, $Mx(x, y) \cdot My(x+1, y) = My(x, y) \cdot Mx(x, y+1)$.
     """
 
     def __init__(self, matrices: Dict[sp.Symbol, Matrix], validate=True):
         """
-        Initializes a CMF with `Mx` and `My` matrices
+        Initializes a CMF with `Mx` and `My` matrices.
+
+        Args:
+            matrices: The CMF matrices as a dict,
+                where the keys are the axes of the CMF and their values are the corresponding matrices.
+
+        Raises:
+            ValueError: if one of the matrices contain the symbol n, which is recserved for PCF conversions.
         """
         self.matrices = matrices
-        assert (
-            n not in self.matrices.keys()
-        ), "Do not use symbol n as an axis, it's reserved for PCF conversions"
+        if n in self.matrices.keys():
+            raise ValueError(
+                "Do not use symbol n as an axis, it's reserved for PCF conversions"
+            )
         self.assert_matrices_same_dimension()
         if validate:
             self.assert_conserving()
@@ -56,7 +64,7 @@ class CMF:
             check_negatives: if `True`, will also check that the negative matrices are conserving.
                              this should mathematically always be the case when the positive matrices are conserving.
         Raises:
-            AssertionError: in case the matrices are not conserving.
+            ValueError: if two matrices or more are not conserving.
         """
         for x, y in itertools.combinations(self.matrices.keys(), 2):
             if not self._are_conserving(x, y, True, True):
@@ -141,7 +149,9 @@ class CMF:
         return random_matrix.rows
 
     def subs(self, *args, **kwargs) -> CMF:
-        """Returns a new CMF with substituted Mx and My."""
+        """
+        Returns a new CMF with substituted Mx and My.
+        """
         return CMF(
             matrices={
                 symbol: matrix.subs(*args, **kwargs)
@@ -150,7 +160,9 @@ class CMF:
         )
 
     def simplify(self):
-        """Returns a new CMF with simplified Mx and My"""
+        """
+        Returns a new CMF with simplified Mx and My
+        """
         return CMF(
             matrices={symbol: simplify(matrix) for symbol, matrix in self.matrices}
         )
@@ -171,15 +183,18 @@ class CMF:
             start: a dict representing the starting point of the multiplication.
         Returns:
             A matrix that represents a single step in the desired trajectory
+        Raises:
+            ValueError: if trajectory, start and matrix keys do not match.
         """
-        assert (
-            self.axes() == trajectory.keys()
-        ), f"Trajectory axes {trajectory.keys()} does not match CMF axes {self.axes()}"
+        if self.axes() != trajectory.keys():
+            raise ValueError(
+                f"Trajectory axes {trajectory.keys()} do not match CMF axes {self.axes()}"
+            )
 
-        if start:
-            assert (
-                self.axes() == start.keys()
-            ), f"Start axes {start.keys()} does not match CMF axes {self.axes()}"
+        if start and self.axes() != start.keys():
+            raise ValueError(
+                f"Start axes {start.keys()} do not match CMF axes {self.axes()}"
+            )
 
         position = {axis: axis for axis in self.axes()}
         m = sp.eye(self.N())
@@ -204,16 +219,27 @@ class CMF:
         trajectory_matrix: Matrix, trajectory: dict, start: dict
     ) -> Matrix:
         """
-        Returns trajectory_matrix reduced to a single variable `n`.
+        Reduces a trajectory matrix to have a single variable `n`.
 
         This transformation is possible only when the starting point is known.
         Each incrementation of the variable `n` represents a full step in `trajectory`.
+
+        Args:
+            trajectory_matrix: The matrix to reduce.
+            trajectory: The trajectory that was used to create the trajectory matrix.
+            start: The starting point from which the walk operation is to be calculated.
+        Returns:
+            A matrix that with one variable n that is equivalent to trajectory matrix,
+            such that every step in the n axis is eqivalent to a step in `trajectory` when starting from `start`.
+        Raises:
+            ValueError: if trajectory keys and start keys do not match
         """
         from sympy.abc import n
 
-        assert (
-            trajectory.keys() == start.keys()
-        ), f"Key mismatch between trajectory ({trajectory.keys()}) and start ({start.keys()})"
+        if start.keys() != trajectory.keys():
+            raise ValueError(
+                f"Trajectory axes {trajectory.keys()} do not match start axes {start.keys()}"
+            )
 
         def sub(i):
             return start[i] + (n - 1) * trajectory[i]
@@ -234,9 +260,9 @@ class CMF:
         where `M=trajectory_matrix(trajectory, start)`, and `n / size(trajectory)` (L1 size - total amount of steps)
 
         Args:
-            trajectory: a dict containing the amount of steps in each direction.
-            iterations: the amount of multiplications to perform, either an integer or a list.
-            start: a dict representing the starting point of the multiplication, `default_origin` by default.
+            trajectory: A dict containing the amount of steps in each direction.
+            iterations: The amount of multiplications to perform, either an integer or a list.
+            start: A dict representing the starting point of the multiplication, `default_origin` by default.
         Returns:
             The limit of the walk multiplication as defined above.
             If `iterations` is a list, returns a list of limits.
@@ -270,9 +296,9 @@ class CMF:
         where `M=trajectory_matrix(trajectory, start)`, and `n / size(trajectory)` (L1 size - total amount of steps)
 
         Args:
-            trajectory: a dict containing the amount of steps in each direction.
-            iterations: the amount of multiplications to perform, either an integer or a list.
-            start: a dict representing the starting point of the multiplication, `default_origin` by default.
+            trajectory: A dict containing the amount of steps in each direction.
+            iterations: The amount of multiplications to perform, either an integer or a list.
+            start: A dict representing the starting point of the multiplication, `default_origin` by default.
         Returns:
             The limit of the walk multiplication as defined above.
             If `iterations` is a list, returns a list of limits.

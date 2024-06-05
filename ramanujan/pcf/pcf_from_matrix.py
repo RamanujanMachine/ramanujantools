@@ -8,21 +8,27 @@ class PCFFromMatrix:
     def __init__(self, matrix: Matrix, deflate_all=True):
         """
         Constructs a PCF from a matrix using a a coboundry matrix U.
-
         The created PCF has the same convergence limit of the original matrix up to a certain mobius transformation.
+
+        Args:
+            matrix: The matrix to convert to a PCF.
+            deflate_all: If True, will deflate the PCF as much as possible.
+
+        Raises:
+            ValueError: If matrix is not a 2x2 matrix, or if the matrix is not coboundry to a pcf.
         """
-        assert (
-            2 == matrix.rows and 2 == matrix.cols
-        ), "Conversion of arbitrary matrix to PCF is only supported for 2x2 matrices!"
+        if 2 != matrix.rows or 2 != matrix.cols:
+            raise ValueError(
+                f"Conversion of arbitrary matrix to PCF is only supported for 2x2 matrices, "
+                f"got a {matrix.rows}x{matrix.cols} matrix"
+            )
 
         U = Matrix([[matrix[1, 0], -matrix[0, 0]], [0, 1]])
         Uinv = Matrix([[1, matrix[0, 0]], [0, matrix[1, 0]]])
         commutated = U * matrix * Uinv({n: n + 1})
         normalized = (commutated / commutated[1, 0]).simplify()
         if not (normalized[0, 0] == 0 and normalized[1, 0] == 1):
-            raise ValueError(
-                f"An error has occured when converting matrix {matrix} into a pcf"
-            )
+            raise ValueError("Given matrix is not coboundry to a PCF")
         pcf = PCF(normalized[1, 1], normalized[0, 1])
         pcf = pcf.inflate(matrix[1, 0])
         if deflate_all:

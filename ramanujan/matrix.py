@@ -14,9 +14,6 @@ class Matrix(sp.Matrix):
     https://docs.sympy.org/latest/modules/matrices/matrices.html
     """
 
-    def __repr__(self) -> str:
-        return repr(sp.Matrix(self)).replace("Matrix", "Matrix")
-
     def __str__(self) -> str:
         return repr(self)
 
@@ -80,19 +77,24 @@ class Matrix(sp.Matrix):
             The walk multiplication matrix as defined above.
             If iterations is list, returns a list of matrices.
         Raises:
-            ValueError: If `self` is not a square matrix
+            ValueError: If `self` is not a square matrix,
+                        if `start` and `trajectory` have different keys,
+                        if `iterations` contains duplicate values
         """
         if not self.is_square():
-            raise ValueError("Matrix.walk is only supported for square matrices!")
+            raise ValueError(
+                f"Matrix.walk is only supported for square matrices, got a {self.rows}x{self.cols} matrix"
+            )
 
-        assert (
-            start.keys() == trajectory.keys()
-        ), "`start` and `trajectory` must contain same keys"
+        if start.keys() != trajectory.keys():
+            raise ValueError(
+                f"`start` and `trajectory` must contain same keys, got "
+                f"start={set(start.keys())}, trajectory={set(trajectory.keys())}"
+            )
 
         iterations_set = set(iterations)
-        assert len(iterations_set) == len(
-            iterations
-        ), "`iterations` values must be unique"
+        if len(iterations_set) != len(iterations):
+            raise ValueError(f"`iterations` values must be unique, got {iterations}")
 
         position = start
         matrix = Matrix.eye(self.rows)
