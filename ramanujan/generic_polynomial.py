@@ -8,7 +8,9 @@ from typing import List, Tuple
 class GenericPolynomial:
 
     @staticmethod
-    def of_degree(deg: int, var_name: str, s: Symbol, monic: bool = False) -> Tuple[Poly, List[Symbol]]:
+    def of_degree(
+        deg: int, var_name: str, s: Symbol, monic: bool = False
+    ) -> Tuple[Poly, List[Symbol]]:
         r"""
         Creates and returns a generic polynomial of a single variable with degree 'deg' with a list of
         its generic coefficients.
@@ -19,25 +21,25 @@ class GenericPolynomial:
             =>
             f = f_0 * x**0 + f_1 * x**1 + f_2 * x**2 + x**3
         """
-        poly_vars = list(sympy.symbols(f'{var_name}:{deg + 1}'))
-        poly = Poly(sum(poly_vars[i] * s ** i for i in range(deg)), s)
+        poly_vars = list(sympy.symbols(f"{var_name}:{deg + 1}"))
+        poly = Poly(sum(poly_vars[i] * s**i for i in range(deg)), s)
         if monic:
-            poly += s ** deg
+            poly += s**deg
             poly_vars = poly_vars[:-1]
         else:
-            poly += poly_vars[deg] * s ** deg
+            poly += poly_vars[deg] * s**deg
 
         return poly, poly_vars
 
     @staticmethod
     def _sum_to(n: int, num_var: int):
         if num_var < 1:
-            raise Exception(f'number of variables {num_var} must be at least 1')
+            raise Exception(f"number of variables {num_var} must be at least 1")
         if num_var == 1:
             yield [n]
             return
-        for i in range(n+1):
-            for sub_sum in GenericPolynomial._sum_to(n=n-i, num_var=num_var-1):
+        for i in range(n + 1):
+            for sub_sum in GenericPolynomial._sum_to(n=n - i, num_var=num_var - 1):
                 yield [i] + sub_sum
 
     @staticmethod
@@ -55,12 +57,14 @@ class GenericPolynomial:
         """
         poly = 0
         coefficients = []
-        for combined_degree in range(deg+1):
-            for powers in GenericPolynomial._sum_to(n=combined_degree, num_var=len(variables)):
-                powers_str = ','.join([str(power) for power in powers])
-                c = sympy.Symbol(f'{var_name}({powers_str})')
-                monom = math.prod(s**power for s,power in zip(variables, powers))
-                poly += c*monom
+        for combined_degree in range(deg + 1):
+            for powers in GenericPolynomial._sum_to(
+                n=combined_degree, num_var=len(variables)
+            ):
+                powers_str = ",".join([str(power) for power in powers])
+                c = sympy.Symbol(f"{var_name}({powers_str})")
+                monom = math.prod(s**power for s, power in zip(variables, powers))
+                poly += c * monom
                 coefficients.append(c)
 
         return poly, coefficients
@@ -72,8 +76,8 @@ class GenericPolynomial:
         sum of product of k distinct elements from the 'expressions' list.
         For example, for expressions=[x,y,z] returns 1, x+y+z, xy+yz+zx, xyz.
         """
-        t = sympy.Symbol('__symmetric_polynomials')
-        poly = math.prod([t+v for v in expressions], start=sympy.Poly(1, t))
+        t = sympy.Symbol("__symmetric_polynomials")
+        poly = math.prod([t + v for v in expressions], start=sympy.Poly(1, t))
         return poly.all_coeffs()
 
     @staticmethod
@@ -90,17 +94,17 @@ class GenericPolynomial:
         n = len(symm_symbols)
         symm_polynomial = 0
         symm = GenericPolynomial.symmetric_polynomials(*symm_symbols)
-        s = sympy.symbols(f'{symm_var_name}:{n+1}')
+        s = sympy.symbols(f"{symm_var_name}:{n+1}")
 
         monomial, coefficient = Poly(polynomial, *symm_symbols).LT()
         while coefficient != 0:
             ex = list(monomial.exponents) + [0]
             prod = coefficient
             for i in range(0, len(symm_symbols)):
-                prod *= s[i+1]**(ex[i]-ex[i+1])
+                prod *= s[i + 1] ** (ex[i] - ex[i + 1])
 
             symm_polynomial += prod
-            prod_subs = prod.subs({s[i]: symm[i] for i in range(1, n+1)})
+            prod_subs = prod.subs({s[i]: symm[i] for i in range(1, n + 1)})
             polynomial -= prod_subs
             monomial, coefficient = Poly(polynomial, *symm_symbols).LT()
 
