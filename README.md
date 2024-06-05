@@ -1,9 +1,11 @@
-This library contains the official and up-to-date research tools of the Ramanujan research group.
+# Ramanujan Tools
+
+The official and up-to-date research tools of the Ramanujan Machine research group.
 
 ## Installation
 
 ```commandline
-pip install git+https://github.com/RamanujanMachine/ResearchTools.git
+pip install git+https://github.com/RamanujanMachine/ramanujantools.git
 ```
 
 ## The code
@@ -24,7 +26,7 @@ The most relevant pieces of code of this library are:
 ### Example: calculating the limit of zeta3 CMF alongside the diagonal
 
 ```python
-from ramanujan.cmf import known_cmfs
+from ramanujantools.cmf import known_cmfs
 
 known_cmfs.zeta3().limit([1,1], 100).as_float()
 ```
