@@ -18,7 +18,7 @@ class CMF:
     for every two axes x and y, $Mx(x, y) \cdot My(x+1, y) = My(x, y) \cdot Mx(x, y+1)$
     """
 
-    def __init__(self, matrices: Dict[sp.Symbol, Matrix]):
+    def __init__(self, matrices: Dict[sp.Symbol, Matrix], validate=True):
         """
         Initializes a CMF with `Mx` and `My` matrices
         """
@@ -27,6 +27,8 @@ class CMF:
             n not in self.matrices.keys()
         ), "Do not use symbol n as an axis, it's reserved for PCF conversions"
         self.assert_matrices_same_dimension()
+        if validate:
+            self.assert_conserving()
 
     def __eq__(self, other) -> bool:
         return self.matrices == other.matrices
