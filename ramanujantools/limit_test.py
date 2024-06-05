@@ -20,6 +20,13 @@ def test_as_rational():
     assert [p, q] == limit.as_rational()
 
 
+def test_as_rational_higher_order():
+    p = 2
+    q = 3
+    limit = Limit([[1, 2, p], [3, 4, q], [5, 6, 7]])
+    assert [p, q] == limit.as_rational()
+
+
 def test_as_float():
     p = 2
     q = 3

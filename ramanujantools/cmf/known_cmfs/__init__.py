@@ -3,6 +3,11 @@ from .known_cmfs import (
     c1,
     c2,
     c3,
+    x0,
+    x1,
+    x2,
+    y0,
+    y1,
     e,
     pi,
     zeta3,
@@ -12,7 +17,8 @@ from .known_cmfs import (
     cmf3_1,
     cmf3_2,
     cmf3_3,
-    hypergeometric_derived_3d,
+    hypergeometric_derived_2F1,
+    hypergeometric_derived_3F2,
 )
 
 __all__ = [
@@ -20,6 +26,11 @@ __all__ = [
     "c1",
     "c2",
     "c3",
+    "x0",
+    "x1",
+    "x2",
+    "y0",
+    "y1",
     "e",
     "pi",
     "zeta3",
@@ -29,5 +40,6 @@ __all__ = [
     "cmf3_1",
     "cmf3_2",
     "cmf3_3",
-    "hypergeometric_derived_3d",
+    "hypergeometric_derived_2F1",
+    "hypergeometric_derived_3F2",
 ]

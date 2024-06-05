@@ -10,7 +10,7 @@ from ramanujantools.generic_polynomial import GenericPolynomial
 
 r"""
 We say that a polynomial continued fraction (PCF) with functions $a(x), b(x)$ is in Euler's form,
-if there are polynomial $h_1(x), h_2(x), f(x)$ such that 
+if there are polynomial $h_1(x), h_2(x), f(x)$ such that
 
         $$b(x) = -h_1(x) h_1(x)$$
         $$f(x)a(x) = f(x-1)h_1(x) + f(x+1)h_2(x+1)$$
@@ -32,6 +32,7 @@ def multi_subsets(elem_to_count: dict):
 
     For example, the multiset {{x, x, x, y, y, z}}, should be represented by the dictionary {x:3, y:2, z:1}
     """
+
     def _multi_subsets(inner_elem_to_count: dict, keys, current1, current2):
         if len(keys) == 0:
             yield current1, current2
@@ -40,8 +41,12 @@ def multi_subsets(elem_to_count: dict):
         key = keys[0]
         total = inner_elem_to_count[key]
         for amount in range(total + 1):
-            yield from _multi_subsets(inner_elem_to_count, keys[1:],
-                                      {**current1, key: amount}, {**current2, key: total - amount})
+            yield from _multi_subsets(
+                inner_elem_to_count,
+                keys[1:],
+                {**current1, key: amount},
+                {**current2, key: total - amount},
+            )
 
     yield from _multi_subsets(elem_to_count, list(elem_to_count.keys()), {}, {})
 
@@ -70,12 +75,15 @@ class EulerSolution:
         self.f = Poly(self.f, x)
 
     def __hash__(self):
-        return hash((
-            tuple(self.h_1.all_coeffs()),
-            tuple(self.h_2.all_coeffs()),
-            tuple(self.a.all_coeffs()),
-            tuple(self.b.all_coeffs()),
-            tuple(self.f.all_coeffs())))
+        return hash(
+            (
+                tuple(self.h_1.all_coeffs()),
+                tuple(self.h_2.all_coeffs()),
+                tuple(self.a.all_coeffs()),
+                tuple(self.b.all_coeffs()),
+                tuple(self.f.all_coeffs()),
+            )
+        )
 
     @staticmethod
     def _poly_eq(poly1: Poly, poly2: Poly):
@@ -99,13 +107,16 @@ class EulerSolution:
         lead_f = f_coef[0]
         lead_g = g_coef[0]
         # check if f and g are the same up to scalar
-        if any(lead_f*g_elem - lead_g*f_elem for f_elem, g_elem in zip(f_coef, g_coef)):
+        if any(
+            lead_f * g_elem - lead_g * f_elem for f_elem, g_elem in zip(f_coef, g_coef)
+        ):
             return False
-        return \
-            EulerSolution._poly_eq(self.h_1, other.h_1) and \
-            EulerSolution._poly_eq(self.h_2, other.h_2) and \
-            EulerSolution._poly_eq(self.a, other.a) and \
-            EulerSolution._poly_eq(self.b, other.b)
+        return (
+            EulerSolution._poly_eq(self.h_1, other.h_1)
+            and EulerSolution._poly_eq(self.h_2, other.h_2)
+            and EulerSolution._poly_eq(self.a, other.a)
+            and EulerSolution._poly_eq(self.b, other.b)
+        )
 
 
 class Coefficients:
@@ -153,7 +164,7 @@ class EulerSolver:
         roots = b.all_roots()
         if len(roots) < b.degree():
             # TODO: consider adding an exception
-            print(f'Could not find all the roots for {b.expr}')
+            print(f"Could not find all the roots for {b.expr}")
             return []
 
         # count multiplicity of roots
@@ -166,11 +177,14 @@ class EulerSolver:
 
         leading_coefficient = b.LC()
 
-        return EulerSolver.solve_for_monic_decomposition(a, roots_dict, leading_coefficient)
+        return EulerSolver.solve_for_monic_decomposition(
+            a, roots_dict, leading_coefficient
+        )
 
     @staticmethod
     def solve_for_monic_decomposition(
-            a: Poly, b_roots: Dict[int, int], leading_coefficient_b: int) -> List[EulerSolution]:
+        a: Poly, b_roots: Dict[int, int], leading_coefficient_b: int
+    ) -> List[EulerSolution]:
         r"""
         Given $b(x)=leading_coefficient * \prod (x-root)$, finds all the solutions to
                 $b(x)=-h_1(x)*h_2(x)$
@@ -192,8 +206,12 @@ class EulerSolver:
                 # At least two of the degrees should be maximal, otherwise there is no solution
                 continue
 
-            monic_poly_1 = Poly(math.prod((x - root) ** power for root, power in s1.items()), x)
-            monic_poly_2 = Poly(math.prod((x - root) ** power for root, power in s2.items()), x)
+            monic_poly_1 = Poly(
+                math.prod((x - root) ** power for root, power in s1.items()), x
+            )
+            monic_poly_2 = Poly(
+                math.prod((x - root) ** power for root, power in s2.items()), x
+            )
 
             # we now have
             #       h_1 = c_1*monic_poly_1,
@@ -209,8 +227,12 @@ class EulerSolver:
                     continue  # TODO: add support to non integer solutions
                 c = sympy.sqrt(leading_coefficient_b)
 
-                solutions += EulerSolver.solve_for_decomposition(a, c * monic_poly_1, -c * monic_poly_2)
-                solutions += EulerSolver.solve_for_decomposition(a, -c * monic_poly_1, c * monic_poly_2)
+                solutions += EulerSolver.solve_for_decomposition(
+                    a, c * monic_poly_1, -c * monic_poly_2
+                )
+                solutions += EulerSolver.solve_for_decomposition(
+                    a, -c * monic_poly_1, c * monic_poly_2
+                )
                 continue
 
             # now d=deg_a >= deg_h1, deg_h2
@@ -219,13 +241,17 @@ class EulerSolver:
             if deg_h1 < deg_h2:  # and automatically deg_a = deg_h2 = d
                 c2 = leading_coefficient_a
                 c1 = -leading_coefficient_b / c2
-                solutions += EulerSolver.solve_for_decomposition(a, c1 * monic_poly_1, c2 * monic_poly_2)
+                solutions += EulerSolver.solve_for_decomposition(
+                    a, c1 * monic_poly_1, c2 * monic_poly_2
+                )
                 continue
 
             if deg_h2 < deg_h1:  # and automatically deg_a = deg_h1 = d
                 c1 = leading_coefficient_a
                 c2 = -leading_coefficient_b / c1
-                solutions += EulerSolver.solve_for_decomposition(a, c1 * monic_poly_1, c2 * monic_poly_2)
+                solutions += EulerSolver.solve_for_decomposition(
+                    a, c1 * monic_poly_1, c2 * monic_poly_2
+                )
                 continue
 
             # Left with the case of deg_a = deg_h_1 = deg_h_2 = d, so that
@@ -233,13 +259,17 @@ class EulerSolver:
             # c1 * c2 = - leading_coefficient_b
             # so that they are solutions to
             # (c - c1)*(c - c2) = c^2 - leading_coefficient_a * c - leading_coefficient_b
-            disc = sympy.sqrt(leading_coefficient_a ** 2 + 4 * leading_coefficient_b)
+            disc = sympy.sqrt(leading_coefficient_a**2 + 4 * leading_coefficient_b)
             c1 = (leading_coefficient_a + disc) / 2
             c2 = (leading_coefficient_a - disc) / 2
 
-            solutions += EulerSolver.solve_for_decomposition(a, c1 * monic_poly_1, c2 * monic_poly_2)
+            solutions += EulerSolver.solve_for_decomposition(
+                a, c1 * monic_poly_1, c2 * monic_poly_2
+            )
             if c1 != c2:
-                solutions += EulerSolver.solve_for_decomposition(a, c2 * monic_poly_1, c1 * monic_poly_2)
+                solutions += EulerSolver.solve_for_decomposition(
+                    a, c2 * monic_poly_1, c1 * monic_poly_2
+                )
 
         return solutions
 
@@ -305,17 +335,21 @@ class EulerSolver:
         coef0 = cc
 
         # the possible degrees are the roots for coef2 * x^2 + coef1 * x + coef0 = 0
-        disc_squared = coef1**2 - 4*coef2*coef0
+        disc_squared = coef1**2 - 4 * coef2 * coef0
         if disc_squared < 0:
             return []
-        disc = math.sqrt(coef1**2 - 4*coef2*coef0)
-        roots = [sympy.simplify((-coef1+disc)/(2*coef2)), sympy.simplify((-coef1-disc)/(2*coef2))]
+        disc = math.sqrt(coef1**2 - 4 * coef2 * coef0)
+        roots = [
+            sympy.simplify((-coef1 + disc) / (2 * coef2)),
+            sympy.simplify((-coef1 - disc) / (2 * coef2)),
+        ]
 
         return [int(root) for root in roots if float(root).is_integer() and root >= 0]
 
     @staticmethod
     def solve_for_decomposition_with_degree(
-            a: Poly, h_1: Poly, h_2: Poly, d_f: int) -> Union[EulerSolution, bool]:
+        a: Poly, h_1: Poly, h_2: Poly, d_f: int
+    ) -> Union[EulerSolution, bool]:
         """
         Tries to find a polynomial f of degree d_f solving the equation
                 f(x)a(x) = f(x-1)h_1(x) + f(x+1)h_2(x+1)
@@ -327,12 +361,14 @@ class EulerSolver:
 
         if d_f == 0:
             if a - (h_1 + h_2_plus) == 0:  # The only solution for constant polynomials
-                return EulerSolution(h_1=Poly(h_1, x), h_2=Poly(h_2, x), a=a, b=b, f=Poly(1, x))
+                return EulerSolution(
+                    h_1=Poly(h_1, x), h_2=Poly(h_2, x), a=a, b=b, f=Poly(1, x)
+                )
             return False
 
         # Create the polynomial f, and the recursion it needs to solve, namely
         #    f(x)a(x) = f(x-1)h_1(x) + f(x+1)h_2(x+1)
-        f, f_ = GenericPolynomial.of_degree(deg=d_f, var_name='f_', s=x, monic=True)
+        f, f_ = GenericPolynomial.of_degree(deg=d_f, var_name="f_", s=x, monic=True)
         f_plus = Poly(f.subs(x, x + 1), x)
         f_minus = Poly(f.subs(x, x - 1), x)
 
@@ -340,8 +376,10 @@ class EulerSolver:
 
         system = [sympy.simplify(coefficient) for coefficient in p.all_coeffs()]
         system = [equation for equation in system if equation != 0]
-        if len(system) == 0: # no conditions on f_
-            return EulerSolution(h_1=Poly(h_1, x), h_2=Poly(h_2, x), a=a, b=b, f=Poly(f, x))
+        if len(system) == 0:  # no conditions on f_
+            return EulerSolution(
+                h_1=Poly(h_1, x), h_2=Poly(h_2, x), a=a, b=b, f=Poly(f, x)
+            )
 
         assignment = sympy.solve(p.all_coeffs(), f_)
         if len(assignment) == 0:
@@ -349,4 +387,6 @@ class EulerSolver:
 
         # TODO: If there is a solution, does it have to be unique?
         f_solved = f.subs(assignment)
-        return EulerSolution(h_1=Poly(h_1, x), h_2=Poly(h_2, x), a=a, b=b, f=Poly(f_solved, x))
+        return EulerSolution(
+            h_1=Poly(h_1, x), h_2=Poly(h_2, x), a=a, b=b, f=Poly(f_solved, x)
+        )

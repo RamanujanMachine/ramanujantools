@@ -4,7 +4,7 @@ from sympy.abc import n
 from typing import List, Collection
 from multimethod import multimethod
 
-from ramanujantools import Matrix, Limit, zero
+from ramanujantools import Matrix, Limit
 
 
 def is_deflatable(a_factors, b_factors, factor):

@@ -1,7 +1,12 @@
 import sympy as sp
 from sympy.abc import x, y
 
-from ramanujantools import Matrix, simplify, zero, inf
+from ramanujantools import Matrix, simplify
+
+
+def test_is_square():
+    assert Matrix([[1, 2], [3, 4]]).is_square()
+    assert not Matrix([1, 2, 3, 4]).is_square()
 
 
 def test_gcd():
@@ -91,11 +96,3 @@ def test_walk_different_start():
     assert simplify(m.walk({x: 3, y: 2}, 3, {x: 5, y: 7})) == simplify(
         m({x: 5, y: 7}) * m({x: 8, y: 9}) * m({x: 11, y: 11})
     )
-
-
-def test_zero_vector():
-    assert zero() == Matrix([0, 1])
-
-
-def test_inf_vector():
-    assert inf() == Matrix([1, 0])

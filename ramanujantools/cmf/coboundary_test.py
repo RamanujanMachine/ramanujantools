@@ -11,7 +11,9 @@ from ramanujantools.matrix import Matrix
 known_cmf_list = [known_cmfs.e(), known_cmfs.pi(), known_cmfs.zeta3()]
 
 
-def verify_solution(mx1: Matrix, mx2: Matrix, solution: Matrix, deg: int):
+def verify_solution(
+    mx1: Matrix, mx2: Matrix, solution: Matrix, deg: int
+):
     r"""
     Checks if the vector space of polynomial matrices m(x) of degree at most 'deg' satisfying
     mx1 * m(x+1) = m(x) * mx2
@@ -72,7 +74,9 @@ def test_cmf_coboundary(cmf: CMF):
 
 def test_specific_coboundary():
     mx1 = Matrix([[0, -(x**8)], [1, x**4 + (1 + x) ** 4]])
-    mx2 = Matrix([[0, -(x**8)], [1, x**4 + (1 + x) ** 4 + 2 * (x**2 + (1 + x) ** 2)]])
+    mx2 = Matrix(
+        [[0, -(x**8)], [1, x**4 + (1 + x) ** 4 + 2 * (x**2 + (1 + x) ** 2)]]
+    )
     solution = Matrix(
         [[x**4 * (1 - 2 * x), -(x**8) * (1 + 2 * x)], [2 * x - 1, x**4 * (1 + 2 * x)]]
     )

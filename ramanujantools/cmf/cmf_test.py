@@ -5,10 +5,13 @@ from ramanujantools import Limit, Matrix, simplify
 from ramanujantools.cmf import CMF, known_cmfs
 
 
-def test_non_conserving_throws():
+def test_assert_conserving():
     m = Matrix([[x, x + 17], [y * x, y * 3 - x + 5]])
+    cmf = CMF(matrices={x: m, y: m}, validate=False)
     with raises(ValueError):
-        CMF(matrices={x: m, y: m})
+        cmf.assert_conserving()
+    with raises(ValueError):
+        cmf = CMF(matrices={x: m, y: m}, validate=True)
 
 
 def test_symbols():
@@ -66,7 +69,7 @@ def test_trajectory_matrix_negative_axis():
 
 
 def test_trajectory_matrix_negative():
-    cmf = known_cmfs.hypergeometric_derived_3d()
+    cmf = known_cmfs.hypergeometric_derived_2F1()
     expected = (
         cmf.M(a, sign=True)
         * cmf.M(b, sign=False).subs({a: a + 1})
@@ -130,6 +133,16 @@ def test_substitute_trajectory_diagonal():
     assert CMF.substitute_trajectory(m, {x: 1, y: 2}, {x: 3, y: 5}) == m.subs(
         [(x, n + 2), (y, 2 * n + 3)]
     )
+
+
+def test_N():
+    cmf = known_cmfs.hypergeometric_derived_2F1()
+    assert 2 == cmf.N()
+
+
+def test_dim():
+    cmf = known_cmfs.hypergeometric_derived_2F1()
+    assert 3 == cmf.dim()
 
 
 def test_substitute_trajectory_walk_equivalence():

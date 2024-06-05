@@ -8,11 +8,14 @@ import sympy as sp
 
 class Matrix(sp.Matrix):
     """
-    Represens a marix.
+    Represents a Matrix.
 
     Inherits from sympy's matrix and supports all of its methods and operators:
     https://docs.sympy.org/latest/modules/matrices/matrices.html
     """
+
+    def __str__(self) -> str:
+        return repr(self)
 
     def __eq__(self, other: Matrix) -> bool:
         return all(sp.simplify(cell) == 0 for cell in self - other)
@@ -25,6 +28,12 @@ class Matrix(sp.Matrix):
         https://docs.sympy.org/latest/modules/core.html#sympy.core.basic.Basic.subs
         """
         return self.subs(*args, **kwargs)
+
+    def is_square(self) -> int:
+        """
+        Returns the amount of rows/columns of the square matrix (which is of dimension NxN)
+        """
+        return self.rows == self.cols
 
     def gcd(self) -> sp.Rational:
         """
@@ -48,7 +57,7 @@ class Matrix(sp.Matrix):
         return Matrix(sp.simplify(self))
 
     @multimethod
-    def walk(
+    def walk(  # noqa: F811
         self, trajectory: Dict, iterations: Collection[int], start: Dict
     ) -> List[Matrix]:
         r"""
@@ -67,19 +76,28 @@ class Matrix(sp.Matrix):
         Returns:
             The walk multiplication matrix as defined above.
             If iterations is list, returns a list of matrices.
+        Raises:
+            ValueError: If `self` is not a square matrix,
+                        if `start` and `trajectory` have different keys,
+                        if `iterations` contains duplicate values
         """
+        if not self.is_square():
+            raise ValueError(
+                f"Matrix.walk is only supported for square matrices, got a {self.rows}x{self.cols} matrix"
+            )
 
-        assert (
-            start.keys() == trajectory.keys()
-        ), "`start` and `trajectory` must contain same keys"
+        if start.keys() != trajectory.keys():
+            raise ValueError(
+                f"`start` and `trajectory` must contain same keys, got "
+                f"start={set(start.keys())}, trajectory={set(trajectory.keys())}"
+            )
 
         iterations_set = set(iterations)
-        assert len(iterations_set) == len(
-            iterations
-        ), "`iterations` values must be unique"
+        if len(iterations_set) != len(iterations):
+            raise ValueError(f"`iterations` values must be unique, got {iterations}")
 
         position = start
-        matrix = Matrix.eye(2)
+        matrix = Matrix.eye(self.rows)
         results = []
         for i in range(
             max(iterations_set) + 1
@@ -91,9 +109,9 @@ class Matrix(sp.Matrix):
         return results
 
     @multimethod
-    def walk(
+    def walk(  # noqa: F811
         self, trajectory: Dict, iterations: int, start: Dict
-    ) -> Matrix:  # noqa: F811
+    ) -> Matrix:
         return self.walk(trajectory, [iterations], start)[0]
 
     def as_pcf(self, deflate_all=True):
@@ -109,13 +127,3 @@ class Matrix(sp.Matrix):
         from ramanujantools.pcf import PCFFromMatrix
 
         return PCFFromMatrix(self, deflate_all)
-
-
-def zero():
-    r"""Returns the zero vector $\begin{pmatrix} 0 \cr 1 \end{pmatrix}$"""
-    return Matrix([0, 1])
-
-
-def inf():
-    r"""Returns the infinity vector $\begin{pmatrix} 1 \cr 0 \end{pmatrix}$"""
-    return Matrix([1, 0])

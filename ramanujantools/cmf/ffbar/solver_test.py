@@ -3,10 +3,9 @@ from sympy.abc import x, y, n
 
 from ramanujantools import GenericPolynomial
 from ramanujantools.pcf import PCF
-from ramanujantools.cmf.ffbar import FFbar, solve_ffbar, from_pcf
-from .solver import solve
-
+from ramanujantools.cmf.ffbar import solve_ffbar, from_pcf
 from ramanujantools.cmf.known_cmfs import cmf1
+from .solver import solve
 
 
 @pytest.mark.parametrize("deg", [1, 2])
