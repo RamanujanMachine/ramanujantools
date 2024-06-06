@@ -1,7 +1,7 @@
 import sympy as sp
 from sympy.abc import n
 
-from typing import List, Collection
+from typing import Dict, List, Collection
 from multimethod import multimethod
 
 from ramanujantools import Matrix, Limit
@@ -132,6 +132,13 @@ class PCF:
     def subs(self, *args, **kwargs):
         """Substitutes parameters in the PCF"""
         return PCF(self.a_n.subs(*args, **kwargs), self.b_n.subs(*args, **kwargs))
+
+    def singular_points(self) -> List[Dict]:
+        return [
+            solution
+            for solution in self.M().singular_points()
+            if solution[n].is_integer and solution[n] > 0
+        ]
 
     @multimethod
     def walk(self, iterations: Collection[int], start: int = 1) -> List[Matrix]:

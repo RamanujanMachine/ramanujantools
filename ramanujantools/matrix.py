@@ -56,6 +56,17 @@ class Matrix(sp.Matrix):
         """Returns a simplified version of matrix"""
         return Matrix(sp.simplify(self))
 
+    def singular_points(self) -> List[Dict]:
+        r"""
+        Calculates the singular points of the matrix,
+        i.e, points where $|m| = 0$
+
+        Returns:
+            A list of substitution dicts that result in the matrix having a zero determinant.
+            That is, for each dict in result, `self.subs(dict).det() == 0`
+        """
+        return sp.solve(self.det(), dict=True)
+
     @multimethod
     def walk(  # noqa: F811
         self, trajectory: Dict, iterations: Collection[int], start: Dict
