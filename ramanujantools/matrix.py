@@ -42,7 +42,9 @@ class Matrix(sp.Matrix):
         return sp.gcd(list(self))
 
     def normalize(self) -> Matrix:
-        """Normalizes the matrix by reducing its rational gcd"""
+        """
+        Normalizes the matrix by reducing its rational gcd
+        """
         m = self.simplify()
         return (m / m.gcd()).simplify()
 
@@ -53,7 +55,9 @@ class Matrix(sp.Matrix):
         return self.inv()
 
     def simplify(self) -> Matrix:
-        """Returns a simplified version of matrix"""
+        """
+        Returns a simplified version of matrix
+        """
         return Matrix(sp.simplify(self))
 
     def singular_points(self) -> List[Dict]:
