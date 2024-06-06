@@ -141,7 +141,7 @@ class PCF:
         ]
 
     @multimethod
-    def walk(self, iterations: Collection[int], start: int = 1) -> List[Matrix]:
+    def walk(self, iterations: Collection[int], start: int = 0) -> List[Matrix]:
         r"""
         Returns the matrix corresponding to calculating the PCF up to a certain depth, including $a_0$
 
@@ -154,15 +154,19 @@ class PCF:
             The pcf convergence limit as defined above.
             If iterations is a list, returns a list of limits.
         """
-        matrices = self.M().walk({n: 1}, iterations, {n: start})
-        return [self.A() * matrix for matrix in matrices]
+        if start == 0:
+            return [
+                self.A() * matrix
+                for matrix in self.M().walk({n: 1}, iterations, {n: 1})
+            ]
+        return self.M().walk({n: 1}, iterations, {n: start})
 
     @multimethod
-    def walk(self, iterations: int, start: int = 1) -> Matrix:  # noqa: F811
+    def walk(self, iterations: int, start: int = 0) -> Matrix:  # noqa: F811
         return self.walk([iterations], start)[0]
 
     @multimethod
-    def limit(self, iterations: Collection[int], start: int = 1) -> List[Limit]:
+    def limit(self, iterations: Collection[int], start: int = 0) -> List[Limit]:
         r"""
         Returns the limit corresponding to calculating the PCF up to a certain depth, including $a_0$
 
@@ -178,7 +182,7 @@ class PCF:
         return list(map(lambda matrix: Limit(matrix), self.walk(iterations, start)))
 
     @multimethod
-    def limit(self, iterations: int, start: int = 1) -> Limit:  # noqa: F811
+    def limit(self, iterations: int, start: int = 0) -> Limit:  # noqa: F811
         return self.limit([iterations], start)[0]
 
     def delta(self, depth, limit=None):
