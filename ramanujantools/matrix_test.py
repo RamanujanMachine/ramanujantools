@@ -37,6 +37,21 @@ def test_inverse():
     assert expected == m.inverse()
 
 
+def test_singular_points_nonvariable():
+    m = Matrix([[1, 2], [3, 4]])
+    assert len(m.singular_points()) == 0
+
+
+def test_singular_points_single_variable():
+    m = Matrix([[1, 0], [1, (x - 1) * (x - 3)]])
+    assert m.singular_points() == [{x: 1}, {x: 3}]
+
+
+def test_singular_points_multi_variable():
+    m = Matrix([[1, x], [1, y]])
+    assert m.singular_points() == [{x: y}]
+
+
 def test_walk_0():
     m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
     assert m.walk({x: 0, y: 1}, 0, {x: x, y: y}) == Matrix.eye(2)

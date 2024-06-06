@@ -15,6 +15,13 @@ def test_degree():
     assert (2, 9) == pcf.degree()
 
 
+def test_singular_points():
+    a_n = n + 1
+    b_n = (n + 1) * (n - 17) * (n + 59) * (n - 102)
+    pcf = PCF(a_n, b_n)
+    assert pcf.singular_points() == [{n: 17}, {n: 102}]
+
+
 def test_limit_as_float():
     pcf = PCF(5 + 10 * n, 1 - 9 * n**2)
     expected = (4 ** (1 / 3) + 1) / (4 ** (1 / 3) - 1)
