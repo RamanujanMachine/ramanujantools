@@ -154,10 +154,16 @@ class PCF:
             The pcf convergence limit as defined above.
             If iterations is a list, returns a list of limits.
         """
+        if not all(depth > 0 for depth in iterations):
+            raise ValueError(
+                f"iterations must contain only positive values, got {iterations}"
+            )
         if start == 0:
             return [
                 self.A() * matrix
-                for matrix in self.M().walk({n: 1}, iterations, {n: 1})
+                for matrix in self.M().walk(
+                    {n: 1}, [iteration - 1 for iteration in iterations], {n: 1}
+                )
             ]
         return self.M().walk({n: 1}, iterations, {n: start})
 
@@ -198,7 +204,12 @@ class PCF:
             limit: $L$
         Returns:
             the delta value as defined above.
+        Raises:
+            ValueError: if depth <= 0
         """
+
+        if depth <= 0:
+            raise ValueError("Cannot calculate delta up to a non-positive depth")
 
         if limit is None:
             m, mlim = self.limit([depth, 2 * depth])
@@ -220,15 +231,21 @@ class PCF:
             limit: $L$
         Returns:
             the delta values for all depths up to `depth` as defined above.
+        Raises:
+            ValueError: if depth <= 0
         """
 
-        deltas = []
-        m = self.A()
+        if depth <= 0:
+            raise ValueError("Cannot calculate delta up to a non-positive depth")
 
         if limit is None:
             limit = self.limit(2 * depth).as_float()
 
-        for i in range(1, depth + 1):
+        deltas = []
+        m = self.A()
+        deltas.append(Limit(m).delta(limit))
+
+        for i in range(1, depth):
             m *= self.M().subs(n, i)
             deltas.append(Limit(m).delta(limit))
 

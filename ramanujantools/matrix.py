@@ -107,6 +107,11 @@ class Matrix(sp.Matrix):
                 f"start={set(start.keys())}, trajectory={set(trajectory.keys())}"
             )
 
+        if not all(depth >= 0 for depth in iterations):
+            raise ValueError(
+                f"iterations must contain only non-negative values, got {iterations}"
+            )
+
         iterations_set = set(iterations)
         if len(iterations_set) != len(iterations):
             raise ValueError(f"`iterations` values must be unique, got {iterations}")

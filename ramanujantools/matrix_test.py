@@ -72,6 +72,35 @@ def test_walk_list():
     ]
 
 
+def test_walk_start_single_variable():
+    iterations = [1, 2, 3, 4]
+    m = Matrix([[0, x**2], [1, x + 1]])
+    expected = m.walk({x: 1}, sum(iterations), {x: 1})
+    actual = Matrix.eye(2)
+    for i in range(len(iterations)):
+        actual *= m.walk({x: 1}, iterations[i], {x: 1 + sum(iterations[0:i])})
+    assert expected == actual
+
+
+def test_walk_start_multi_variable():
+    iterations = [1, 2, 3, 4]
+    m = Matrix([[0, x**2], [1, y + 1]])
+    starting_point = {x: 2, y: 3}
+    trajectory = {x: 5, y: 7}
+    expected = m.walk(trajectory, sum(iterations), starting_point)
+    actual = Matrix.eye(2)
+    for i in range(len(iterations)):
+        actual *= m.walk(
+            trajectory,
+            iterations[i],
+            {
+                x: starting_point[x] + sum(iterations[0:i]) * trajectory[x],
+                y: starting_point[y] + sum(iterations[0:i]) * trajectory[y],
+            },
+        )
+    assert expected == actual
+
+
 def test_walk_sequence():
     trajectory = {x: 2, y: 3}
     start = {x: 5, y: 7}
