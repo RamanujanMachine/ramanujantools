@@ -270,7 +270,8 @@ class CMF:
         trajectory_matrix = self.trajectory_matrix(
             trajectory, start or self.default_origin()
         )
-        actual_iterations = [i // sum(trajectory.values()) for i in iterations]
+        actual_iterations = list(set([i // sum(trajectory.values()) for i in iterations]))
+        actual_iterations.sort()
         return trajectory_matrix.walk({n: 1}, actual_iterations, {n: 1})
 
     @multimethod
@@ -315,3 +316,66 @@ class CMF:
         start: Union[dict, type(None)] = None,
     ) -> Limit:
         return self.limit(trajectory, [iterations], start)[0]
+    
+    def delta(
+            self,
+            trajectory: dict,
+            depth: int,
+            start: dict = None,
+            limit: float = None):
+        r"""
+        Calculates the irrationality measure $\delta$ defined, as:
+        $|\frac{p_n}{q_n} - L| = \frac{1}{q_n}^{1+\delta}$
+        for the walk specified by the trajectory.
+        $p_n$ and $q_n$ are respectively defined as the [0,-1] and [1,-1] elements in walk's matrix (see `Limit` class).
+
+        If limit is not specified (i.e, limit is None),
+        then limit is approximated as limit = self.limit(2 * depth)
+    
+        Args:
+            trajectory: the trajectory of the walk.
+            depth: $n$, is the number of trajectory matrices multiplied. The $\ell_1$ distance walked from the start point is `depth * sum(trajectory.values())`.
+            limit: $L$
+        Returns:
+            the delta value as defined above.
+        """
+        if limit is None:
+            # NOTE: opted to multiply the elements of the list below by sum(trajectory.values())
+            # to make `depth` the number of trajectory matrices multiplied.
+            # `depth` is currently NOT the maximum L1 distance from the start point allowed.
+            depths = [depth * sum(trajectory.values()), 2 * depth * sum(trajectory.values())]
+            approximant_list = self.walk(
+                trajectory,
+                depths,
+                start or self.default_origin()
+            )
+            limit = Limit(approximant_list[-1]).as_float()
+        else:
+            approximant_list = self.walk(trajectory, depth, start or self.default_origin())
+        return Limit(approximant_list[0]).delta(limit)
+    
+    def delta_sequence(
+            self,
+            trajectory: dict,
+            depth: int,
+            start: dict = None,
+            limit: float = None):
+        r"""
+        Add description here
+        """
+        depths = [x * sum(trajectory.values()) for x in list(range(1, depth + 1))]
+        if limit is None:
+            depths += [2 * depth * sum(trajectory.values())]
+            approximant_list = self.walk(trajectory,
+                                         depths,
+                                         start or self.default_origin()
+            )
+            limit = Limit(approximant_list[-1]).as_float()
+        else:
+            approximant_list = self.walk(
+                trajectory,
+                depths,
+                start or self.default_origin()
+            )    
+        return [Limit(approximant).delta(limit) for approximant in approximant_list[:-1]]
+    

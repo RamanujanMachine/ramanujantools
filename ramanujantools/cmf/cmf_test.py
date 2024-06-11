@@ -155,3 +155,11 @@ def test_substitute_trajectory_walk_equivalence():
     assert subbed.walk({n: 1}, iterations, {n: 1}) == unsubbed.walk(
         trajectory, iterations, start
     )
+
+
+def test_blind_delta_sequence_agrees_with_blind_delta():
+    hyp = known_cmfs.hypergeometric_derived_2F1()
+    sequence = hyp.delta_sequence({a: 1, b: 2, c: 0}, 1000)
+    assert hyp.delta({a: 1, b: 2, c: 0}, 1000) == sequence[-1]
+    assert len(sequence) == 1000
+    
