@@ -35,6 +35,19 @@ class Matrix(sp.Matrix):
         """
         return self.rows == self.cols
 
+    def denominator_lcm(self) -> sp.Expr:
+        """
+        Returns the lcm of all denominators
+        """
+        divisors = [cell.cancel().as_numer_denom()[1] for cell in self]
+        return sp.lcm(divisors)
+
+    def as_polynomial(self) -> Matrix:
+        """
+        Converts the matrix to a polynomial matrix by multiplying it by the denominators lcm.
+        """
+        return (self * self.denominator_lcm()).simplify()
+
     def gcd(self) -> sp.Rational:
         """
         Returns the rational gcd of the matrix, which could also be parameteric.

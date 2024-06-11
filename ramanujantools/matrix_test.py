@@ -27,6 +27,12 @@ def test_reduce():
     assert m.reduce() == initial
 
 
+def test_as_polynomial():
+    m = Matrix([[1, 1 / x], [0, 3 / (x**2 - x)]])
+    polynomial_m = Matrix([[x * (x - 1), x - 1], [0, 3]])
+    assert polynomial_m == m.as_polynomial()
+
+
 def test_inverse():
     a = 5
     b = 2
