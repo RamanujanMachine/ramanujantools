@@ -41,12 +41,11 @@ class Matrix(sp.Matrix):
         """
         return sp.gcd(list(self))
 
-    def normalize(self) -> Matrix:
+    def reduce(self) -> Matrix:
         """
-        Normalizes the matrix by reducing its rational gcd
+        Reduces gcd from the matrix
         """
-        m = self.simplify()
-        return (m / m.gcd()).simplify()
+        return (self / self.gcd()).simplify()
 
     def inverse(self) -> Matrix:
         """
