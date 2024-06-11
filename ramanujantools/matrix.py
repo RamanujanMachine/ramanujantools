@@ -158,4 +158,4 @@ class Matrix(sp.Matrix):
         """
         from ramanujantools.pcf import PCFFromMatrix
 
-        return PCFFromMatrix(self, deflate_all)
+        return PCFFromMatrix(self.as_polynomial(), deflate_all)

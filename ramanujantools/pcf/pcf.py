@@ -127,7 +127,7 @@ class PCF:
 
     def simplify(self):
         """Simplifies the PCF (i.e, simplifies (a, b))"""
-        return PCF(self.a_n.simplify(), self.b_n.simplify())
+        return PCF(self.a_n.cancel().simplify(), self.b_n.cancel().simplify())
 
     def subs(self, *args, **kwargs):
         """Substitutes parameters in the PCF"""
