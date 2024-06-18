@@ -58,7 +58,12 @@ class Matrix(sp.Matrix):
         """
         Reduces gcd from the matrix
         """
-        return (self / self.gcd()).simplify()
+        # important: must simplify first, both for correctness and performance. reproducible example:
+        # t = x*(x - 1)*(x + 1)/(x**2 + x)
+        # sp.gcd(t, x) == x
+        # sp.gcd(t.simplify(), x) == 1
+        m = self.simplify()
+        return (m / m.gcd()).simplify()
 
     def inverse(self) -> Matrix:
         """
