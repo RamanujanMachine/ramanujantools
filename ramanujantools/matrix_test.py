@@ -19,12 +19,18 @@ def test_gcd():
     assert 11 == m.gcd()
 
 
-def test_normalize():
+def test_reduce():
     initial = Matrix([[2, 3], [5, 7]])
     gcd = sp.Rational(17, 13)
     m = gcd * initial
     assert m.gcd() == gcd
-    assert m.normalize() == initial
+    assert m.reduce() == initial
+
+
+def test_as_polynomial():
+    m = Matrix([[1, 1 / x], [0, 3 / (x**2 - x)]])
+    polynomial_m = Matrix([[x * (x - 1), x - 1], [0, 3]])
+    assert polynomial_m == m.as_polynomial()
 
 
 def test_inverse():
