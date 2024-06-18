@@ -42,7 +42,9 @@ class Matrix(sp.Matrix):
         return sp.gcd(list(self))
 
     def normalize(self) -> Matrix:
-        """Normalizes the matrix by reducing its rational gcd"""
+        """
+        Normalizes the matrix by reducing its rational gcd
+        """
         m = self.simplify()
         return (m / m.gcd()).simplify()
 
@@ -53,8 +55,21 @@ class Matrix(sp.Matrix):
         return self.inv()
 
     def simplify(self) -> Matrix:
-        """Returns a simplified version of matrix"""
+        """
+        Returns a simplified version of matrix
+        """
         return Matrix(sp.simplify(self))
+
+    def singular_points(self) -> List[Dict]:
+        r"""
+        Calculates the singular points of the matrix,
+        i.e, points where $|m| = 0$
+
+        Returns:
+            A list of substitution dicts that result in the matrix having a zero determinant.
+            That is, for each dict in result, `self.subs(dict).det() == 0`
+        """
+        return sp.solve(self.det(), dict=True)
 
     @multimethod
     def walk(  # noqa: F811
@@ -90,6 +105,11 @@ class Matrix(sp.Matrix):
             raise ValueError(
                 f"`start` and `trajectory` must contain same keys, got "
                 f"start={set(start.keys())}, trajectory={set(trajectory.keys())}"
+            )
+
+        if not all(depth >= 0 for depth in iterations):
+            raise ValueError(
+                f"iterations must contain only non-negative values, got {iterations}"
             )
 
         iterations_set = set(iterations)

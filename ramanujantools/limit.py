@@ -56,18 +56,21 @@ class Limit(Matrix):
         Args:
             base: The numerical base in which to return the precision (by default 10)
         """
-        diff = abs(
-            mp.mpq(*(self.as_rational(p_indices, q_indices)))
-            - mp.mpq(
-                *(
-                    self.as_rational(
-                        [p_indices[0], p_indices[1] - 1],
-                        [q_indices[0], q_indices[1] - 1],
+        try:
+            diff = abs(
+                mp.mpq(*(self.as_rational(p_indices, q_indices)))
+                - mp.mpq(
+                    *(
+                        self.as_rational(
+                            [p_indices[0], p_indices[1] - 1],
+                            [q_indices[0], q_indices[1] - 1],
+                        )
                     )
                 )
             )
-        )
-        return int(mp.floor(-mp.log(diff, base)))
+            return int(mp.floor(-mp.log(diff, base)))
+        except ZeroDivisionError:
+            return 0
 
     def increase_precision(self, p_indices=[0, -1], q_indices=[1, -1]) -> int:
         """
@@ -130,4 +133,6 @@ class Limit(Matrix):
         p, q = self.as_rational(p_indices, q_indices)
         gcd = math.gcd(p, q)
         reduced_q = mp.fabs(q // gcd)
+        if reduced_q == 1:
+            return mp.mpf("inf")
         return -(1 + mp.log(mp.fabs(L - (p / q)), reduced_q))

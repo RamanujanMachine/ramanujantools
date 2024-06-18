@@ -37,6 +37,21 @@ def test_inverse():
     assert expected == m.inverse()
 
 
+def test_singular_points_nonvariable():
+    m = Matrix([[1, 2], [3, 4]])
+    assert len(m.singular_points()) == 0
+
+
+def test_singular_points_single_variable():
+    m = Matrix([[1, 0], [1, (x - 1) * (x - 3)]])
+    assert m.singular_points() == [{x: 1}, {x: 3}]
+
+
+def test_singular_points_multi_variable():
+    m = Matrix([[1, x], [1, y]])
+    assert m.singular_points() == [{x: y}]
+
+
 def test_walk_0():
     m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
     assert m.walk({x: 0, y: 1}, 0, {x: x, y: y}) == Matrix.eye(2)
@@ -55,6 +70,35 @@ def test_walk_list():
     assert m.walk(trajectory, iterations, start) == [
         m.walk(trajectory, i, start) for i in iterations
     ]
+
+
+def test_walk_start_single_variable():
+    iterations = [1, 2, 3, 4]
+    m = Matrix([[0, x**2], [1, x + 1]])
+    expected = m.walk({x: 1}, sum(iterations), {x: 1})
+    actual = Matrix.eye(2)
+    for i in range(len(iterations)):
+        actual *= m.walk({x: 1}, iterations[i], {x: 1 + sum(iterations[0:i])})
+    assert expected == actual
+
+
+def test_walk_start_multi_variable():
+    iterations = [1, 2, 3, 4]
+    m = Matrix([[0, x**2], [1, y + 1]])
+    starting_point = {x: 2, y: 3}
+    trajectory = {x: 5, y: 7}
+    expected = m.walk(trajectory, sum(iterations), starting_point)
+    actual = Matrix.eye(2)
+    for i in range(len(iterations)):
+        actual *= m.walk(
+            trajectory,
+            iterations[i],
+            {
+                x: starting_point[x] + sum(iterations[0:i]) * trajectory[x],
+                y: starting_point[y] + sum(iterations[0:i]) * trajectory[y],
+            },
+        )
+    assert expected == actual
 
 
 def test_walk_sequence():

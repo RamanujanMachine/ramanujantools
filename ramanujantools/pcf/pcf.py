@@ -1,7 +1,7 @@
 import sympy as sp
 from sympy.abc import n
 
-from typing import List, Collection
+from typing import Dict, List, Collection
 from multimethod import multimethod
 
 from ramanujantools import Matrix, Limit
@@ -133,8 +133,15 @@ class PCF:
         """Substitutes parameters in the PCF"""
         return PCF(self.a_n.subs(*args, **kwargs), self.b_n.subs(*args, **kwargs))
 
+    def singular_points(self) -> List[Dict]:
+        return [
+            solution
+            for solution in self.M().singular_points()
+            if solution[n].is_integer and solution[n] > 0
+        ]
+
     @multimethod
-    def walk(self, iterations: Collection[int], start: int = 1) -> List[Matrix]:
+    def walk(self, iterations: Collection[int], start: int = 0) -> List[Matrix]:
         r"""
         Returns the matrix corresponding to calculating the PCF up to a certain depth, including $a_0$
 
@@ -147,15 +154,25 @@ class PCF:
             The pcf convergence limit as defined above.
             If iterations is a list, returns a list of limits.
         """
-        matrices = self.M().walk({n: 1}, iterations, {n: start})
-        return [self.A() * matrix for matrix in matrices]
+        if not all(depth > 0 for depth in iterations):
+            raise ValueError(
+                f"iterations must contain only positive values, got {iterations}"
+            )
+        if start == 0:
+            return [
+                self.A() * matrix
+                for matrix in self.M().walk(
+                    {n: 1}, [iteration - 1 for iteration in iterations], {n: 1}
+                )
+            ]
+        return self.M().walk({n: 1}, iterations, {n: start})
 
     @multimethod
-    def walk(self, iterations: int, start: int = 1) -> Matrix:  # noqa: F811
+    def walk(self, iterations: int, start: int = 0) -> Matrix:  # noqa: F811
         return self.walk([iterations], start)[0]
 
     @multimethod
-    def limit(self, iterations: Collection[int], start: int = 1) -> List[Limit]:
+    def limit(self, iterations: Collection[int], start: int = 0) -> List[Limit]:
         r"""
         Returns the limit corresponding to calculating the PCF up to a certain depth, including $a_0$
 
@@ -171,7 +188,7 @@ class PCF:
         return list(map(lambda matrix: Limit(matrix), self.walk(iterations, start)))
 
     @multimethod
-    def limit(self, iterations: int, start: int = 1) -> Limit:  # noqa: F811
+    def limit(self, iterations: int, start: int = 0) -> Limit:  # noqa: F811
         return self.limit([iterations], start)[0]
 
     def delta(self, depth, limit=None):
@@ -187,7 +204,12 @@ class PCF:
             limit: $L$
         Returns:
             the delta value as defined above.
+        Raises:
+            ValueError: if depth <= 0
         """
+
+        if depth <= 0:
+            raise ValueError("Cannot calculate delta up to a non-positive depth")
 
         if limit is None:
             m, mlim = self.limit([depth, 2 * depth])
@@ -209,15 +231,21 @@ class PCF:
             limit: $L$
         Returns:
             the delta values for all depths up to `depth` as defined above.
+        Raises:
+            ValueError: if depth <= 0
         """
 
-        deltas = []
-        m = self.A()
+        if depth <= 0:
+            raise ValueError("Cannot calculate delta up to a non-positive depth")
 
         if limit is None:
             limit = self.limit(2 * depth).as_float()
 
-        for i in range(1, depth + 1):
+        deltas = []
+        m = self.A()
+        deltas.append(Limit(m).delta(limit))
+
+        for i in range(1, depth):
             m *= self.M().subs(n, i)
             deltas.append(Limit(m).delta(limit))
 
