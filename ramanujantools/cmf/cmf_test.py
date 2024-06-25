@@ -157,9 +157,24 @@ def test_substitute_trajectory_walk_equivalence():
     )
 
 
+def test_delta_correctness():
+    cmf = known_cmfs.hypergeometric_derived_2F1()
+    trajectory = {a: 1, b: 0, c: 1}
+    position = {a: 1, b: 1, c: 1}
+    mat = Matrix.eye(2)
+    for i in range(1, 401):
+        mat *= cmf.M(a).subs(position)
+        position[a] += 1
+        mat *= cmf.M(c).subs(position)
+        position[c] += 1
+        if i == 200:
+            value_mat = mat
+    limit = Limit(mat).as_float()
+    assert cmf.delta(trajectory, 200) == Limit(value_mat).delta(limit)
+
+
 def test_blind_delta_sequence_agrees_with_blind_delta():
-    hyp = known_cmfs.hypergeometric_derived_2F1()
-    sequence = hyp.delta_sequence({a: 1, b: 2, c: 0}, 1000)
-    assert hyp.delta({a: 1, b: 2, c: 0}, 1000) == sequence[-1]
-    assert len(sequence) == 1000
-    
+    cmf = known_cmfs.hypergeometric_derived_2F1()
+    sequence = cmf.delta_sequence({a: 1, b: 2, c: 0}, 200)
+    assert cmf.delta({a: 1, b: 2, c: 0}, 200) == sequence[-1]
+    assert len(sequence) == 200

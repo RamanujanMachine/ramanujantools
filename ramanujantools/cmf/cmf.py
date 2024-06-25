@@ -316,7 +316,7 @@ class CMF:
         start: Union[dict, type(None)] = None,
     ) -> Limit:
         return self.limit(trajectory, [iterations], start)[0]
-    
+
     def delta(
             self,
             trajectory: dict,
@@ -331,10 +331,11 @@ class CMF:
 
         If limit is not specified (i.e, limit is None),
         then limit is approximated as limit = self.limit(2 * depth)
-    
+
         Args:
             trajectory: the trajectory of the walk.
-            depth: $n$, is the number of trajectory matrices multiplied. The $\ell_1$ distance walked from the start point is `depth * sum(trajectory.values())`.
+            depth: $n$, is the number of trajectory matrices multiplied.
+            The $\ell_1$ distance walked from the start point is `depth * sum(trajectory.values())`.
             limit: $L$
         Returns:
             the delta value as defined above.
@@ -344,16 +345,12 @@ class CMF:
             # to make `depth` the number of trajectory matrices multiplied.
             # `depth` is currently NOT the maximum L1 distance from the start point allowed.
             depths = [depth * sum(trajectory.values()), 2 * depth * sum(trajectory.values())]
-            approximant_list = self.walk(
-                trajectory,
-                depths,
-                start or self.default_origin()
-            )
-            limit = Limit(approximant_list[-1]).as_float()
+            approximants = self.limit(trajectory, depths, start)
+            limit = approximants[-1].as_float()
         else:
-            approximant_list = self.walk(trajectory, depth, start or self.default_origin())
-        return Limit(approximant_list[0]).delta(limit)
-    
+            approximants = self.limit(trajectory, depth, start)
+        return approximants[0].delta(limit)
+
     def delta_sequence(
             self,
             trajectory: dict,
@@ -366,16 +363,9 @@ class CMF:
         depths = [x * sum(trajectory.values()) for x in list(range(1, depth + 1))]
         if limit is None:
             depths += [2 * depth * sum(trajectory.values())]
-            approximant_list = self.walk(trajectory,
-                                         depths,
-                                         start or self.default_origin()
-            )
-            limit = Limit(approximant_list[-1]).as_float()
+            approximants = self.limit(trajectory, depths, start)
+            limit = approximants[-1].as_float()
+            approximants = approximants[:-1]
         else:
-            approximant_list = self.walk(
-                trajectory,
-                depths,
-                start or self.default_origin()
-            )    
-        return [Limit(approximant).delta(limit) for approximant in approximant_list[:-1]]
-    
+            approximants = self.limit(trajectory, depths, start)
+        return [approximant.delta(limit) for approximant in approximants]
