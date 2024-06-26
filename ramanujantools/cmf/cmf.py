@@ -207,7 +207,7 @@ class CMF:
             position[axis] += trajectory[axis]
         if start:
             m = CMF.substitute_trajectory(m, trajectory, start)
-        return m.reduce()
+        return m
 
     def as_pcf(self, trajectory) -> PCFFromMatrix:
         """
