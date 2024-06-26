@@ -150,13 +150,14 @@ class CMF:
 
     def subs(self, *args, **kwargs) -> CMF:
         """
-        Returns a new CMF with substituted Mx and My.
+        Returns a new CMF with substituted matrices.
         """
         return CMF(
             matrices={
                 symbol: matrix.subs(*args, **kwargs)
                 for symbol, matrix in self.matrices.items()
-            }
+            },
+            validate=False,
         )
 
     def simplify(self):
