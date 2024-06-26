@@ -20,14 +20,14 @@ class Matrix(sp.Matrix):
     def __eq__(self, other: Matrix) -> bool:
         return all(sp.simplify(cell) == 0 for cell in self - other)
 
-    def __call__(self, *args, **kwargs) -> Matrix:
+    def __call__(self, substitutions: Dict) -> Matrix:
         """
         Substitutes variables in the matrix, in a more math-like syntax.
 
-        Calls the underlying sympy `subs` method:
-        https://docs.sympy.org/latest/modules/core.html#sympy.core.basic.Basic.subs
+        Calls the underlying sympy xreplace method, as subs is too slow.
+        https://docs.sympy.org/latest/modules/core.html#sympy.core.basic.Basic.xreplace
         """
-        return self.subs(*args, **kwargs)
+        return self.xreplace(substitutions)
 
     def is_square(self) -> int:
         """
@@ -141,7 +141,7 @@ class Matrix(sp.Matrix):
         ):  # Plus one for the last requested `iterations` value
             if i in iterations:
                 results.append(matrix)
-            matrix *= self.subs(position)
+            matrix *= self(position)
             position = {key: trajectory[key] + value for key, value in position.items()}
         return results
 

@@ -53,8 +53,8 @@ class CMF:
     ) -> bool:
         Mx = self.M(x, x_forward)
         My = self.M(y, y_forward)
-        Mxy = simplify(Mx * My.subs({x: x + 1 if x_forward else x - 1}))
-        Myx = simplify(My * Mx.subs({y: y + 1 if y_forward else y - 1}))
+        Mxy = simplify(Mx * My({x: x + 1 if x_forward else x - 1}))
+        Myx = simplify(My * Mx({y: y + 1 if y_forward else y - 1}))
         return Mxy == Myx
 
     def assert_conserving(self, check_negatives: bool = False) -> None:
@@ -103,7 +103,7 @@ class CMF:
         if sign:
             return self.matrices[axis]
         else:
-            return self.matrices[axis].inverse().subs({axis: axis - 1})
+            return self.matrices[axis].inverse()({axis: axis - 1})
 
     def axes(self) -> Set[sp.Symbol]:
         """
@@ -241,10 +241,10 @@ class CMF:
                 f"Trajectory axes {trajectory.keys()} do not match start axes {start.keys()}"
             )
 
-        def sub(i):
+        def replace(i):
             return start[i] + (n - 1) * trajectory[i]
 
-        return trajectory_matrix.subs([(axis, sub(axis)) for axis in trajectory.keys()])
+        return trajectory_matrix({axis: replace(axis) for axis in trajectory.keys()})
 
     @multimethod
     def walk(
