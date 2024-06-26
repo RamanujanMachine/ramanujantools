@@ -57,19 +57,19 @@ class Limit(Matrix):
             base: The numerical base in which to return the precision (by default 10)
         """
         try:
-            diff = abs(
-                mp.mpq(*(self.as_rational(p_indices, q_indices)))
-                - mp.mpq(
-                    *(
-                        self.as_rational(
-                            [p_indices[0], p_indices[1] - 1],
-                            [q_indices[0], q_indices[1] - 1],
-                        )
-                    )
-                )
+            p1, q1 = self.as_rational(p_indices, q_indices)
+            p2, q2 = self.as_rational(
+                [p_indices[0], p_indices[1] - 1],
+                [q_indices[0], q_indices[1] - 1],
             )
-            return int(mp.floor(-mp.log(diff, base)))
-        except ZeroDivisionError:
+            numerator = p1 * q2 - q1 * p2
+            denominator = q1 * q2
+            # extracting real because sometimes log returns a complex with tiny imaginary type due to precision
+            digits = -mp.re(
+                (mp.log(int(numerator), base) - mp.log(int(denominator), base))
+            )
+            return int(mp.floor(digits))
+        except (ZeroDivisionError, ValueError):
             return 0
 
     def increase_precision(self, p_indices=[0, -1], q_indices=[1, -1]) -> int:
