@@ -48,7 +48,7 @@ def test_cmf1():
 
     cmf = known_cmfs.cmf1()
     for a, b in itertools.product(range(1, 10), range(1, 10)):
-        assert cmf.subs([[c0, 0], [c1, a], [c2, 0], [c3, b]]).limit(
+        assert cmf.subs({c0: 0, c1: a, c2: 0, c3: b}).limit(
             {x: 1, y: 1}, 100
         ).as_float() == approx(-a + b / log(1 + b / a), 1e-4)
 

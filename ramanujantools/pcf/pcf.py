@@ -12,7 +12,7 @@ def is_deflatable(a_factors, b_factors, factor):
         return (
             a_factors.get(factor, 0) > 0
             and b_factors.get(factor, 0) > 0
-            and b_factors.get(factor.subs(n, n - 1), 0) > 0
+            and b_factors.get(factor.subs({n: n - 1}), 0) > 0
         )
     else:
         return a_factors.get(factor, 0) > 0 and b_factors.get(factor, 0) > 1
@@ -21,7 +21,7 @@ def is_deflatable(a_factors, b_factors, factor):
 def remove_factor(a_factors, b_factors, factor):
     a_factors[factor] -= 1
     b_factors[factor] -= 1
-    b_factors[factor.subs(n, n - 1)] -= 1
+    b_factors[factor.subs({n: n - 1})] -= 1
 
 
 def deflate_constant(a_constant, b_constant):
@@ -98,7 +98,7 @@ class PCF:
 
         $A = \begin{pmatrix} 1, a_0 \cr 0, 1 \end{pmatrix}$
         """
-        return Matrix([[1, self.a_n.subs(n, 0)], [0, 1]])
+        return Matrix([[1, self.a_n.subs({n: 0})], [0, 1]])
 
     def inflate(self, c_n):
         """
@@ -108,7 +108,7 @@ class PCF:
         such that $a_n' = a_n * c_n, b_n' = b_n * c_n * c_{n-1}$
         """
         c_n = sp.simplify(c_n)
-        return PCF(self.a_n * c_n, self.b_n * c_n.subs(n, n - 1) * c_n).simplify()
+        return PCF(self.a_n * c_n, self.b_n * c_n.subs({n: n - 1}) * c_n).simplify()
 
     def deflate(self, c_n):
         """
@@ -246,7 +246,7 @@ class PCF:
         deltas.append(Limit(m).delta(limit))
 
         for i in range(1, depth):
-            m *= self.M().subs(n, i)
+            m *= self.M()({n: i})
             deltas.append(Limit(m).delta(limit))
 
         return deltas

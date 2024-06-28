@@ -27,6 +27,33 @@ def test_reduce():
     assert m.reduce() == initial
 
 
+def test_can_call_numerical_subs():
+    m = Matrix([[x, 1], [y, 2]])
+    assert not m._can_call_numerical_subs({x: 1})
+    assert not m._can_call_numerical_subs({x: 1, y: y})
+    assert m._can_call_numerical_subs({x: 17, y: 31})
+
+
+def test_subs_degenerated():
+    m = Matrix([[x, 1], [y, 2]])
+    assert m == m.subs({x: x})
+    assert m == m.subs({y: y})
+    assert m == m.subs({x: x, y: y})
+
+
+def test_subs_numerical():
+    m = Matrix([[x, x**2], [13 + x, -x]])
+    substitutions = {x: 5}
+    assert m._can_call_numerical_subs(substitutions)
+    assert Matrix([[5, 25], [18, -5]]) == m.subs(substitutions)
+
+
+def test_subs_symbolic():
+    m = Matrix([[x, x**2, 13 + x, -x]])
+    expr = y**2 + x - 3
+    assert Matrix([[expr, (expr) ** 2, 13 + expr, -expr]]) == m.subs({x: expr})
+
+
 def test_as_polynomial():
     m = Matrix([[1, 1 / x], [0, 3 / (x**2 - x)]])
     polynomial_m = Matrix([[x * (x - 1), x - 1], [0, 3]])
