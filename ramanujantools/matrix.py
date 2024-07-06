@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import Dict, List, Collection, Callable
-from functools import cache
+from functools import lru_cache
 
 from multimethod import multimethod
 
@@ -62,7 +62,7 @@ class Matrix(sp.Matrix):
         return fast_subs(substitutions)
 
     @staticmethod
-    @cache
+    @lru_cache
     def create_fast_subs(matrix: Matrix) -> Callable:
         """
         Returns a function that evaluates the matrix at given substitutions.
