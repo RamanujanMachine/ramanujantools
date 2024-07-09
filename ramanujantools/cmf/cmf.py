@@ -270,8 +270,7 @@ class CMF:
         trajectory_matrix = self.trajectory_matrix(
             trajectory, start or self.default_origin()
         )
-        actual_iterations = [i // sum(trajectory.values()) for i in iterations]
-        return trajectory_matrix.walk({n: 1}, actual_iterations, {n: 1})
+        return trajectory_matrix.walk({n: 1}, iterations, {n: 1})
 
     @multimethod
     def walk(  # noqa: F811
