@@ -52,7 +52,7 @@ def test_2f1_limit_parameteric():
     hyp = Hypergeometric2F1Limit(pcf)
     assert hyp.alpha1 == -1 / c
     assert hyp.alpha2 == 1 / c
-    assert hyp.beta == 1 / 2
+    assert hyp.beta == sp.Rational(1, 2)
     assert hyp.z == (-c + 2 * sp.sqrt(c + 1) - 2) / (4 * sp.sqrt(c + 1))
 
 
