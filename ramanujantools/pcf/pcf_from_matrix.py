@@ -26,10 +26,10 @@ class PCFFromMatrix:
         U = Matrix([[matrix[1, 0], -matrix[0, 0]], [0, 1]])
         Uinv = Matrix([[1, matrix[0, 0]], [0, matrix[1, 0]]])
         commutated = U * matrix * Uinv({n: n + 1})
-        normalized = (commutated / commutated[1, 0]).simplify()
-        if not (normalized[0, 0] == 0 and normalized[1, 0] == 1):
+        reduced = (commutated / commutated[1, 0]).simplify()
+        if not (reduced[0, 0] == 0 and reduced[1, 0] == 1):
             raise ValueError("Given matrix is not coboundry to a PCF")
-        pcf = PCF(normalized[1, 1], normalized[0, 1])
+        pcf = PCF(reduced[1, 1], reduced[0, 1])
         pcf = pcf.inflate(matrix[1, 0])
         if deflate_all:
             pcf = pcf.deflate_all()

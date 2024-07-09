@@ -19,12 +19,18 @@ def test_gcd():
     assert 11 == m.gcd()
 
 
-def test_normalize():
+def test_reduce():
     initial = Matrix([[2, 3], [5, 7]])
     gcd = sp.Rational(17, 13)
     m = gcd * initial
     assert m.gcd() == gcd
-    assert m.normalize() == initial
+    assert m.reduce() == initial
+
+
+def test_as_polynomial():
+    m = Matrix([[1, 1 / x], [0, 3 / (x**2 - x)]])
+    polynomial_m = Matrix([[x * (x - 1), x - 1], [0, 3]])
+    assert polynomial_m == m.as_polynomial()
 
 
 def test_inverse():
@@ -35,6 +41,21 @@ def test_inverse():
     m = Matrix([[a, b], [c, d]])
     expected = Matrix([[d, -b], [-c, a]]) / (a * d - b * c)
     assert expected == m.inverse()
+
+
+def test_singular_points_nonvariable():
+    m = Matrix([[1, 2], [3, 4]])
+    assert len(m.singular_points()) == 0
+
+
+def test_singular_points_single_variable():
+    m = Matrix([[1, 0], [1, (x - 1) * (x - 3)]])
+    assert m.singular_points() == [{x: 1}, {x: 3}]
+
+
+def test_singular_points_multi_variable():
+    m = Matrix([[1, x], [1, y]])
+    assert m.singular_points() == [{x: y}]
 
 
 def test_walk_0():
@@ -55,6 +76,35 @@ def test_walk_list():
     assert m.walk(trajectory, iterations, start) == [
         m.walk(trajectory, i, start) for i in iterations
     ]
+
+
+def test_walk_start_single_variable():
+    iterations = [1, 2, 3, 4]
+    m = Matrix([[0, x**2], [1, x + 1]])
+    expected = m.walk({x: 1}, sum(iterations), {x: 1})
+    actual = Matrix.eye(2)
+    for i in range(len(iterations)):
+        actual *= m.walk({x: 1}, iterations[i], {x: 1 + sum(iterations[0:i])})
+    assert expected == actual
+
+
+def test_walk_start_multi_variable():
+    iterations = [1, 2, 3, 4]
+    m = Matrix([[0, x**2], [1, y + 1]])
+    starting_point = {x: 2, y: 3}
+    trajectory = {x: 5, y: 7}
+    expected = m.walk(trajectory, sum(iterations), starting_point)
+    actual = Matrix.eye(2)
+    for i in range(len(iterations)):
+        actual *= m.walk(
+            trajectory,
+            iterations[i],
+            {
+                x: starting_point[x] + sum(iterations[0:i]) * trajectory[x],
+                y: starting_point[y] + sum(iterations[0:i]) * trajectory[y],
+            },
+        )
+    assert expected == actual
 
 
 def test_walk_sequence():

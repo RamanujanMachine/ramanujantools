@@ -98,7 +98,7 @@ class CMF:
         Returns the axis matrix for a given axis.
 
         If sign is negative, returns the matrix corresponding a step back.
-        Note that we do not normalize M because it might impair the conservative property.
+        Note that we do not reduce M because it might impair the conservative property.
         """
         if sign:
             return self.matrices[axis]
@@ -206,7 +206,7 @@ class CMF:
             position[axis] += trajectory[axis]
         if start:
             m = CMF.substitute_trajectory(m, trajectory, start)
-        return m.normalize()
+        return m.reduce()
 
     def as_pcf(self, trajectory) -> PCFFromMatrix:
         """
@@ -270,9 +270,7 @@ class CMF:
         trajectory_matrix = self.trajectory_matrix(
             trajectory, start or self.default_origin()
         )
-        actual_iterations = list(set([i // sum(trajectory.values()) for i in iterations]))
-        actual_iterations.sort()
-        return trajectory_matrix.walk({n: 1}, actual_iterations, {n: 1})
+        return trajectory_matrix.walk({n: 1}, iterations, {n: 1})
 
     @multimethod
     def walk(  # noqa: F811

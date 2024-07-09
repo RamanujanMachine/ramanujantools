@@ -35,14 +35,33 @@ class Matrix(sp.Matrix):
         """
         return self.rows == self.cols
 
+    def denominator_lcm(self) -> sp.Expr:
+        """
+        Returns the lcm of all denominators
+        """
+        divisors = [cell.cancel().as_numer_denom()[1] for cell in self]
+        return sp.lcm(divisors)
+
+    def as_polynomial(self) -> Matrix:
+        """
+        Converts the matrix to a polynomial matrix by multiplying it by the denominators lcm.
+        """
+        return (self * self.denominator_lcm()).simplify()
+
     def gcd(self) -> sp.Rational:
         """
         Returns the rational gcd of the matrix, which could also be parameteric.
         """
         return sp.gcd(list(self))
 
-    def normalize(self) -> Matrix:
-        """Normalizes the matrix by reducing its rational gcd"""
+    def reduce(self) -> Matrix:
+        """
+        Reduces gcd from the matrix
+        """
+        # important: must simplify first, both for correctness and performance. reproducible example:
+        # t = x*(x - 1)*(x + 1)/(x**2 + x)
+        # sp.gcd(t, x) == x
+        # sp.gcd(t.simplify(), x) == 1
         m = self.simplify()
         return (m / m.gcd()).simplify()
 
@@ -53,8 +72,21 @@ class Matrix(sp.Matrix):
         return self.inv()
 
     def simplify(self) -> Matrix:
-        """Returns a simplified version of matrix"""
+        """
+        Returns a simplified version of matrix
+        """
         return Matrix(sp.simplify(self))
+
+    def singular_points(self) -> List[Dict]:
+        r"""
+        Calculates the singular points of the matrix,
+        i.e, points where $|m| = 0$
+
+        Returns:
+            A list of substitution dicts that result in the matrix having a zero determinant.
+            That is, for each dict in result, `self.subs(dict).det() == 0`
+        """
+        return sp.solve(self.det(), dict=True)
 
     @multimethod
     def walk(  # noqa: F811
@@ -92,6 +124,11 @@ class Matrix(sp.Matrix):
                 f"start={set(start.keys())}, trajectory={set(trajectory.keys())}"
             )
 
+        if not all(depth >= 0 for depth in iterations):
+            raise ValueError(
+                f"iterations must contain only non-negative values, got {iterations}"
+            )
+
         iterations_set = set(iterations)
         if len(iterations_set) != len(iterations):
             raise ValueError(f"`iterations` values must be unique, got {iterations}")
@@ -126,4 +163,4 @@ class Matrix(sp.Matrix):
         """
         from ramanujantools.pcf import PCFFromMatrix
 
-        return PCFFromMatrix(self, deflate_all)
+        return PCFFromMatrix(self.as_polynomial(), deflate_all)

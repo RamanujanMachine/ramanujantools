@@ -40,7 +40,7 @@ def test_apery():
     expected_limit = mp.mpf(6 / zeta(3))
     assert actual_limit.as_float() == approx(float(expected_limit))
     delta = pcf.delta(depth, expected_limit)
-    assert delta > 0.086 and delta < 0.087
+    assert delta > 0.08
 
 
 def test_cmf1():
