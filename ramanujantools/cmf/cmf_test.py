@@ -98,14 +98,14 @@ def test_walk_axis():
 def test_walk_diagonal():
     cmf = known_cmfs.e()
     Mxy = cmf.trajectory_matrix({x: 1, y: 1}, {x: 1, y: 1})
-    assert cmf.walk({x: 1, y: 1}, 17) == Mxy.walk({n: 1}, 17 // 2, {n: 1})
+    assert cmf.walk({x: 1, y: 1}, 9) == Mxy.walk({n: 1}, 9, {n: 1})
 
 
 def test_limit_diagonal():
     cmf = known_cmfs.e()
     Mxy = cmf.trajectory_matrix({x: 1, y: 1})
     assert cmf.limit({x: 1, y: 1}, 17) == Limit(
-        Mxy.walk({x: 1, y: 1}, 17 // 2, {x: 1, y: 1})
+        Mxy.walk({x: 1, y: 1}, 17, {x: 1, y: 1})
     )
 
 
