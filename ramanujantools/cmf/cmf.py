@@ -320,7 +320,7 @@ class CMF:
             trajectory: dict,
             depth: int,
             start: dict = None,
-            limit: mp.mpf = None):
+            limit: float = None):
         r"""
         Calculates the irrationality measure $\delta$ defined, as:
         $|\frac{p_n}{q_n} - L| = \frac{1}{q_n}^{1+\delta}$
@@ -352,7 +352,7 @@ class CMF:
             trajectory: dict,
             depth: int,
             start: dict = None,
-            limit: mp.mpf = None):
+            limit: float = None):
         r"""
         Add description here
         """
