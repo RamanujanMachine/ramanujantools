@@ -261,7 +261,7 @@ class CMF:
 
         Args:
             trajectory: A dict containing the amount of steps in each direction.
-            iterations: The amount of multiplications to perform, either an integer or a list.
+            iterations: The amount of trajectory matrix multiplications to perform, either an integer or a list.
             start: A dict representing the starting point of the multiplication, `default_origin` by default.
         Returns:
             The limit of the walk multiplication as defined above.
@@ -296,7 +296,7 @@ class CMF:
 
         Args:
             trajectory: A dict containing the amount of steps in each direction.
-            iterations: The amount of multiplications to perform, either an integer or a list.
+            iterations: The amount of trajectory matrix multiplications to perform, either an integer or a list.
             start: A dict representing the starting point of the multiplication, `default_origin` by default.
         Returns:
             The limit of the walk multiplication as defined above.
@@ -339,10 +339,7 @@ class CMF:
             the delta value as defined above.
         """
         if limit is None:
-            # NOTE: opted to multiply the elements of the list below by sum(trajectory.values())
-            # to make `depth` the number of trajectory matrices multiplied.
-            # `depth` is currently NOT the maximum L1 distance from the start point allowed.
-            depths = [depth * sum(trajectory.values()), 2 * depth * sum(trajectory.values())]
+            depths = [depth, 2 * depth]
             approximants = self.limit(trajectory, depths, start)
             limit = approximants[-1].as_float()
         else:
@@ -358,9 +355,9 @@ class CMF:
         r"""
         Add description here
         """
-        depths = [x * sum(trajectory.values()) for x in list(range(1, depth + 1))]
+        depths = list(range(1, depth + 1))
         if limit is None:
-            depths += [2 * depth * sum(trajectory.values())]
+            depths += [2 * depth]
             approximants = self.limit(trajectory, depths, start)
             limit = approximants[-1].as_float()
             approximants = approximants[:-1]
