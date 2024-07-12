@@ -160,7 +160,7 @@ def test_substitute_trajectory_walk_equivalence():
 def test_delta_correctness():
     cmf = known_cmfs.hypergeometric_derived_2F1()
     depth = 100
-    trajectory = {a: 1, b: 0, c: 1}    
+    trajectory = {a: 1, b: 0, c: 1}
     approximant_matrix, limit_matrix = cmf.walk(trajectory, [depth, 2 * depth])
     approximant_matrix = Limit(approximant_matrix)
     limit = Limit(limit_matrix).as_float()
