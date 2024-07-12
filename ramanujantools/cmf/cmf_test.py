@@ -155,3 +155,25 @@ def test_substitute_trajectory_walk_equivalence():
     assert subbed.walk({n: 1}, iterations, {n: 1}) == unsubbed.walk(
         trajectory, iterations, start
     )
+
+
+def test_delta_correctness():
+    cmf = known_cmfs.hypergeometric_derived_2F1()
+    depth = 100
+    trajectory = {a: 1, b: 0, c: 1}
+    approximant_matrix, limit_matrix = cmf.walk(trajectory, [depth, 2 * depth])
+    approximant_matrix = Limit(approximant_matrix)
+    limit = Limit(limit_matrix).as_float()
+    assert cmf.delta(trajectory, depth) == approximant_matrix.delta(limit)
+    assert cmf.delta(trajectory, depth, limit=limit) == approximant_matrix.delta(limit)
+
+
+def test_blind_delta_sequence_agrees_with_blind_delta():
+    cmf = known_cmfs.hypergeometric_derived_2F1()
+    depth = 30
+    trajectory = {a: 1, b: 2, c: 0}
+    limit = cmf.limit(trajectory, 2 * depth).as_float()
+    delta_sequence = cmf.delta_sequence(trajectory, depth)
+    sequence_of_deltas = [cmf.delta(trajectory, i, limit=limit) for i in range(1, depth+1)]
+    assert delta_sequence == sequence_of_deltas
+    assert len(delta_sequence) == depth
