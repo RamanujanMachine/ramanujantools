@@ -60,6 +60,7 @@ def test_all_conserving():
     """
     known_cmfs.e().assert_conserving()
     known_cmfs.pi().assert_conserving()
+    known_cmfs.symmetric_pi().assert_conserving()
     known_cmfs.zeta3().assert_conserving()
     known_cmfs.var_root_cmf().assert_conserving()
     known_cmfs.cmf1().assert_conserving()
