@@ -160,7 +160,9 @@ def hypergeometric_derived_3F2() -> CMF:
     )
 
 
-def pFq(p, q, z_eval = z, use_derivative_basis=False, negate_denominator_params=False) -> CMF:
+def pFq(
+    p, q, z_eval=z, use_derivative_basis=False, negate_denominator_params=False
+) -> CMF:
 
     x = sp.symbols(f"x:{p}")
     y = sp.symbols(f"y:{q}")
@@ -187,7 +189,8 @@ def pFq(p, q, z_eval = z, use_derivative_basis=False, negate_denominator_params=
         basis_transition_matrix = Matrix(
             equation_size,
             equation_size,
-            lambda i, j: sp.functions.combinatorial.numbers.stirling(j, i) * (z_eval**i),
+            lambda i, j: sp.functions.combinatorial.numbers.stirling(j, i)
+            * (z_eval**i),
         )
         M = sp.simplify(basis_transition_matrix * M * (basis_transition_matrix.inv()))
 
@@ -206,5 +209,6 @@ def pFq(p, q, z_eval = z, use_derivative_basis=False, negate_denominator_params=
             for i in range(q)
         }
 
-    x_matrices = {x[i]: Matrix(M / x[i] + sp.eye(equation_size)) for i in range(p)}
-    return CMF(x_matrices | y_matrices)
+    matrices = {x[i]: Matrix(M / x[i] + sp.eye(equation_size)) for i in range(p)}
+    matrices.update(y_matrices)
+    return CMF(matrices=matrices, validate=False)

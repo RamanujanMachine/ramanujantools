@@ -6,7 +6,7 @@ from math import e, pi, log
 from mpmath import mp, zeta
 
 import sympy as sp
-from sympy.abc import x, y, n
+from sympy.abc import x, y, z, n
 
 from ramanujantools import Matrix
 from ramanujantools.pcf import PCF
@@ -123,7 +123,7 @@ def test_2F1_negate_denominator():
             ),
         }
     )
-    cmf = known_cmfs.pFq(2, 1, z, negate_denominator_params=True)
+    cmf = known_cmfs.pFq(2, 1, negate_denominator_params=True)
     cmf.assert_conserving()
     assert cmf == expected
 
@@ -161,7 +161,7 @@ def test_2F1_derivative_basis():
             ),
         }
     )
-    cmf = known_cmfs.pFq(2, 1, z,use_derivative_basis=True)
+    cmf = known_cmfs.pFq(2, 1, use_derivative_basis=True)
     cmf.assert_conserving()
     assert cmf == expected
 
@@ -197,10 +197,19 @@ def test_2F1_negate_denominator_derivative_basis():
         }
     )
     cmf = known_cmfs.pFq(
-        2, 1, z, use_derivative_basis=True, negate_denominator_params=True
+        2, 1, use_derivative_basis=True, negate_denominator_params=True
     )
     cmf.assert_conserving()
     assert cmf == expected
+
+
+def test_2F1_z_evaluation():
+    p = 2
+    q = 1
+    z_value = -7
+    assert known_cmfs.pFq(p, q, z_eval=z_value) == known_cmfs.pFq(p, q).subs(
+        {z: z_value}
+    )
 
 
 def test_all_conserving():
@@ -220,6 +229,7 @@ def test_all_conserving():
     known_cmfs.cmf3_3().assert_conserving()
     known_cmfs.hypergeometric_derived_2F1().assert_conserving()
     known_cmfs.hypergeometric_derived_3F2().assert_conserving()
+    known_cmfs.pFq(2, 2).assert_conserving()  # randomly choosing 2F2
 
 
 def test_back_conserving():
