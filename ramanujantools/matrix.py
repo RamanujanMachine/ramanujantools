@@ -4,6 +4,7 @@ from typing import Dict, List, Collection
 from multimethod import multimethod
 
 import sympy as sp
+from sympy.abc import n
 
 
 class Matrix(sp.Matrix):
@@ -87,6 +88,49 @@ class Matrix(sp.Matrix):
             That is, for each dict in result, `self.subs(dict).det() == 0`
         """
         return sp.solve(self.det(), dict=True)
+
+    def coboundary(self, U: Matrix, symbol: sp.Symbol = n) -> Matrix:
+        r"""
+        Calculates the coboundary relation of M and U $U(n) * M(n) * U^{-1}(n+1)$, where $M$ is `self`.
+
+        Args:
+            U: The coboundary matrix
+            symbol: The symbol to use when calculating the coboundary relation. `n` by default.
+        Returns:
+            The coboundary relation as described above
+        """
+        return (U * self * U.inverse().subs({symbol: symbol + 1})).simplify()
+
+    def companion_coboundary(self, symbol: sp.Symbol = n) -> Matrix:
+        r"""
+        Constructs a new matrix U such that `self.coboundary(U)` is a companion matrix.
+        """
+        if not (self.is_square()):
+            raise ValueError("Only square matrices can have a coboundary relation")
+        N = self.rows
+        e1 = Matrix.zeros(N, 1)
+        e1[0, 0] = 1
+        vectors = [e1]
+        for i in range(1, N):
+            vectors.append(self * vectors[i - 1].subs({symbol: symbol + 1}))
+        return Matrix.hstack(*vectors).inverse().simplify()
+
+    def is_companion(self) -> bool:
+        r"""
+        Returns True iff the matrix is a companion matrix.
+        """
+        if not self.is_square():
+            raise ValueError("Attempted to check if a non-square matrix is companion")
+        N = self.rows
+        for row in range(N):
+            for col in range(N - 1):
+                if row == col + 1:
+                    if self[row, col] != 1:
+                        return False
+                else:
+                    if self[row, col] != 0:
+                        return False
+        return True
 
     @multimethod
     def walk(  # noqa: F811
