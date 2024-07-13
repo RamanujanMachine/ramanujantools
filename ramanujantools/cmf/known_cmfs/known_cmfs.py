@@ -11,7 +11,7 @@ c0, c1, c2, c3 = sp.symbols("c:4")
 theta = sp.symbols("theta")
 
 
-def e():
+def e() -> CMF:
     return CMF(
         matrices={
             x: Matrix([[1, -y - 1], [-1, x + y + 2]]),
@@ -21,7 +21,7 @@ def e():
     )
 
 
-def pi():
+def pi() -> CMF:
     return CMF(
         matrices={
             x: Matrix([[x, -x], [-y, 2 * x + y + 1]]),
@@ -31,7 +31,7 @@ def pi():
     )
 
 
-def zeta3():
+def zeta3() -> CMF:
     return CMF(
         matrices={
             x: Matrix(
@@ -51,7 +51,7 @@ def zeta3():
     )
 
 
-def var_root_cmf():
+def var_root_cmf() -> CMF:
     """
     This is not a standard f,bar(f) matrix field.
     Note that b(x,y) depends on y, while a(x) does not, and x=c/2-y is the root which depends on y
@@ -67,11 +67,11 @@ def var_root_cmf():
     )
 
 
-def cmf1():
+def cmf1() -> CMF:
     return FFbar(f=c0 + c1 * (x + y), fbar=c2 + c3 * (x - y))
 
 
-def cmf2():
+def cmf2() -> CMF:
     return FFbar(
         f=(
             (2 * c1 + c2) * (c1 + c2)
@@ -83,28 +83,28 @@ def cmf2():
     )
 
 
-def cmf3_1():
+def cmf3_1() -> CMF:
     return FFbar(
         f=-((c0 + c1 * (x + y)) * (c0 * (x + 2 * y) + c1 * (x**2 + x * y + y**2))),
         fbar=(c0 + c1 * (-x + y)) * (c0 * (x - 2 * y) - c1 * (x**2 - x * y + y**2)),
     )
 
 
-def cmf3_2():
+def cmf3_2() -> CMF:
     return FFbar(
         f=-(x + y) * (c0**2 + 2 * c1**2 * (x**2 + x * y + y**2)),
         fbar=(x - y) * (c0**2 + 2 * c1**2 * (x**2 - x * y + y**2)),
     )
 
 
-def cmf3_3():
+def cmf3_3() -> CMF:
     return FFbar(
         f=(x + y) * (c0**2 - c0 * c1 * (x - y) - 2 * c1**2 * (x**2 + x * y + y**2)),
         fbar=(c0 + c1 * (x - y)) * (3 * c0 * (x - y) + 2 * c1 * (x**2 - x * y + y**2)),
     )
 
 
-def hypergeometric_derived_2F1():
+def hypergeometric_derived_2F1() -> CMF:
     return CMF(
         matrices={
             a: Matrix(
@@ -124,7 +124,7 @@ def hypergeometric_derived_2F1():
     )
 
 
-def hypergeometric_derived_3F2():
+def hypergeometric_derived_3F2() -> CMF:
     Sx = x0 + x1 + x2
     Sy = y0 + y1
     Tx = x0 * x1 + x0 * x2 + x1 * x2
@@ -150,12 +150,12 @@ def hypergeometric_derived_3F2():
     )
 
 
-def pFq(p, q, use_derivative_basis=False, negate_denominator_params=False):
+def pFq(p, q, use_derivative_basis=False, negate_denominator_params=False) -> CMF:
 
     x = sp.symbols(f"x:{p}")
     y = sp.symbols(f"y:{q}")
 
-    def differential_equation(p, q):
+    def differential_equation(p, q) -> sp.Poly:
         return sp.Poly(
             sp.expand(
                 theta * sp.prod(theta + y[i] - 1 for i in range(q))
@@ -164,16 +164,16 @@ def pFq(p, q, use_derivative_basis=False, negate_denominator_params=False):
             theta,
         )
 
-    def core_matrix(p, q):
+    def core_matrix(p, q) -> Matrix:
         d_poly = differential_equation(p, q)
         d_poly_monic = sp.Poly(d_poly / sp.LC(d_poly), theta)
-        return sp.Matrix.companion(d_poly_monic)
+        return Matrix.companion(d_poly_monic)
 
     equation_size = max(p, q + 1)
 
     M = core_matrix(p, q)
     if use_derivative_basis:
-        basis_transition_matrix = sp.Matrix(
+        basis_transition_matrix = Matrix(
             equation_size,
             equation_size,
             lambda i, j: sp.functions.combinatorial.numbers.stirling(j, i) * (z**i),
@@ -182,13 +182,11 @@ def pFq(p, q, use_derivative_basis=False, negate_denominator_params=False):
 
     if negate_denominator_params:
         M = M.subs({y[i]: -y[i] for i in range(q)})
-        return CMF(
-            matrices={x[i]: Matrix(M / x[i] + sp.eye(equation_size)) for i in range(p)}
-            | {y[i]: Matrix(-M / (y[i] + 1) + sp.eye(equation_size)) for i in range(q)}
-        )
-    return CMF(
-        matrices={x[i]: Matrix(M / x[i] + sp.eye(equation_size)) for i in range(p)}
-        | {
+        y_matrices = {
+            y[i]: Matrix(-M / (y[i] + 1) + sp.eye(equation_size)) for i in range(q)
+        }
+    else:
+        y_matrices = {
             y[i]: Matrix(
                 sp.simplify(
                     (M.subs({y[i]: y[i] + 1}) / y[i] + sp.eye(equation_size)).inv()
@@ -196,4 +194,6 @@ def pFq(p, q, use_derivative_basis=False, negate_denominator_params=False):
             )
             for i in range(q)
         }
-    )
+
+    x_matrices = {x[i]: Matrix(M / x[i] + sp.eye(equation_size)) for i in range(p)}
+    return CMF(x_matrices | y_matrices)
