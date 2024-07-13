@@ -150,57 +150,56 @@ def hypergeometric_derived_3F2():
     )
 
 
-def DiffEqn(p, q):
-    EqnSize = max(p, q + 1)
+def pFq(p, q, use_derivative_basis=False, negate_denominator_params=False):
+
     x = sp.symbols(f"x:{p+1}")
     y = sp.symbols(f"y:{q+1}")
-    Dpoly = sp.Poly(
-        sp.expand(
-            Theta * sp.prod(Theta + y[i] - 1 for i in range(1, q + 1))
-            - z * sp.prod(Theta + x[i] for i in range(1, p + 1))
-        ),
-        Theta,
-    )
-    return Dpoly
 
+    def differential_equation(p, q):
+        return sp.Poly(
+            sp.expand(
+                Theta * sp.prod(Theta + y[i] - 1 for i in range(1, q + 1))
+                - z * sp.prod(Theta + x[i] for i in range(1, p + 1))
+            ),
+            Theta,
+        )
 
-def CoreMat(p, q):
-    x = sp.symbols(f"x:{p+1}")
-    y = sp.symbols(f"y:{q+1}")
-    Dpoly = DiffEqn(p, q)
-    DpolyMonic = sp.Poly(Dpoly / sp.LC(Dpoly), Theta)
-    return sp.Matrix.companion(DpolyMonic)
+    def core_matrix(p, q):
+        d_poly = differential_equation(p, q)
+        d_poly_monic = sp.Poly(d_poly / sp.LC(d_poly), Theta)
+        return sp.Matrix.companion(d_poly_monic)
 
+    equation_size = max(p, q + 1)
 
-def pFq(p, q, UseDerivativeBasis=False, NegateDenominatorParams=False):
-    EqnSize = max(p, q + 1)
-    x = sp.symbols(f"x:{p+1}")
-    for i in range(1, p + 1):
-        globals()[f"x{i}"] = x[
-            i
-        ]  # @RotemKalisch - this is an ugly patch to make sure one can use x1 x2 to call axes. help me get rid of it :(
-    y = sp.symbols(f"y:{q+1}")
-    for i in range(1, q + 1):
-        globals()[f"y{i}"] = y[i]
-    M = CoreMat(p, q)
-    if UseDerivativeBasis:
-        MchangeBasis = sp.Matrix(
-            EqnSize,
-            EqnSize,
+    M = core_matrix(p, q)
+    if use_derivative_basis:
+        basis_transition_matrix = sp.Matrix(
+            equation_size,
+            equation_size,
             lambda i, j: sp.functions.combinatorial.numbers.stirling(j, i) * (z**i),
         )
-        M = sp.simplify(MchangeBasis * M * (MchangeBasis.inv()))
-    if NegateDenominatorParams:
+        M = sp.simplify(basis_transition_matrix * M * (basis_transition_matrix.inv()))
+
+    if negate_denominator_params:
         M = M.subs({y[i]: -y[i] for i in range(1, q + 1)})
         return CMF(
-            matrices={x[i]: Matrix(M / x[i] + sp.eye(EqnSize)) for i in range(1, p + 1)}
-            | {y[i]: Matrix(-M / (y[i] + 1) + sp.eye(EqnSize)) for i in range(1, q + 1)}
+            matrices={
+                x[i]: Matrix(M / x[i] + sp.eye(equation_size)) for i in range(1, p + 1)
+            }
+            | {
+                y[i]: Matrix(-M / (y[i] + 1) + sp.eye(equation_size))
+                for i in range(1, q + 1)
+            }
         )
     return CMF(
-        matrices={x[i]: Matrix(M / x[i] + sp.eye(EqnSize)) for i in range(1, p + 1)}
+        matrices={
+            x[i]: Matrix(M / x[i] + sp.eye(equation_size)) for i in range(1, p + 1)
+        }
         | {
             y[i]: Matrix(
-                sp.simplify((M.subs({y[i]: y[i] + 1}) / y[i] + sp.eye(EqnSize)).inv())
+                sp.simplify(
+                    (M.subs({y[i]: y[i] + 1}) / y[i] + sp.eye(equation_size)).inv()
+                )
             )
             for i in range(1, q + 1)
         }
