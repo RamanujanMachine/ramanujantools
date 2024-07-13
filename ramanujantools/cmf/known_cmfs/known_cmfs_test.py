@@ -15,17 +15,17 @@ from ramanujantools.cmf import known_cmfs, CMF
 
 def test_cmf_e():
     cmf = known_cmfs.e()
-    assert cmf.limit({x: 1, y: 1}, 100, {x: 0, y: 0}).as_float() == approx(1 / (1 - e))
+    assert cmf.limit({x: 1, y: 1}, 50, {x: 0, y: 0}).as_float() == approx(1 / (1 - e))
 
 
 def test_cmf_pi():
     cmf = known_cmfs.pi()
-    assert cmf.limit({x: 1, y: 1}, 100, {x: 1, y: 0}).as_float() == approx((2 - pi) / 2)
+    assert cmf.limit({x: 1, y: 1}, 50, {x: 1, y: 0}).as_float() == approx((2 - pi) / 2)
 
 
 def test_cmf_zeta3():
     cmf = known_cmfs.zeta3()
-    assert cmf.limit({x: 1, y: 1}, 100, {x: 1, y: 1}).as_float() == approx(
+    assert cmf.limit({x: 1, y: 1}, 50, {x: 1, y: 1}).as_float() == approx(
         (1 - zeta(3)) / zeta(3)
     )
 
@@ -51,7 +51,7 @@ def test_cmf1():
     cmf = known_cmfs.cmf1()
     for a, b in itertools.product(range(1, 10), range(1, 10)):
         assert cmf.subs([[c0, 0], [c1, a], [c2, 0], [c3, b]]).limit(
-            {x: 1, y: 1}, 100
+            {x: 1, y: 1}, 50
         ).as_float() == approx(-a + b / log(1 + b / a), 1e-4)
 
 
@@ -210,6 +210,7 @@ def test_all_conserving():
     """
     known_cmfs.e().assert_conserving()
     known_cmfs.pi().assert_conserving()
+    known_cmfs.symmetric_pi().assert_conserving()
     known_cmfs.zeta3().assert_conserving()
     known_cmfs.var_root_cmf().assert_conserving()
     known_cmfs.cmf1().assert_conserving()
