@@ -8,7 +8,7 @@ from ramanujantools.cmf.ffbar import FFbar
 x0, x1, x2 = sp.symbols("x:3")
 y0, y1 = sp.symbols("y:2")
 c0, c1, c2, c3 = sp.symbols("c:4")
-Theta = sp.symbols('Theta')
+Theta = sp.symbols("Theta")
 
 
 def e():
@@ -149,35 +149,59 @@ def hypergeometric_derived_3F2():
         validate=False,
     )
 
-def DiffEqn(p,q):
-  EqnSize = max(p,q+1)
-  x = sp.symbols(f'x:{p+1}')
-  y = sp.symbols(f'y:{q+1}')
-  Dpoly = sp.Poly(sp.expand(Theta*sp.prod(Theta + y[i] -1 for i in range(1, q+1))-z*sp.prod(Theta + x[i] for i in range(1, p+1))),Theta)
-  return Dpoly
-def CoreMat(p,q):
-  x = sp.symbols(f'x:{p+1}')
-  y = sp.symbols(f'y:{q+1}')
-  Dpoly = DiffEqn(p,q)
-  DpolyMonic = sp.Poly(Dpoly/sp.LC(Dpoly),Theta)
-  return sp.Matrix.companion(DpolyMonic)
-def pFqCMF(p,q,UseDerivativeBasis=False,NegateDenominatorParams=False):
-  EqnSize = max(p,q+1)
-  x = sp.symbols(f'x:{p+1}')
-  for i in range(1, p+1):
-    globals()[f'x{i}'] = x[i] # @RotemKalisch - this is an ugly patch to make sure one can use x1 x2 to call axes. help me get rid of it :(
-  y = sp.symbols(f'y:{q+1}')
-  for i in range(1, q+1):
-    globals()[f'y{i}'] = y[i]
-  M = CoreMat(p,q)
-  if UseDerivativeBasis:
-    MchangeBasis = sp.Matrix(EqnSize,EqnSize, lambda i, j: sp.functions.combinatorial.numbers.stirling(j, i) * (z ** i))
-    M = sp.simplify(MchangeBasis*M*(MchangeBasis.inv()))
-  if NegateDenominatorParams:
-    M = M.subs({y[i]:-y[i] for i in range (1,q+1)})
+
+def DiffEqn(p, q):
+    EqnSize = max(p, q + 1)
+    x = sp.symbols(f"x:{p+1}")
+    y = sp.symbols(f"y:{q+1}")
+    Dpoly = sp.Poly(
+        sp.expand(
+            Theta * sp.prod(Theta + y[i] - 1 for i in range(1, q + 1))
+            - z * sp.prod(Theta + x[i] for i in range(1, p + 1))
+        ),
+        Theta,
+    )
+    return Dpoly
+
+
+def CoreMat(p, q):
+    x = sp.symbols(f"x:{p+1}")
+    y = sp.symbols(f"y:{q+1}")
+    Dpoly = DiffEqn(p, q)
+    DpolyMonic = sp.Poly(Dpoly / sp.LC(Dpoly), Theta)
+    return sp.Matrix.companion(DpolyMonic)
+
+
+def pFq(p, q, UseDerivativeBasis=False, NegateDenominatorParams=False):
+    EqnSize = max(p, q + 1)
+    x = sp.symbols(f"x:{p+1}")
+    for i in range(1, p + 1):
+        globals()[f"x{i}"] = x[
+            i
+        ]  # @RotemKalisch - this is an ugly patch to make sure one can use x1 x2 to call axes. help me get rid of it :(
+    y = sp.symbols(f"y:{q+1}")
+    for i in range(1, q + 1):
+        globals()[f"y{i}"] = y[i]
+    M = CoreMat(p, q)
+    if UseDerivativeBasis:
+        MchangeBasis = sp.Matrix(
+            EqnSize,
+            EqnSize,
+            lambda i, j: sp.functions.combinatorial.numbers.stirling(j, i) * (z**i),
+        )
+        M = sp.simplify(MchangeBasis * M * (MchangeBasis.inv()))
+    if NegateDenominatorParams:
+        M = M.subs({y[i]: -y[i] for i in range(1, q + 1)})
+        return CMF(
+            matrices={x[i]: Matrix(M / x[i] + sp.eye(EqnSize)) for i in range(1, p + 1)}
+            | {y[i]: Matrix(-M / (y[i] + 1) + sp.eye(EqnSize)) for i in range(1, q + 1)}
+        )
     return CMF(
-        matrices={x[i]: Matrix(M/x[i]+sp.eye(EqnSize)) for i in range(1, p+1)}|{y[i]: Matrix(-M/(y[i]+1)+sp.eye(EqnSize)) for i in range(1, q+1)}
-        )
-  return CMF(
-        matrices={x[i]: Matrix(M/x[i]+sp.eye(EqnSize)) for i in range(1, p+1)}|{y[i]: Matrix(sp.simplify((M.subs({y[i]:y[i]+1})/y[i]+sp.eye(EqnSize)).inv())) for i in range(1, q+1)}
-        )
+        matrices={x[i]: Matrix(M / x[i] + sp.eye(EqnSize)) for i in range(1, p + 1)}
+        | {
+            y[i]: Matrix(
+                sp.simplify((M.subs({y[i]: y[i] + 1}) / y[i] + sp.eye(EqnSize)).inv())
+            )
+            for i in range(1, q + 1)
+        }
+    )

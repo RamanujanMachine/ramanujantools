@@ -5,10 +5,12 @@ from math import e, pi, log
 
 from mpmath import mp, zeta
 
+import sympy as sp
 from sympy.abc import x, y, n
 
-from ramanujantools.cmf import known_cmfs
+from ramanujantools import Matrix
 from ramanujantools.pcf import PCF
+from ramanujantools.cmf import known_cmfs, CMF
 
 
 def test_cmf_e():
@@ -51,6 +53,42 @@ def test_cmf1():
         assert cmf.subs([[c0, 0], [c1, a], [c2, 0], [c3, b]]).limit(
             {x: 1, y: 1}, 100
         ).as_float() == approx(-a + b / log(1 + b / a), 1e-4)
+
+
+def test_2F1():
+    x1 = sp.Symbol("x1")
+    x2 = sp.Symbol("x2")
+    y1 = sp.Symbol("y1")
+    z = sp.Symbol("z")
+    expected = CMF(
+        {
+            x1: Matrix(
+                [
+                    [1, -x2 * z / (z - 1)],
+                    [1 / x1, 1 - (x1 * z + x2 * z - y1 + 1) / (x1 * (z - 1))],
+                ]
+            ),
+            x2: Matrix(
+                [
+                    [1, -x1 * z / (z - 1)],
+                    [1 / x2, 1 - (x1 * z + x2 * z - y1 + 1) / (x2 * (z - 1))],
+                ]
+            ),
+            y1: Matrix(
+                [
+                    [
+                        y1 * (-x1 - x2 + y1) / (x1 * x2 - x1 * y1 - x2 * y1 + y1**2),
+                        x1 * x2 * y1 / (x1 * x2 - x1 * y1 - x2 * y1 + y1**2),
+                    ],
+                    [
+                        y1 * (1 - z) / (z * (x1 * x2 - x1 * y1 - x2 * y1 + y1**2)),
+                        y1**2 * (z - 1) / (z * (x1 * x2 - x1 * y1 - x2 * y1 + y1**2)),
+                    ],
+                ]
+            ),
+        }
+    )
+    assert known_cmfs.pFq(2, 1) == expected
 
 
 def test_all_conserving():
