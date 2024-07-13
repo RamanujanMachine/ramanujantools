@@ -8,7 +8,7 @@ from ramanujantools.cmf.ffbar import FFbar
 x0, x1, x2 = sp.symbols("x:3")
 y0, y1 = sp.symbols("y:2")
 c0, c1, c2, c3 = sp.symbols("c:4")
-Theta = sp.symbols("Theta")
+theta = sp.symbols("theta")
 
 
 def e():
@@ -152,21 +152,21 @@ def hypergeometric_derived_3F2():
 
 def pFq(p, q, use_derivative_basis=False, negate_denominator_params=False):
 
-    x = sp.symbols(f"x:{p+1}")
-    y = sp.symbols(f"y:{q+1}")
+    x = sp.symbols(f"x:{p}")
+    y = sp.symbols(f"y:{q}")
 
     def differential_equation(p, q):
         return sp.Poly(
             sp.expand(
-                Theta * sp.prod(Theta + y[i] - 1 for i in range(1, q + 1))
-                - z * sp.prod(Theta + x[i] for i in range(1, p + 1))
+                theta * sp.prod(theta + y[i] - 1 for i in range(q))
+                - z * sp.prod(theta + x[i] for i in range(p))
             ),
-            Theta,
+            theta,
         )
 
     def core_matrix(p, q):
         d_poly = differential_equation(p, q)
-        d_poly_monic = sp.Poly(d_poly / sp.LC(d_poly), Theta)
+        d_poly_monic = sp.Poly(d_poly / sp.LC(d_poly), theta)
         return sp.Matrix.companion(d_poly_monic)
 
     equation_size = max(p, q + 1)
@@ -181,26 +181,19 @@ def pFq(p, q, use_derivative_basis=False, negate_denominator_params=False):
         M = sp.simplify(basis_transition_matrix * M * (basis_transition_matrix.inv()))
 
     if negate_denominator_params:
-        M = M.subs({y[i]: -y[i] for i in range(1, q + 1)})
+        M = M.subs({y[i]: -y[i] for i in range(q)})
         return CMF(
-            matrices={
-                x[i]: Matrix(M / x[i] + sp.eye(equation_size)) for i in range(1, p + 1)
-            }
-            | {
-                y[i]: Matrix(-M / (y[i] + 1) + sp.eye(equation_size))
-                for i in range(1, q + 1)
-            }
+            matrices={x[i]: Matrix(M / x[i] + sp.eye(equation_size)) for i in range(p)}
+            | {y[i]: Matrix(-M / (y[i] + 1) + sp.eye(equation_size)) for i in range(q)}
         )
     return CMF(
-        matrices={
-            x[i]: Matrix(M / x[i] + sp.eye(equation_size)) for i in range(1, p + 1)
-        }
+        matrices={x[i]: Matrix(M / x[i] + sp.eye(equation_size)) for i in range(p)}
         | {
             y[i]: Matrix(
                 sp.simplify(
                     (M.subs({y[i]: y[i] + 1}) / y[i] + sp.eye(equation_size)).inv()
                 )
             )
-            for i in range(1, q + 1)
+            for i in range(q)
         }
     )

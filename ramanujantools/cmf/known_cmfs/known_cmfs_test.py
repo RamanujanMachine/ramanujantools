@@ -56,33 +56,33 @@ def test_cmf1():
 
 
 def test_2F1():
+    x0 = sp.Symbol("x0")
     x1 = sp.Symbol("x1")
-    x2 = sp.Symbol("x2")
-    y1 = sp.Symbol("y1")
+    y0 = sp.Symbol("y0")
     z = sp.Symbol("z")
     expected = CMF(
         {
-            x1: Matrix(
-                [
-                    [1, -x2 * z / (z - 1)],
-                    [1 / x1, 1 - (x1 * z + x2 * z - y1 + 1) / (x1 * (z - 1))],
-                ]
-            ),
-            x2: Matrix(
+            x0: Matrix(
                 [
                     [1, -x1 * z / (z - 1)],
-                    [1 / x2, 1 - (x1 * z + x2 * z - y1 + 1) / (x2 * (z - 1))],
+                    [1 / x0, 1 - (x0 * z + x1 * z - y0 + 1) / (x0 * (z - 1))],
                 ]
             ),
-            y1: Matrix(
+            x1: Matrix(
+                [
+                    [1, -x0 * z / (z - 1)],
+                    [1 / x1, 1 - (x0 * z + x1 * z - y0 + 1) / (x1 * (z - 1))],
+                ]
+            ),
+            y0: Matrix(
                 [
                     [
-                        y1 * (-x1 - x2 + y1) / (x1 * x2 - x1 * y1 - x2 * y1 + y1**2),
-                        x1 * x2 * y1 / (x1 * x2 - x1 * y1 - x2 * y1 + y1**2),
+                        y0 * (-x0 - x1 + y0) / (x0 * x1 - x0 * y0 - x1 * y0 + y0**2),
+                        x0 * x1 * y0 / (x0 * x1 - x0 * y0 - x1 * y0 + y0**2),
                     ],
                     [
-                        y1 * (1 - z) / (z * (x1 * x2 - x1 * y1 - x2 * y1 + y1**2)),
-                        y1**2 * (z - 1) / (z * (x1 * x2 - x1 * y1 - x2 * y1 + y1**2)),
+                        y0 * (1 - z) / (z * (x0 * x1 - x0 * y0 - x1 * y0 + y0**2)),
+                        y0**2 * (z - 1) / (z * (x0 * x1 - x0 * y0 - x1 * y0 + y0**2)),
                     ],
                 ]
             ),
@@ -94,30 +94,30 @@ def test_2F1():
 
 
 def test_2F1_negate_denominator():
+    x0 = sp.Symbol("x0")
     x1 = sp.Symbol("x1")
-    x2 = sp.Symbol("x2")
-    y1 = sp.Symbol("y1")
+    y0 = sp.Symbol("y0")
     z = sp.Symbol("z")
     expected = CMF(
         {
-            x1: Matrix(
-                [
-                    [1, -x2 * z / (z - 1)],
-                    [1 / x1, 1 - (x1 * z + x2 * z + y1 + 1) / (x1 * (z - 1))],
-                ]
-            ),
-            x2: Matrix(
+            x0: Matrix(
                 [
                     [1, -x1 * z / (z - 1)],
-                    [1 / x2, 1 - (x1 * z + x2 * z + y1 + 1) / (x2 * (z - 1))],
+                    [1 / x0, 1 - (x0 * z + x1 * z + y0 + 1) / (x0 * (z - 1))],
                 ]
             ),
-            y1: Matrix(
+            x1: Matrix(
                 [
-                    [1, x1 * x2 * z / ((y1 + 1) * (z - 1))],
+                    [1, -x0 * z / (z - 1)],
+                    [1 / x1, 1 - (x0 * z + x1 * z + y0 + 1) / (x1 * (z - 1))],
+                ]
+            ),
+            y0: Matrix(
+                [
+                    [1, x0 * x1 * z / ((y0 + 1) * (z - 1))],
                     [
-                        -1 / (y1 + 1),
-                        1 + (x1 * z + x2 * z + y1 + 1) / ((y1 + 1) * (z - 1)),
+                        -1 / (y0 + 1),
+                        1 + (x0 * z + x1 * z + y0 + 1) / ((y0 + 1) * (z - 1)),
                     ],
                 ]
             ),
@@ -129,33 +129,33 @@ def test_2F1_negate_denominator():
 
 
 def test_2F1_derivative_basis():
+    x0 = sp.Symbol("x0")
     x1 = sp.Symbol("x1")
-    x2 = sp.Symbol("x2")
-    y1 = sp.Symbol("y1")
+    y0 = sp.Symbol("y0")
     z = sp.Symbol("z")
     expected = CMF(
         {
-            x1: Matrix(
-                [
-                    [1, -x2 / (z - 1)],
-                    [z / x1, 1 + (-x1 * z - x2 * z + y1 - 1) / (x1 * (z - 1))],
-                ]
-            ),
-            x2: Matrix(
+            x0: Matrix(
                 [
                     [1, -x1 / (z - 1)],
-                    [z / x2, 1 + (-x1 * z - x2 * z + y1 - 1) / (x2 * (z - 1))],
+                    [z / x0, 1 + (-x0 * z - x1 * z + y0 - 1) / (x0 * (z - 1))],
                 ]
             ),
-            y1: Matrix(
+            x1: Matrix(
+                [
+                    [1, -x0 / (z - 1)],
+                    [z / x1, 1 + (-x0 * z - x1 * z + y0 - 1) / (x1 * (z - 1))],
+                ]
+            ),
+            y0: Matrix(
                 [
                     [
-                        y1 * (-x1 - x2 + y1) / (x1 * x2 - x1 * y1 - x2 * y1 + y1**2),
-                        x1 * x2 * y1 / (z * (x1 * x2 - x1 * y1 - x2 * y1 + y1**2)),
+                        y0 * (-x0 - x1 + y0) / (x0 * x1 - x0 * y0 - x1 * y0 + y0**2),
+                        x0 * x1 * y0 / (z * (x0 * x1 - x0 * y0 - x1 * y0 + y0**2)),
                     ],
                     [
-                        y1 * (1 - z) / (x1 * x2 - x1 * y1 - x2 * y1 + y1**2),
-                        y1**2 * (z - 1) / (z * (x1 * x2 - x1 * y1 - x2 * y1 + y1**2)),
+                        y0 * (1 - z) / (x0 * x1 - x0 * y0 - x1 * y0 + y0**2),
+                        y0**2 * (z - 1) / (z * (x0 * x1 - x0 * y0 - x1 * y0 + y0**2)),
                     ],
                 ]
             ),
@@ -167,30 +167,30 @@ def test_2F1_derivative_basis():
 
 
 def test_2F1_negate_denominator_derivative_basis():
+    x0 = sp.Symbol("x0")
     x1 = sp.Symbol("x1")
-    x2 = sp.Symbol("x2")
-    y1 = sp.Symbol("y1")
+    y0 = sp.Symbol("y0")
     z = sp.Symbol("z")
     expected = CMF(
         {
-            x1: Matrix(
-                [
-                    [1, -x2 / (z - 1)],
-                    [z / x1, 1 + (-x1 * z - x2 * z - y1 - 1) / (x1 * (z - 1))],
-                ]
-            ),
-            x2: Matrix(
+            x0: Matrix(
                 [
                     [1, -x1 / (z - 1)],
-                    [z / x2, 1 + (-x1 * z - x2 * z - y1 - 1) / (x2 * (z - 1))],
+                    [z / x0, 1 + (-x0 * z - x1 * z - y0 - 1) / (x0 * (z - 1))],
                 ]
             ),
-            y1: Matrix(
+            x1: Matrix(
                 [
-                    [1, x1 * x2 / ((y1 + 1) * (z - 1))],
+                    [1, -x0 / (z - 1)],
+                    [z / x1, 1 + (-x0 * z - x1 * z - y0 - 1) / (x1 * (z - 1))],
+                ]
+            ),
+            y0: Matrix(
+                [
+                    [1, x0 * x1 / ((y0 + 1) * (z - 1))],
                     [
-                        -z / (y1 + 1),
-                        1 - (-x1 * z - x2 * z - y1 - 1) / ((y1 + 1) * (z - 1)),
+                        -z / (y0 + 1),
+                        1 - (-x0 * z - x1 * z - y0 - 1) / ((y0 + 1) * (z - 1)),
                     ],
                 ]
             ),
