@@ -31,6 +31,16 @@ def pi() -> CMF:
     )
 
 
+def symmetric_pi():
+    return CMF(
+        matrices={
+            x: Matrix([[x, x * y], [1, 1 + 2 * x + y]]),
+            y: Matrix([[y, x * y], [1, 1 + x + 2 * y]]),
+        },
+        validate=False,
+    )
+
+
 def zeta3() -> CMF:
     return CMF(
         matrices={
