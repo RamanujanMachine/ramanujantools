@@ -55,7 +55,7 @@ def test_cmf1():
         ).as_float() == approx(-a + b / log(1 + b / a), 1e-4)
 
 
-def test_2F1():
+def test_2F1_theta_derivative():
     x0 = sp.Symbol("x0")
     x1 = sp.Symbol("x1")
     y0 = sp.Symbol("y0")
@@ -93,7 +93,7 @@ def test_2F1():
     assert cmf == expected
 
 
-def test_2F1_negate_denominator():
+def test_2F1_theta_derivative_negate_denominator():
     x0 = sp.Symbol("x0")
     x1 = sp.Symbol("x1")
     y0 = sp.Symbol("y0")
@@ -128,7 +128,7 @@ def test_2F1_negate_denominator():
     assert cmf == expected
 
 
-def test_2F1_derivative_basis():
+def test_2F1_normal_derivative():
     x0 = sp.Symbol("x0")
     x1 = sp.Symbol("x1")
     y0 = sp.Symbol("y0")
@@ -161,12 +161,12 @@ def test_2F1_derivative_basis():
             ),
         }
     )
-    cmf = known_cmfs.pFq(2, 1, use_derivative_basis=True)
+    cmf = known_cmfs.pFq(2, 1, theta_derivative=False)
     cmf.assert_conserving()
     assert cmf == expected
 
 
-def test_2F1_negate_denominator_derivative_basis():
+def test_2F1_normal_derivative_negate_denominator():
     x0 = sp.Symbol("x0")
     x1 = sp.Symbol("x1")
     y0 = sp.Symbol("y0")
@@ -196,9 +196,7 @@ def test_2F1_negate_denominator_derivative_basis():
             ),
         }
     )
-    cmf = known_cmfs.pFq(
-        2, 1, use_derivative_basis=True, negate_denominator_params=True
-    )
+    cmf = known_cmfs.pFq(2, 1, theta_derivative=False, negate_denominator_params=True)
     cmf.assert_conserving()
     assert cmf == expected
 
