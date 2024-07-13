@@ -161,8 +161,34 @@ def hypergeometric_derived_3F2() -> CMF:
 
 
 def pFq(
-    p, q, z_eval=z, use_derivative_basis=False, negate_denominator_params=False
+    p: int,
+    q: int,
+    z_eval: int = z,
+    theta_derivative: bool = False,
+    negate_denominator_params: bool = False,
 ) -> CMF:
+    r"""
+    Constructs the pFq CMF, derived from the differentiation property of generalized hypergeometric functions:
+    https://en.wikipedia.org/wiki/Generalized_hypergeometric_function
+
+    A few things to note when working with the pFq CMF construction:
+    1. Construction is possible using either normal or theta derivatives
+    2. While the construction is purely symbolic, however singularity is possible in some z values.
+        To overcome this, we can select z during construction and construct specifically for it.
+    3. The y matrices are inversed, as they represent a negative step in the matching y axis.
+        There are two options to overcome this: inverse the matrices, or negate all y occurences.
+
+    Args:
+        p: the number of numerator parameters in the hypergeometric function
+        q: the number of denominator parameters in the hypergeometric function
+        z_eval: if given, will attempt to construct the CMF for a specific z value.
+        theta_derivative: if set to True, will convert the CMF matrices to theta-derivative basis
+        negate_denominator_params: if set to True, will inverse all y matrices.
+            otherwise, will substitute y with -y.
+
+    Returns:
+        A pFq CMF that
+    """
 
     x = sp.symbols(f"x:{p}")
     y = sp.symbols(f"y:{q}")
@@ -185,7 +211,7 @@ def pFq(
 
     equation_size = M.rows
 
-    if use_derivative_basis:
+    if theta_derivative:
         basis_transition_matrix = Matrix(
             equation_size,
             equation_size,
