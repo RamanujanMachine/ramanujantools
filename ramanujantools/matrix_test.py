@@ -1,5 +1,5 @@
 import sympy as sp
-from sympy.abc import x, y
+from sympy.abc import x, y, n
 
 from ramanujantools import Matrix, simplify
 
@@ -56,6 +56,31 @@ def test_singular_points_single_variable():
 def test_singular_points_multi_variable():
     m = Matrix([[1, x], [1, y]])
     assert m.singular_points() == [{x: y}]
+
+
+def test_coboundary():
+    m = Matrix([[1, n, 2], [3, n**2, 5 * n], [n - 7, n**2 + 1, n - 3]])
+    U = Matrix([[3, 1, n - 2], [5, n**2 - 3 * n + 1, 0], [11 * n + 2, 3, n - 19]])
+    expected = U * m * U.inverse().subs({n: n + 1})
+    assert expected == m.coboundary(U)
+
+
+def test_coboundary_inverse():
+    m = Matrix([[1, n, 2], [3, n**2, 5 * n], [n - 7, n**2 + 1, n - 3]])
+    U = Matrix([[3, 1, n - 2], [5, n**2 - 3 * n + 1, 0], [11 * n + 2, 3, n - 19]])
+    assert m == m.coboundary(U).coboundary(U.inverse())
+
+
+def test_is_companion():
+    assert not Matrix.eye(3).is_companion()
+    m = Matrix([[0, 0, n**3 - 1], [1, 0, n**2 + 3], [0, 1, 2 * n]])
+    assert m.is_companion()
+    assert not (m + Matrix.eye(3)).is_companion()
+
+
+def test_companion_coboundary():
+    m = Matrix([[1, n, 2], [3, n**2, 5 * n], [n - 7, n**2 + 1, n - 3]])
+    assert m.coboundary(m.companion_coboundary()).is_companion()
 
 
 def test_walk_0():
