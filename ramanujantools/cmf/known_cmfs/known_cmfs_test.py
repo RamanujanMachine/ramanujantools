@@ -123,7 +123,7 @@ def test_2F1_negate_denominator():
             ),
         }
     )
-    cmf = known_cmfs.pFq(2, 1, negate_denominator_params=True)
+    cmf = known_cmfs.pFq(2, 1, z, negate_denominator_params=True)
     cmf.assert_conserving()
     assert cmf == expected
 
@@ -161,7 +161,7 @@ def test_2F1_derivative_basis():
             ),
         }
     )
-    cmf = known_cmfs.pFq(2, 1, use_derivative_basis=True)
+    cmf = known_cmfs.pFq(2, 1, z,use_derivative_basis=True)
     cmf.assert_conserving()
     assert cmf == expected
 
@@ -197,7 +197,7 @@ def test_2F1_negate_denominator_derivative_basis():
         }
     )
     cmf = known_cmfs.pFq(
-        2, 1, use_derivative_basis=True, negate_denominator_params=True
+        2, 1, z, use_derivative_basis=True, negate_denominator_params=True
     )
     cmf.assert_conserving()
     assert cmf == expected

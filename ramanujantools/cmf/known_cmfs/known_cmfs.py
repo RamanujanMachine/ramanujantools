@@ -150,7 +150,7 @@ def hypergeometric_derived_3F2() -> CMF:
     )
 
 
-def pFq(p, q, use_derivative_basis=False, negate_denominator_params=False) -> CMF:
+def pFq(p, q, z_eval = z, use_derivative_basis=False, negate_denominator_params=False) -> CMF:
 
     x = sp.symbols(f"x:{p}")
     y = sp.symbols(f"y:{q}")
@@ -159,7 +159,7 @@ def pFq(p, q, use_derivative_basis=False, negate_denominator_params=False) -> CM
         return sp.Poly(
             sp.expand(
                 theta * sp.prod(theta + y[i] - 1 for i in range(q))
-                - z * sp.prod(theta + x[i] for i in range(p))
+                - z_eval * sp.prod(theta + x[i] for i in range(p))
             ),
             theta,
         )
@@ -169,14 +169,15 @@ def pFq(p, q, use_derivative_basis=False, negate_denominator_params=False) -> CM
         d_poly_monic = sp.Poly(d_poly / sp.LC(d_poly), theta)
         return Matrix.companion(d_poly_monic)
 
-    equation_size = max(p, q + 1)
-
     M = core_matrix(p, q)
+
+    equation_size = M.rows
+
     if use_derivative_basis:
         basis_transition_matrix = Matrix(
             equation_size,
             equation_size,
-            lambda i, j: sp.functions.combinatorial.numbers.stirling(j, i) * (z**i),
+            lambda i, j: sp.functions.combinatorial.numbers.stirling(j, i) * (z_eval**i),
         )
         M = sp.simplify(basis_transition_matrix * M * (basis_transition_matrix.inv()))
 
