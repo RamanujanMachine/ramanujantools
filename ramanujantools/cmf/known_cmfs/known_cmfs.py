@@ -164,7 +164,7 @@ def pFq(
     p: int,
     q: int,
     z_eval: int = z,
-    theta_derivative: bool = False,
+    theta_derivative: bool = True,
     negate_denominator_params: bool = False,
 ) -> CMF:
     r"""
@@ -179,12 +179,13 @@ def pFq(
         There are two options to overcome this: inverse the matrices, or negate all y occurences.
 
     Args:
-        p: the number of numerator parameters in the hypergeometric function
-        q: the number of denominator parameters in the hypergeometric function
-        z_eval: if given, will attempt to construct the CMF for a specific z value.
-        theta_derivative: if set to True, will convert the CMF matrices to theta-derivative basis
+        p: The number of numerator parameters in the hypergeometric function
+        q: The number of denominator parameters in the hypergeometric function
+        z_eval: If given, will attempt to construct the CMF for a specific z value.
+        theta_derivative: If set to False, will construt the CMF using normal derivatives.
+            Otherwise, will use theta derivatives.
         negate_denominator_params: if set to True, will inverse all y matrices.
-            otherwise, will substitute y with -y.
+            Otherwise, will substitute y with -y.
 
     Returns:
         A pFq CMF that
@@ -211,7 +212,7 @@ def pFq(
 
     equation_size = M.rows
 
-    if theta_derivative:
+    if not theta_derivative:
         basis_transition_matrix = Matrix(
             equation_size,
             equation_size,
