@@ -5,10 +5,12 @@ from math import e, pi, log
 
 from mpmath import mp, zeta
 
-from sympy.abc import x, y, n
+import sympy as sp
+from sympy.abc import x, y, z, n
 
-from ramanujantools.cmf import known_cmfs
+from ramanujantools import Matrix
 from ramanujantools.pcf import PCF
+from ramanujantools.cmf import known_cmfs, CMF
 
 
 def test_cmf_e():
@@ -53,6 +55,163 @@ def test_cmf1():
         ).as_float() == approx(-a + b / log(1 + b / a), 1e-4)
 
 
+def test_2F1():
+    x0 = sp.Symbol("x0")
+    x1 = sp.Symbol("x1")
+    y0 = sp.Symbol("y0")
+    z = sp.Symbol("z")
+    expected = CMF(
+        {
+            x0: Matrix(
+                [
+                    [1, -x1 * z / (z - 1)],
+                    [1 / x0, 1 - (x0 * z + x1 * z - y0 + 1) / (x0 * (z - 1))],
+                ]
+            ),
+            x1: Matrix(
+                [
+                    [1, -x0 * z / (z - 1)],
+                    [1 / x1, 1 - (x0 * z + x1 * z - y0 + 1) / (x1 * (z - 1))],
+                ]
+            ),
+            y0: Matrix(
+                [
+                    [
+                        y0 * (-x0 - x1 + y0) / (x0 * x1 - x0 * y0 - x1 * y0 + y0**2),
+                        x0 * x1 * y0 / (x0 * x1 - x0 * y0 - x1 * y0 + y0**2),
+                    ],
+                    [
+                        y0 * (1 - z) / (z * (x0 * x1 - x0 * y0 - x1 * y0 + y0**2)),
+                        y0**2 * (z - 1) / (z * (x0 * x1 - x0 * y0 - x1 * y0 + y0**2)),
+                    ],
+                ]
+            ),
+        }
+    )
+    cmf = known_cmfs.pFq(2, 1)
+    cmf.assert_conserving()
+    assert cmf == expected
+
+
+def test_2F1_negate_denominator():
+    x0 = sp.Symbol("x0")
+    x1 = sp.Symbol("x1")
+    y0 = sp.Symbol("y0")
+    z = sp.Symbol("z")
+    expected = CMF(
+        {
+            x0: Matrix(
+                [
+                    [1, -x1 * z / (z - 1)],
+                    [1 / x0, 1 - (x0 * z + x1 * z + y0 + 1) / (x0 * (z - 1))],
+                ]
+            ),
+            x1: Matrix(
+                [
+                    [1, -x0 * z / (z - 1)],
+                    [1 / x1, 1 - (x0 * z + x1 * z + y0 + 1) / (x1 * (z - 1))],
+                ]
+            ),
+            y0: Matrix(
+                [
+                    [1, x0 * x1 * z / ((y0 + 1) * (z - 1))],
+                    [
+                        -1 / (y0 + 1),
+                        1 + (x0 * z + x1 * z + y0 + 1) / ((y0 + 1) * (z - 1)),
+                    ],
+                ]
+            ),
+        }
+    )
+    cmf = known_cmfs.pFq(2, 1, negate_denominator_params=True)
+    cmf.assert_conserving()
+    assert cmf == expected
+
+
+def test_2F1_derivative_basis():
+    x0 = sp.Symbol("x0")
+    x1 = sp.Symbol("x1")
+    y0 = sp.Symbol("y0")
+    z = sp.Symbol("z")
+    expected = CMF(
+        {
+            x0: Matrix(
+                [
+                    [1, -x1 / (z - 1)],
+                    [z / x0, 1 + (-x0 * z - x1 * z + y0 - 1) / (x0 * (z - 1))],
+                ]
+            ),
+            x1: Matrix(
+                [
+                    [1, -x0 / (z - 1)],
+                    [z / x1, 1 + (-x0 * z - x1 * z + y0 - 1) / (x1 * (z - 1))],
+                ]
+            ),
+            y0: Matrix(
+                [
+                    [
+                        y0 * (-x0 - x1 + y0) / (x0 * x1 - x0 * y0 - x1 * y0 + y0**2),
+                        x0 * x1 * y0 / (z * (x0 * x1 - x0 * y0 - x1 * y0 + y0**2)),
+                    ],
+                    [
+                        y0 * (1 - z) / (x0 * x1 - x0 * y0 - x1 * y0 + y0**2),
+                        y0**2 * (z - 1) / (z * (x0 * x1 - x0 * y0 - x1 * y0 + y0**2)),
+                    ],
+                ]
+            ),
+        }
+    )
+    cmf = known_cmfs.pFq(2, 1, use_derivative_basis=True)
+    cmf.assert_conserving()
+    assert cmf == expected
+
+
+def test_2F1_negate_denominator_derivative_basis():
+    x0 = sp.Symbol("x0")
+    x1 = sp.Symbol("x1")
+    y0 = sp.Symbol("y0")
+    z = sp.Symbol("z")
+    expected = CMF(
+        {
+            x0: Matrix(
+                [
+                    [1, -x1 / (z - 1)],
+                    [z / x0, 1 + (-x0 * z - x1 * z - y0 - 1) / (x0 * (z - 1))],
+                ]
+            ),
+            x1: Matrix(
+                [
+                    [1, -x0 / (z - 1)],
+                    [z / x1, 1 + (-x0 * z - x1 * z - y0 - 1) / (x1 * (z - 1))],
+                ]
+            ),
+            y0: Matrix(
+                [
+                    [1, x0 * x1 / ((y0 + 1) * (z - 1))],
+                    [
+                        -z / (y0 + 1),
+                        1 - (-x0 * z - x1 * z - y0 - 1) / ((y0 + 1) * (z - 1)),
+                    ],
+                ]
+            ),
+        }
+    )
+    cmf = known_cmfs.pFq(
+        2, 1, use_derivative_basis=True, negate_denominator_params=True
+    )
+    cmf.assert_conserving()
+    assert cmf == expected
+
+
+def test_2F1_z_evaluation():
+    p = 2
+    q = 1
+    z_value = -7
+    assert known_cmfs.pFq(p, q, z_eval=z_value) == known_cmfs.pFq(p, q).subs(
+        {z: z_value}
+    )
+
+
 def test_all_conserving():
     r"""
     Checks that all cmfs are indeed cmfs.
@@ -70,6 +229,7 @@ def test_all_conserving():
     known_cmfs.cmf3_3().assert_conserving()
     known_cmfs.hypergeometric_derived_2F1().assert_conserving()
     known_cmfs.hypergeometric_derived_3F2().assert_conserving()
+    known_cmfs.pFq(2, 2).assert_conserving()  # randomly choosing 2F2
 
 
 def test_back_conserving():
