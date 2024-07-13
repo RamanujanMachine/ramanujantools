@@ -88,7 +88,119 @@ def test_2F1():
             ),
         }
     )
-    assert known_cmfs.pFq(2, 1) == expected
+    cmf = known_cmfs.pFq(2, 1)
+    cmf.assert_conserving()
+    assert cmf == expected
+
+
+def test_2F1_negate_denominator():
+    x1 = sp.Symbol("x1")
+    x2 = sp.Symbol("x2")
+    y1 = sp.Symbol("y1")
+    z = sp.Symbol("z")
+    expected = CMF(
+        {
+            x1: Matrix(
+                [
+                    [1, -x2 * z / (z - 1)],
+                    [1 / x1, 1 - (x1 * z + x2 * z + y1 + 1) / (x1 * (z - 1))],
+                ]
+            ),
+            x2: Matrix(
+                [
+                    [1, -x1 * z / (z - 1)],
+                    [1 / x2, 1 - (x1 * z + x2 * z + y1 + 1) / (x2 * (z - 1))],
+                ]
+            ),
+            y1: Matrix(
+                [
+                    [1, x1 * x2 * z / ((y1 + 1) * (z - 1))],
+                    [
+                        -1 / (y1 + 1),
+                        1 + (x1 * z + x2 * z + y1 + 1) / ((y1 + 1) * (z - 1)),
+                    ],
+                ]
+            ),
+        }
+    )
+    cmf = known_cmfs.pFq(2, 1, negate_denominator_params=True)
+    cmf.assert_conserving()
+    assert cmf == expected
+
+
+def test_2F1_derivative_basis():
+    x1 = sp.Symbol("x1")
+    x2 = sp.Symbol("x2")
+    y1 = sp.Symbol("y1")
+    z = sp.Symbol("z")
+    expected = CMF(
+        {
+            x1: Matrix(
+                [
+                    [1, -x2 / (z - 1)],
+                    [z / x1, 1 + (-x1 * z - x2 * z + y1 - 1) / (x1 * (z - 1))],
+                ]
+            ),
+            x2: Matrix(
+                [
+                    [1, -x1 / (z - 1)],
+                    [z / x2, 1 + (-x1 * z - x2 * z + y1 - 1) / (x2 * (z - 1))],
+                ]
+            ),
+            y1: Matrix(
+                [
+                    [
+                        y1 * (-x1 - x2 + y1) / (x1 * x2 - x1 * y1 - x2 * y1 + y1**2),
+                        x1 * x2 * y1 / (z * (x1 * x2 - x1 * y1 - x2 * y1 + y1**2)),
+                    ],
+                    [
+                        y1 * (1 - z) / (x1 * x2 - x1 * y1 - x2 * y1 + y1**2),
+                        y1**2 * (z - 1) / (z * (x1 * x2 - x1 * y1 - x2 * y1 + y1**2)),
+                    ],
+                ]
+            ),
+        }
+    )
+    cmf = known_cmfs.pFq(2, 1, use_derivative_basis=True)
+    cmf.assert_conserving()
+    assert cmf == expected
+
+
+def test_2F1_negate_denominator_derivative_basis():
+    x1 = sp.Symbol("x1")
+    x2 = sp.Symbol("x2")
+    y1 = sp.Symbol("y1")
+    z = sp.Symbol("z")
+    expected = CMF(
+        {
+            x1: Matrix(
+                [
+                    [1, -x2 / (z - 1)],
+                    [z / x1, 1 + (-x1 * z - x2 * z - y1 - 1) / (x1 * (z - 1))],
+                ]
+            ),
+            x2: Matrix(
+                [
+                    [1, -x1 / (z - 1)],
+                    [z / x2, 1 + (-x1 * z - x2 * z - y1 - 1) / (x2 * (z - 1))],
+                ]
+            ),
+            y1: Matrix(
+                [
+                    [1, x1 * x2 / ((y1 + 1) * (z - 1))],
+                    [
+                        -z / (y1 + 1),
+                        1 - (-x1 * z - x2 * z - y1 - 1) / ((y1 + 1) * (z - 1)),
+                    ],
+                ]
+            ),
+        }
+    )
+    cmf = known_cmfs.pFq(
+        2, 1, use_derivative_basis=True, negate_denominator_params=True
+    )
+    cmf.assert_conserving()
+    assert cmf == expected
 
 
 def test_all_conserving():
