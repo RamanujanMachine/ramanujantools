@@ -262,7 +262,7 @@ class CMF:
 
         Args:
             trajectory: A dict containing the amount of steps in each direction.
-            iterations: The amount of multiplications to perform, either an integer or a list.
+            iterations: The amount of trajectory matrix multiplications to perform, either an integer or a list.
             start: A dict representing the starting point of the multiplication, `default_origin` by default.
         Returns:
             The limit of the walk multiplication as defined above.
@@ -271,8 +271,7 @@ class CMF:
         trajectory_matrix = self.trajectory_matrix(
             trajectory, start or self.default_origin()
         )
-        actual_iterations = [i // sum(trajectory.values()) for i in iterations]
-        return trajectory_matrix.walk({n: 1}, actual_iterations, {n: 1})
+        return trajectory_matrix.walk({n: 1}, iterations, {n: 1})
 
     @multimethod
     def walk(  # noqa: F811
@@ -298,7 +297,7 @@ class CMF:
 
         Args:
             trajectory: A dict containing the amount of steps in each direction.
-            iterations: The amount of multiplications to perform, either an integer or a list.
+            iterations: The amount of trajectory matrix multiplications to perform, either an integer or a list.
             start: A dict representing the starting point of the multiplication, `default_origin` by default.
         Returns:
             The limit of the walk multiplication as defined above.
@@ -316,3 +315,54 @@ class CMF:
         start: Union[dict, type(None)] = None,
     ) -> Limit:
         return self.limit(trajectory, [iterations], start)[0]
+
+    def delta(
+            self,
+            trajectory: dict,
+            depth: int,
+            start: dict = None,
+            limit: float = None):
+        r"""
+        Calculates the irrationality measure $\delta$ defined, as:
+        $|\frac{p_n}{q_n} - L| = \frac{1}{q_n}^{1+\delta}$
+        for the walk specified by the trajectory.
+        $p_n$ and $q_n$ are respectively defined as the [0,-1] and [1,-1] elements in walk's matrix (see `Limit` class).
+
+        If limit is not specified (i.e, limit is None),
+        then limit is approximated as limit = self.limit(2 * depth)
+
+        Args:
+            trajectory: the trajectory of the walk.
+            depth: $n$, is the number of trajectory matrices multiplied.
+            The $\ell_1$ distance walked from the start point is `depth * sum(trajectory.values())`.
+            limit: $L$
+        Returns:
+            the delta value as defined above.
+        """
+        if limit is None:
+            depths = [depth, 2 * depth]
+            approximants = self.limit(trajectory, depths, start)
+            limit = approximants[-1].as_float()
+            approximants = approximants[:-1]
+        else:
+            approximants = self.limit(trajectory, [depth], start)
+        return approximants[0].delta(limit)
+
+    def delta_sequence(
+            self,
+            trajectory: dict,
+            depth: int,
+            start: dict = None,
+            limit: float = None):
+        r"""
+        Add description here
+        """
+        depths = list(range(1, depth + 1))
+        if limit is None:
+            depths += [2 * depth]
+            approximants = self.limit(trajectory, depths, start)
+            limit = approximants[-1].as_float()
+            approximants = approximants[:-1]
+        else:
+            approximants = self.limit(trajectory, depths, start)
+        return [approximant.delta(limit) for approximant in approximants]
