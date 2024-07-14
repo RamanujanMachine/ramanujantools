@@ -137,9 +137,17 @@ class Matrix(sp.Matrix):
         N: int, c: sp.Expr, symbol: sp.Symbol = n
     ) -> Matrix:
         r"""
-        Returns matrix inflation matrix U for polynomial c.
+        Returns the matrix inflation matrix U for polynomial c.
 
-        Inflated matrix $M'(n)$ satisfies $M'(n) = c(n) * U(n) * M(n) * U^{-1}(n+1)$
+        See `inflate`.
+
+        Args:
+            N: The dimension of the square matrix.
+            c: The polynomial to inflate by.
+            symbol: The symbol of the coboundary relation.
+
+        Returns:
+            The inflation matrix U
         """
         U = Matrix.eye(N)
         for i in range(1, N):
@@ -150,10 +158,15 @@ class Matrix(sp.Matrix):
         r"""
         Inflates the matrix by polynomial c.
 
-        Inflation is defined by a coboundary matrix U
+        Inflated matrix $M'(n)$ satisfies $M'(n) = c(n) * U(n) * M(n) * U^{-1}(n+1)$
 
         Args:
             c: The polynomial to inflate by.
+            symbol: The symbol of the coboundary relation (n in the example).
+        Returns:
+            The inflated matrix as defined above.
+        Raises:
+            ValueError: if the matrix is not a square matrix.
         """
         if not self.is_square():
             raise ValueError("Can only inflate square matrices")
