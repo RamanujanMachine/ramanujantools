@@ -50,4 +50,4 @@ class PCFFromMatrix:
         Let R = relative_limit(self), P = walk(pcf) and M the original matrix. then:
         $P = R \cdot M$
         """
-        return self.pcf.A() * self.U.subs(n, 1)
+        return self.pcf.A() * self.U.subs({n: 1})

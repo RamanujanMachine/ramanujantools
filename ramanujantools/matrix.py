@@ -1,5 +1,6 @@
 from __future__ import annotations
-from typing import Dict, List, Collection
+from typing import Dict, List, Collection, Callable
+from functools import lru_cache
 
 from multimethod import multimethod
 
@@ -20,14 +21,65 @@ class Matrix(sp.Matrix):
     def __eq__(self, other: Matrix) -> bool:
         return all(sp.simplify(cell) == 0 for cell in self - other)
 
-    def __call__(self, *args, **kwargs) -> Matrix:
-        """
-        Substitutes variables in the matrix, in a more math-like syntax.
+    def __hash__(self) -> int:
+        return hash(frozenset(self))
 
-        Calls the underlying sympy `subs` method:
-        https://docs.sympy.org/latest/modules/core.html#sympy.core.basic.Basic.subs
+    def __call__(self, substitutions: Dict) -> Matrix:
         """
-        return self.subs(*args, **kwargs)
+        Substitutes symbols in the matrix, in a more math-like syntax.
+        """
+        return self.subs(substitutions)
+
+    def subs(self, substitutions: Dict) -> Matrix:
+        """
+        Substitutes symbols in the matrix.
+
+        Calls the underlying sympy xreplace method, as subs is too slow and we don't need it's extra functionality
+        https://docs.sympy.org/latest/modules/core.html#sympy.core.basic.Basic.xreplace
+
+        In the case where all substitutions are numbers (and not symbols or expressions),
+        Uses numerical as an optimization
+        """
+        if self._can_call_numerical_subs(substitutions):
+            return self.numerical_subs(substitutions)
+        return self.xreplace(substitutions)
+
+    def _can_call_numerical_subs(self, substitutions: Dict) -> bool:
+        """
+        Returns true iff the all substitutions are numerical and we can can call `numerical_subs` instead of `xreplace`.
+        """
+        return not (
+            len(substitutions) < len(self.free_symbols)
+            or any(isinstance(element, sp.Expr) for element in substitutions.values())
+        )
+
+    def numerical_subs(self, substitutions: Dict) -> Matrix:
+        """
+        An optimized version of `subs` for the case where all free_symbols are present in the substitutions dict,
+        and all requested values are numerical (i.e not sympy expressions of any sort)
+        """
+        fast_subs = self.create_fast_subs(self)
+        return fast_subs(substitutions)
+
+    @staticmethod
+    @lru_cache
+    def create_fast_subs(matrix: Matrix) -> Callable:
+        """
+        Returns a function that evaluates the matrix at given substitutions.
+
+        Works by storing the matrix as a string, setting all local symbols as variables in the local scope,
+        and then simply (but not symply) returning it.
+        Evaluation occures in the python interpreter, rather by recursively substituting the sympy expressions.
+        This optimizes by a factor of 2~
+        """
+        matrix_string = str(matrix)
+
+        def fast_subs(substitutions: Dict):
+            for symbol, value in substitutions.items():
+                exec(f"{symbol} = {value}")
+            return eval(matrix_string)
+
+        return fast_subs
 
     def is_square(self) -> int:
         """
@@ -141,7 +193,7 @@ class Matrix(sp.Matrix):
         ):  # Plus one for the last requested `iterations` value
             if i in iterations:
                 results.append(matrix)
-            matrix *= self.subs(position)
+            matrix *= self(position)
             position = {key: trajectory[key] + value for key, value in position.items()}
         return results
 

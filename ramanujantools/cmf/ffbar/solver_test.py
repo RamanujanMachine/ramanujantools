@@ -22,7 +22,7 @@ def test_from_ffbar_gauss():
     solutions = from_pcf(pcf)
     assert len(solutions) == 1
     cmf = solutions[0]
-    assert pcf.M() == cmf.M(x).subs(x, n)
+    assert pcf.M() == cmf.M(x).subs({x: n})
 
 
 def test_ffbar_from_cmf1():

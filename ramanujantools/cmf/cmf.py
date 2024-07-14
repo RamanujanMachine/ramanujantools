@@ -53,8 +53,8 @@ class CMF:
     ) -> bool:
         Mx = self.M(x, x_forward)
         My = self.M(y, y_forward)
-        Mxy = simplify(Mx * My.subs({x: x + 1 if x_forward else x - 1}))
-        Myx = simplify(My * Mx.subs({y: y + 1 if y_forward else y - 1}))
+        Mxy = simplify(Mx * My({x: x + 1 if x_forward else x - 1}))
+        Myx = simplify(My * Mx({y: y + 1 if y_forward else y - 1}))
         return Mxy == Myx
 
     def assert_conserving(self, check_negatives: bool = False) -> None:
@@ -103,7 +103,7 @@ class CMF:
         if sign:
             return self.matrices[axis]
         else:
-            return self.matrices[axis].inverse().subs({axis: axis - 1})
+            return self.matrices[axis].inverse()({axis: axis - 1})
 
     def axes(self) -> Set[sp.Symbol]:
         """
@@ -150,13 +150,14 @@ class CMF:
 
     def subs(self, *args, **kwargs) -> CMF:
         """
-        Returns a new CMF with substituted Mx and My.
+        Returns a new CMF with substituted matrices.
         """
         return CMF(
             matrices={
                 symbol: matrix.subs(*args, **kwargs)
                 for symbol, matrix in self.matrices.items()
-            }
+            },
+            validate=False,
         )
 
     def simplify(self):
@@ -206,7 +207,7 @@ class CMF:
             position[axis] += trajectory[axis]
         if start:
             m = CMF.substitute_trajectory(m, trajectory, start)
-        return m.reduce()
+        return m
 
     def as_pcf(self, trajectory) -> PCFFromMatrix:
         """
@@ -241,10 +242,10 @@ class CMF:
                 f"Trajectory axes {trajectory.keys()} do not match start axes {start.keys()}"
             )
 
-        def sub(i):
+        def replace(i):
             return start[i] + (n - 1) * trajectory[i]
 
-        return trajectory_matrix.subs([(axis, sub(axis)) for axis in trajectory.keys()])
+        return trajectory_matrix({axis: replace(axis) for axis in trajectory.keys()})
 
     @multimethod
     def walk(
