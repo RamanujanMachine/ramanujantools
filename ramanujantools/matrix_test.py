@@ -80,7 +80,32 @@ def test_is_companion():
 
 def test_companion_coboundary():
     m = Matrix([[1, n, 2], [3, n**2, 5 * n], [n - 7, n**2 + 1, n - 3]])
-    assert m.coboundary(m.companion_coboundary()).is_companion()
+    assert m.coboundary(m.companion_coboundary_matrix()).is_companion()
+
+
+def test_companion_coboundary_two_variables():
+    m = Matrix([[1, x, 2 * y], [3, x * y, 5 * y], [x - 7, (x + y) ** 2 + 1, y - 3]])
+    assert m.coboundary(m.companion_coboundary_matrix(x), x).is_companion()
+    assert m.coboundary(m.companion_coboundary_matrix(y), y).is_companion()
+
+
+def test_inflation_coboundary():
+    c = x - 7
+    expected = Matrix(
+        [
+            [c.subs({x: x - 2}) * c.subs({x: x - 1}), 0, 0],
+            [0, c.subs({x: x - 1}), 0],
+            [0, 0, 1],
+        ]
+    )
+    U = Matrix.inflation_coboundary_matrix(3, x - 7, symbol=x)
+    assert expected == U
+
+
+def test_inflate():
+    M = Matrix([[0, n**2], [1, n + 1]])
+    expected = Matrix([[0, n**2 * (n - 1) * (n - 2)], [1, (n + 1) * (n - 1)]])
+    assert expected == M.inflate(n - 1)
 
 
 def test_walk_0():

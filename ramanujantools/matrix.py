@@ -101,7 +101,7 @@ class Matrix(sp.Matrix):
         """
         return (U * self * U.inverse().subs({symbol: symbol + 1})).simplify()
 
-    def companion_coboundary(self, symbol: sp.Symbol = n) -> Matrix:
+    def companion_coboundary_matrix(self, symbol: sp.Symbol = n) -> Matrix:
         r"""
         Constructs a new matrix U such that `self.coboundary(U)` is a companion matrix.
         """
@@ -131,6 +131,35 @@ class Matrix(sp.Matrix):
                     if self[row, col] != 0:
                         return False
         return True
+
+    @staticmethod
+    def inflation_coboundary_matrix(
+        N: int, c: sp.Expr, symbol: sp.Symbol = n
+    ) -> Matrix:
+        r"""
+        Returns matrix inflation matrix U for polynomial c.
+
+        Inflated matrix $M'(n)$ satisfies $M'(n) = c(n) * U(n) * M(n) * U^{-1}(n+1)$
+        """
+        U = Matrix.eye(N)
+        for i in range(1, N):
+            U[N - (i + 1), N - (i + 1)] = U[N - i, N - i] * c.subs({symbol: symbol - i})
+        return U
+
+    def inflate(self, c: sp.Expr, symbol: sp.Symbol = n) -> Matrix:
+        r"""
+        Inflates the matrix by polynomial c.
+
+        Inflation is defined by a coboundary matrix U
+
+        Args:
+            c: The polynomial to inflate by.
+        """
+        if not self.is_square():
+            raise ValueError("Can only inflate square matrices")
+        return c * self.coboundary(
+            Matrix.inflation_coboundary_matrix(N=self.rows, c=c, symbol=symbol)
+        )
 
     @multimethod
     def walk(  # noqa: F811
