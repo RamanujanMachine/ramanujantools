@@ -158,7 +158,33 @@ class Matrix(sp.Matrix):
         r"""
         Inflates the matrix by polynomial c.
 
-        Inflated matrix $M'(n)$ satisfies $M'(n) = c(n) * U(n) * M(n) * U^{-1}(n+1)$
+        Inflated matrix $M'(n)$ satisfies $M'(n) = c(n) * U(n) * M(n) * U^{-1}(n+1)$,
+        Where `U` is the inflation matrix.
+        Inflation is defined by the case where M is a companion matrix,
+
+        $M(n) =
+        \begin{bmatrix}
+            0&0&\cdots & 0 & 0 & p_{N}(n) \cr
+            1&0&\cdots & 0 & 0 & p_{N-1}(n) \cr
+            0&1&\cdots & 0 & 0 & p_{N-2}(n) \cr
+            \vdots & &\ddots  &  & \vdots & \vdots \cr
+            0&0&\cdots & 1 & 0 & p_{2}(n) \cr
+            0&0&\cdots & 0 & 1 & p_{1}(n) \cr
+        \end{bmatrix}$
+
+        Then the inflated matrix satisfies
+
+        $M'(n) =
+        \begin{bmatrix}
+            0&0&\cdots & 0 & 0 & p_{N}(n)\prod_{i=0}^{N-1}c(n-i) \cr
+            1&0&\cdots & 0 & 0 & p_{N-1}(n)\prod_{i=0}^{N-2}c(n-i) \cr
+            0&1&\cdots & 0 & 0 & p_{N-2}(n)\prod_{i=0}^{N-3}c(n-i) \cr
+            \vdots & &\ddots  &  & \vdots & \vdots \cr
+            0&0&\cdots & 1 & 0 & p_{2}(n)c(n)c(n-1) \cr
+            0&0&\cdots & 0 & 1 & p_{1}(n)c(n) \cr
+        \end{bmatrix}$
+
+        See `inflation_coboundary_matrix`
 
         Args:
             c: The polynomial to inflate by.
@@ -173,6 +199,16 @@ class Matrix(sp.Matrix):
         return c * self.coboundary(
             Matrix.inflation_coboundary_matrix(N=self.rows, c=c, symbol=symbol)
         )
+
+    def deflate(self, c: sp.Expr, symbol: sp.Symbol = n) -> Matrix:
+        r"""
+        Deflates the matrix by polynomial c.
+
+        This is a syntactic sugar to `self.inflate(1/c, symbol)`.
+        See `inflate`.
+        """
+
+        return self.inflate(c=1 / c, symbol=symbol)
 
     @multimethod
     def walk(  # noqa: F811
