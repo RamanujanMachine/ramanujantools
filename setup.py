@@ -17,5 +17,6 @@ setup(
         "multimethod>=1.10",
         "pytest>=8.2.0",
         "sympy>=1.11.1",
+        "gmpy2>=2.1.5",
     ],
 )

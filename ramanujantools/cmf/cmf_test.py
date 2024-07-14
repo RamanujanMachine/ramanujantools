@@ -42,29 +42,19 @@ def test_trajectory_matrix_diagonal():
 
 def test_back_negates_forward():
     cmf = known_cmfs.e()
-    assert (
-        Matrix.eye(2) == (cmf.M(x, True) * cmf.M(x, False).subs({x: x + 1})).reduce()
-    )
-    assert (
-        Matrix.eye(2) == (cmf.M(x, False) * cmf.M(x, True).subs({x: x - 1})).reduce()
-    )
-    assert (
-        Matrix.eye(2) == (cmf.M(y, True) * cmf.M(y, False).subs({y: y + 1})).reduce()
-    )
-    assert (
-        Matrix.eye(2) == (cmf.M(y, False) * cmf.M(y, True).subs({y: y - 1})).reduce()
-    )
+    assert Matrix.eye(2) == (cmf.M(x, True) * cmf.M(x, False).subs({x: x + 1})).reduce()
+    assert Matrix.eye(2) == (cmf.M(x, False) * cmf.M(x, True).subs({x: x - 1})).reduce()
+    assert Matrix.eye(2) == (cmf.M(y, True) * cmf.M(y, False).subs({y: y + 1})).reduce()
+    assert Matrix.eye(2) == (cmf.M(y, False) * cmf.M(y, True).subs({y: y - 1})).reduce()
 
 
 def test_trajectory_matrix_negative_axis():
     cmf = known_cmfs.e()
-    assert (
-        cmf.trajectory_matrix({x: -3, y: 0})
-        == cmf.M(x, False).walk({x: -1, y: 0}, 3, {x: x, y: y}).reduce()
+    assert cmf.trajectory_matrix({x: -3, y: 0}) == cmf.M(x, False).walk(
+        {x: -1, y: 0}, 3, {x: x, y: y}
     )
-    assert (
-        cmf.trajectory_matrix({x: 0, y: -2})
-        == cmf.M(y, False).walk({x: 0, y: -1}, 2, {x: x, y: y}).reduce()
+    assert cmf.trajectory_matrix({x: 0, y: -2}) == cmf.M(y, False).walk(
+        {x: 0, y: -1}, 2, {x: x, y: y}
     )
 
 
@@ -77,7 +67,7 @@ def test_trajectory_matrix_negative():
         * cmf.M(c, sign=False).subs({a: a + 1, b: b - 2})
     )
 
-    assert expected.reduce() == cmf.trajectory_matrix({a: 1, b: -2, c: -1})
+    assert expected == cmf.trajectory_matrix({a: 1, b: -2, c: -1})
 
 
 def test_trajectory_matrix_diagonal_substitute():
@@ -85,7 +75,7 @@ def test_trajectory_matrix_diagonal_substitute():
 
     cmf = known_cmfs.e()
     assert cmf.trajectory_matrix({x: 1, y: 1}, {x: 3, y: 5}) == simplify(
-        cmf.trajectory_matrix({x: 1, y: 1}).subs([(x, n + 2), (y, n + 4)])
+        cmf.trajectory_matrix({x: 1, y: 1}).subs({x: n + 2, y: n + 4})
     )
 
 
@@ -131,7 +121,7 @@ def test_substitute_trajectory_axis():
 def test_substitute_trajectory_diagonal():
     m = known_cmfs.e().trajectory_matrix({x: 1, y: 2})
     assert CMF.substitute_trajectory(m, {x: 1, y: 2}, {x: 3, y: 5}) == m.subs(
-        [(x, n + 2), (y, 2 * n + 3)]
+        {x: n + 2, y: 2 * n + 3}
     )
 
 
