@@ -91,6 +91,14 @@ def test_deflate_poly():
     assert PCF(a_n, b_n) == pcf.deflate(c_n)
 
 
+def test_deflate_matrix_equivalent():
+    a_n = n + 4
+    b_n = n**2
+    c_n = n**7 + 5 * n - 3
+    pcf = PCF(c_n * a_n, c_n.subs(n, n - 1) * c_n * b_n)
+    assert pcf.M().deflate(c_n) == pcf.deflate(c_n).M()
+
+
 def test_deflate_all():
     c_n = c**2 * (7 * n - 13 * c) * (2 * n - 5) ** 4 * (3 * n + 11)
     a_n = n + c
