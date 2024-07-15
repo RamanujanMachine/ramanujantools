@@ -94,6 +94,7 @@ class Matrix(sp.Matrix):
         """
         return self.rows == self.cols
 
+    @lru_cache()
     def denominator_lcm(self) -> sp.Expr:
         """
         Returns the lcm of all denominators
@@ -101,7 +102,6 @@ class Matrix(sp.Matrix):
         divisors = [cell.cancel().as_numer_denom()[1] for cell in self]
         return sp.lcm(divisors)
 
-    @lru_cache()
     def is_polynomial(self) -> bool:
         return self.denominator_lcm() == 1
 
@@ -111,6 +111,7 @@ class Matrix(sp.Matrix):
         """
         return (self * self.denominator_lcm()).simplify()
 
+    @lru_cache()
     def gcd(self) -> sp.Rational:
         """
         Returns the rational gcd of the matrix, which could also be parameteric.
@@ -128,6 +129,7 @@ class Matrix(sp.Matrix):
         m = self.simplify()
         return (m / m.gcd()).simplify()
 
+    @lru_cache()
     def inverse(self) -> Matrix:
         """
         Inverses the matrix.
