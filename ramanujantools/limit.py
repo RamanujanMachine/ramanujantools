@@ -97,7 +97,10 @@ class Limit(Matrix):
         """
         p = sp.Rational(self[p_indices[0], p_indices[1]])
         q = sp.Rational(self[q_indices[0], q_indices[1]])
-        return [p.numerator * q.denominator, p.denominator * q.numerator]
+        return [
+            sp.Integer(p.numerator * q.denominator),
+            sp.Integer(p.denominator * q.numerator),
+        ]
 
     def as_float(self, p_indices=[0, -1], q_indices=[1, -1]) -> mp.mpf:
         r"""
