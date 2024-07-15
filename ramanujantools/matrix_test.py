@@ -148,16 +148,6 @@ def test_walk_start_multi_variable():
     assert expected == actual
 
 
-def test_walk_sequence():
-    trajectory = {x: 2, y: 3}
-    start = {x: 5, y: 7}
-    iterations = [1, 2, 3, 17, 29, 53, 99]
-    m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
-    assert m.walk(trajectory, tuple(iterations), start) == m.walk(
-        trajectory, set(iterations), start
-    )
-
-
 def test_walk_axis():
     m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
     assert simplify(m.walk({x: 1, y: 0}, 3, {x: 1, y: 1})) == simplify(

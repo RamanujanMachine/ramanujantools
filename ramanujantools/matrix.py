@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Dict, List, Collection, Callable
+from typing import Dict, List, Callable
 from functools import lru_cache
 
 from multimethod import multimethod
@@ -155,7 +155,7 @@ class Matrix(sp.Matrix):
 
     @multimethod
     def walk(  # noqa: F811
-        self, trajectory: Dict, iterations: Collection[int], start: Dict
+        self, trajectory: Dict, iterations: List, start: Dict
     ) -> List[Matrix]:
         r"""
         Returns the multiplication result of walking in a certain trajectory.
@@ -178,6 +178,37 @@ class Matrix(sp.Matrix):
                         if `start` and `trajectory` have different keys,
                         if `iterations` contains duplicate values
         """
+        iterations_set = set(iterations)
+        if len(iterations_set) != len(iterations):
+            raise ValueError(f"`iterations` values must be unique, got {iterations}")
+
+        if not iterations == sorted(iterations):
+            raise ValueError(f"Iterations must be sorted, got {iterations}")
+
+        if not all(depth >= 0 for depth in iterations):
+            raise ValueError(
+                f"iterations must contain only non-negative values, got {iterations}"
+            )
+
+        position = start
+        matrix = Matrix.eye(self.rows)
+        results = []
+        previous_depth = 0
+        for depth in iterations:
+            effective_depth = depth - previous_depth
+            matrix *= self.walk(trajectory, effective_depth, position)
+            position = {
+                key: position[key] + value * effective_depth
+                for key, value in trajectory.items()
+            }
+            previous_depth = depth
+            results.append(matrix)
+        return results
+
+    @multimethod
+    def walk(  # noqa: F811
+        self, trajectory: Dict, iterations: int, start: Dict
+    ) -> Matrix:
         if not self.is_square():
             raise ValueError(
                 f"Matrix.walk is only supported for square matrices, got a {self.rows}x{self.cols} matrix"
@@ -189,32 +220,16 @@ class Matrix(sp.Matrix):
                 f"start={set(start.keys())}, trajectory={set(trajectory.keys())}"
             )
 
-        if not all(depth >= 0 for depth in iterations):
-            raise ValueError(
-                f"iterations must contain only non-negative values, got {iterations}"
-            )
-
-        iterations_set = set(iterations)
-        if len(iterations_set) != len(iterations):
-            raise ValueError(f"`iterations` values must be unique, got {iterations}")
+        if iterations < 0:
+            raise ValueError(f"iterations must be non-negative, got {iterations}")
 
         position = start
         matrix = Matrix.eye(self.rows)
-        results = []
-        for i in range(
-            max(iterations_set) + 1
-        ):  # Plus one for the last requested `iterations` value
-            if i in iterations:
-                results.append(matrix)
+        # Plus one for the last requested `iterations` value
+        for i in range(1, iterations + 1):
             matrix *= self(position)
             position = {key: trajectory[key] + value for key, value in position.items()}
-        return results
-
-    @multimethod
-    def walk(  # noqa: F811
-        self, trajectory: Dict, iterations: int, start: Dict
-    ) -> Matrix:
-        return self.walk(trajectory, [iterations], start)[0]
+        return matrix
 
     def as_pcf(self, deflate_all=True):
         """
