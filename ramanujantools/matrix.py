@@ -19,7 +19,11 @@ class Matrix(sp.Matrix):
         return repr(self)
 
     def __eq__(self, other: Matrix) -> bool:
-        return all(sp.simplify(cell) == 0 for cell in self - other)
+        return (
+            self.rows == other.rows
+            and self.cols == other.cols
+            and all(sp.simplify(cell) == 0 for cell in self - other)
+        )
 
     def __hash__(self) -> int:
         return hash(frozenset(self))
