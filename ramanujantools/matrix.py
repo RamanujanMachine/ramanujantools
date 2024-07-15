@@ -155,7 +155,7 @@ class Matrix(sp.Matrix):
 
     @multimethod
     def walk(  # noqa: F811
-        self, trajectory: Dict, iterations: List, start: Dict
+        self, trajectory: Dict, iterations: list[int], start: Dict
     ) -> List[Matrix]:
         r"""
         Returns the multiplication result of walking in a certain trajectory.
@@ -190,9 +190,9 @@ class Matrix(sp.Matrix):
                 f"iterations must contain only non-negative values, got {iterations}"
             )
 
+        results = []
         position = start
         matrix = Matrix.eye(self.rows)
-        results = []
         previous_depth = 0
         for depth in iterations:
             effective_depth = depth - previous_depth

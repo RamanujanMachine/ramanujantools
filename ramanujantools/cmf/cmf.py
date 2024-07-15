@@ -1,7 +1,7 @@
 from __future__ import annotations
 import itertools
 from multimethod import multimethod
-from typing import Collection, Dict, List, Set, Union
+from typing import Dict, List, Set, Union
 
 import sympy as sp
 from sympy.abc import n
@@ -198,7 +198,7 @@ class CMF:
             )
 
         position = {axis: axis for axis in self.axes()}
-        m = sp.eye(self.N())
+        m = Matrix.eye(self.N())
         for axis in self.axes():
             sign = trajectory[axis] >= 0
             m *= self.M(axis, sign).walk(
@@ -248,10 +248,10 @@ class CMF:
         return trajectory_matrix({axis: replace(axis) for axis in trajectory.keys()})
 
     @multimethod
-    def walk(
+    def walk(  # noqa: F811
         self,
         trajectory: dict,
-        iterations: Collection[int],
+        iterations: List,
         start: Union[dict, type(None)] = None,
     ) -> List[Matrix]:
         r"""
@@ -268,10 +268,32 @@ class CMF:
             The limit of the walk multiplication as defined above.
             If `iterations` is a list, returns a list of limits.
         """
-        trajectory_matrix = self.trajectory_matrix(
-            trajectory, start or self.default_origin()
-        )
-        return trajectory_matrix.walk({n: 1}, iterations, {n: 1})
+        iterations_set = set(iterations)
+        if len(iterations_set) != len(iterations):
+            raise ValueError(f"`iterations` values must be unique, got {iterations}")
+
+        if not iterations == sorted(iterations):
+            raise ValueError(f"Iterations must be sorted, got {iterations}")
+
+        if not all(depth >= 0 for depth in iterations):
+            raise ValueError(
+                f"iterations must contain only non-negative values, got {iterations}"
+            )
+
+        results = []
+        position = dict(start or self.default_origin())
+        matrix = Matrix.eye(self.N())
+        previous_depth = 0
+        for depth in iterations:
+            effective_depth = depth - previous_depth
+            matrix *= self.walk(trajectory, effective_depth, position)
+            position = {
+                key: position[key] + value * effective_depth
+                for key, value in trajectory.items()
+            }
+            previous_depth = depth
+            results.append(matrix)
+        return results
 
     @multimethod
     def walk(  # noqa: F811
@@ -280,13 +302,22 @@ class CMF:
         iterations: int,
         start: Union[dict, type(None)] = None,
     ) -> Matrix:
-        return self.walk(trajectory, [iterations], start)[0]
+        position = dict(start or self.default_origin())
+        matrix = Matrix.eye(self.N())
+        for axis in self.axes():
+            depth = trajectory[axis] * iterations
+            sign = depth >= 0
+            matrix *= self.M(axis, sign).walk(
+                self.axis_vector(axis, sign), abs(depth), position
+            )
+            position[axis] += depth
+        return matrix
 
     @multimethod
     def limit(
         self,
         trajectory: dict,
-        iterations: Collection[int],
+        iterations: List,
         start: Union[dict, type(None)] = None,
     ) -> List[Limit]:
         r"""
@@ -331,7 +362,7 @@ class CMF:
         Args:
             trajectory: the trajectory of the walk.
             depth: $n$, is the number of trajectory matrices multiplied.
-            The $\ell_1$ distance walked from the start point is `depth * sum(trajectory.values())`.
+                The $\ell_1$ distance walked from the start point is `depth * sum(trajectory.values())`.
             limit: $L$
         Returns:
             the delta value as defined above.
