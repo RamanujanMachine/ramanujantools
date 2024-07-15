@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import List
-import math
 
+import sympy as sp
 from mpmath import mp
 
 from ramanujantools import Matrix
@@ -95,7 +95,9 @@ class Limit(Matrix):
         Returns:
             a list of the form [p, q], representing the rational number.
         """
-        return [self[p_indices[0], p_indices[1]], self[q_indices[0], q_indices[1]]]
+        p = sp.Rational(self[p_indices[0], p_indices[1]])
+        q = sp.Rational(self[q_indices[0], q_indices[1]])
+        return [p.numerator * q.denominator, p.denominator * q.numerator]
 
     def as_float(self, p_indices=[0, -1], q_indices=[1, -1]) -> mp.mpf:
         r"""
@@ -131,7 +133,7 @@ class Limit(Matrix):
         """
         self.increase_precision(p_indices, q_indices)
         p, q = self.as_rational(p_indices, q_indices)
-        gcd = math.gcd(p, q)
+        gcd = sp.gcd(p, q)
         reduced_q = mp.fabs(q // gcd)
         if reduced_q == 1:
             return mp.mpf("inf")
