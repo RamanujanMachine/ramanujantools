@@ -19,7 +19,11 @@ class Matrix(sp.Matrix):
         return repr(self)
 
     def __eq__(self, other: Matrix) -> bool:
-        return all(sp.simplify(cell) == 0 for cell in self - other)
+        return (
+            self.rows == other.rows
+            and self.cols == other.cols
+            and all(sp.simplify(cell) == 0 for cell in self - other)
+        )
 
     def __hash__(self) -> int:
         return hash(frozenset(self))
@@ -48,9 +52,12 @@ class Matrix(sp.Matrix):
         """
         Returns true iff the all substitutions are numerical and we can can call `numerical_subs` instead of `xreplace`.
         """
-        return not (
-            len(substitutions) < len(self.free_symbols)
-            or any(isinstance(element, sp.Expr) for element in substitutions.values())
+        return (
+            self.is_polynomial()
+            and len(substitutions) == len(self.free_symbols)
+            and not (
+                any(isinstance(element, sp.Expr) for element in substitutions.values())
+            )
         )
 
     def numerical_subs(self, substitutions: Dict) -> Matrix:
@@ -58,7 +65,7 @@ class Matrix(sp.Matrix):
         An optimized version of `subs` for the case where all free_symbols are present in the substitutions dict,
         and all requested values are numerical (i.e not sympy expressions of any sort)
         """
-        fast_subs = self.create_fast_subs(self)
+        fast_subs = Matrix.create_fast_subs(self)
         return fast_subs(substitutions)
 
     @staticmethod
@@ -87,6 +94,7 @@ class Matrix(sp.Matrix):
         """
         return self.rows == self.cols
 
+    @lru_cache()
     def denominator_lcm(self) -> sp.Expr:
         """
         Returns the lcm of all denominators
@@ -94,12 +102,16 @@ class Matrix(sp.Matrix):
         divisors = [cell.cancel().as_numer_denom()[1] for cell in self]
         return sp.lcm(divisors)
 
+    def is_polynomial(self) -> bool:
+        return self.denominator_lcm() == 1
+
     def as_polynomial(self) -> Matrix:
         """
         Converts the matrix to a polynomial matrix by multiplying it by the denominators lcm.
         """
         return (self * self.denominator_lcm()).simplify()
 
+    @lru_cache()
     def gcd(self) -> sp.Rational:
         """
         Returns the rational gcd of the matrix, which could also be parameteric.
@@ -117,9 +129,10 @@ class Matrix(sp.Matrix):
         m = self.simplify()
         return (m / m.gcd()).simplify()
 
+    @lru_cache()
     def inverse(self) -> Matrix:
         """
-        Inverses the matrix.
+        Inverts the matrix.
         """
         return self.inv()
 
