@@ -317,11 +317,8 @@ class CMF:
         return self.limit(trajectory, [iterations], start)[0]
 
     def delta(
-            self,
-            trajectory: dict,
-            depth: int,
-            start: dict = None,
-            limit: float = None):
+        self, trajectory: dict, depth: int, start: dict = None, limit: float = None
+    ):
         r"""
         Calculates the irrationality measure $\delta$ defined, as:
         $|\frac{p_n}{q_n} - L| = \frac{1}{q_n}^{1+\delta}$
@@ -349,11 +346,8 @@ class CMF:
         return approximants[0].delta(limit)
 
     def delta_sequence(
-            self,
-            trajectory: dict,
-            depth: int,
-            start: dict = None,
-            limit: float = None):
+        self, trajectory: dict, depth: int, start: dict = None, limit: float = None
+    ):
         r"""
         Add description here
         """
