@@ -136,3 +136,17 @@ def test_blind_delta_sequence_agrees_with_blind_delta():
         expected_deltas.append(pcf.delta(dep, limit))
 
     assert expected_deltas == actual_values
+
+
+def test_as_latex():
+    pcf = PCF(1 + n - n**2, 3 - n**9)
+    expected = (
+        '1 + \\cfrac{2}{1 + \\cfrac{-509}{-1 + \\cfrac{-19680}'
+        '{-5 + \\cfrac{-262141}{-11 + \\cfrac{-1953122}'
+        '{\\ddots + \\cfrac{3 - n**9}{-n**2 + n + 1 + \\ddots}}}}}}')
+    expected_generic = (
+        'a_0 + \\cfrac{b_1}{a_1 + \\cfrac{b_2}{a_2 + '
+        '\\cfrac{b_3}{a_3 + \\cfrac{b_4}{a_4 + '
+        '\\cfrac{b_5}{\\ddots + \\cfrac{b_n}{a_n + \\ddots}}}}}}')
+    assert pcf.as_latex(depth=5, print_bool=False) == expected
+    assert pcf.as_latex(depth=5, generic=True, print_bool=False) == expected_generic

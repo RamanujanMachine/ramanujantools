@@ -187,3 +187,7 @@ def test_walk_different_start():
     assert simplify(m.walk({x: 3, y: 2}, 3, {x: 5, y: 7})) == simplify(
         m({x: 5, y: 7}) * m({x: 8, y: 9}) * m({x: 11, y: 11})
     )
+
+def test_as_latex():
+    m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
+    assert m.as_latex(print_bool=False) == '\\begin{pmatrix}x & 3 x + 5 y\\\\x + y^{7} - 3 & x^{5}\\end{pmatrix}'

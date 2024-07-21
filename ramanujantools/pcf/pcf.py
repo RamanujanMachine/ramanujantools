@@ -3,6 +3,7 @@ from sympy.abc import n
 
 from typing import Dict, List, Collection
 from multimethod import multimethod
+import re
 
 from ramanujantools import Matrix, Limit
 
@@ -52,6 +53,39 @@ def content(a, b, variables):
 
     return sp.simplify(c_n)
 
+# for as_latex method
+def python_to_latex(python_str):
+    # Convert '**' to '^'
+    latex_str = python_str.replace('**', '^')
+    
+    # Convert '*' to '\cdot' (for multiplication)
+    latex_str = latex_str.replace('*', '') # r'\cdot '
+    
+    # Convert '/' to '\frac{}{}' (for division)
+    # Use regular expressions to find the division operation
+    def convert_division(match):
+        numerator = match.group(1)
+        denominator = match.group(2)
+        return r'\frac{' + numerator + '}{' + denominator + '}'
+    latex_str = re.sub(r'(\w+)\s*/\s*(\w+)', convert_division, latex_str)
+    return latex_str
+
+def generic_recursive_fraction(level, depth):
+    if level == depth:
+        return r'\ddots + \cfrac{b_n}{a_n + \ddots}'
+    else:
+        a_i = f'a_{level}'
+        b_i = f'b_{level + 1}'
+        return rf'{a_i} + \cfrac{{{b_i}}}{{{generic_recursive_fraction(level + 1, depth)}}}'
+
+def recursive_fraction(level, depth, a_n, b_n):
+    if level == depth:
+        return rf'\ddots + \cfrac{{{b_n}}}{{{a_n} + \ddots}}'
+    else:
+        a_val = a_n.subs(n, level)
+        b_val = b_n.subs(n, level + 1)
+        return rf'{a_val} + \cfrac{{{b_val}}}{{{recursive_fraction(level + 1, depth, a_n, b_n)}}}'
+
 
 class PCF:
     """
@@ -77,7 +111,36 @@ class PCF:
 
     def __repr__(self):
         return f"PCF({self.a_n}, {self.b_n})"
+    
+    def as_latex(self, depth: int = 3, start: int = 1, generic: bool = False, print_bool: bool = True):
+        """
+        Prints as a continued fraction in LaTeX format.
+        Note: result should be printed to obtain actual LaTex string format.
 
+        Args:
+            depth: The depth to display up to.
+            start: The index from which to display.
+            generic: Whether to use generic symbols like a_n, b_n or the actual values.
+        Prints:
+            The LaTeX string for the continued fraction.
+        Returns:
+            The LaTeX string for the continued fraction (python representation).
+        """
+        if generic == True:
+            # Use generic symbols
+            if start != 1:
+                result = rf'\cfrac{{b_{start}}}{{{generic_recursive_fraction(start, depth)}}}'
+            else:
+                result = rf'a_0 + \cfrac{{b_1}}{{{generic_recursive_fraction(start, depth)}}}'
+        else:
+            if start != 1:
+                result = rf'\cfrac{{{self.b_n.subs(n, start)}}}{{{recursive_fraction(start, depth, self.a_n, self.b_n)}}}'
+            else:
+                result = rf'{self.a_n.subs(n, 0)} + \cfrac{{{self.b_n.subs(n, 1)}}}{{{recursive_fraction(start, depth, self.a_n, self.b_n)}}}'
+        if print_bool:
+            print(python_to_latex(result))
+        return result
+    
     def degree(self):
         """
         Returns the degrees of a_n and b_n as a tuple: $(deg(a_n), deg(b_n))$
@@ -149,7 +212,7 @@ class PCF:
 
         Args:
             iterations: The amount of multiplications to perform. Can be an integer value or a list of values.
-            start: The n value of the first matrix to be multiplied (1 by default)
+            start: The n value of the first matrix to be multiplied (1 by default).
         Returns:
             The pcf convergence limit as defined above.
             If iterations is a list, returns a list of limits.

@@ -33,6 +33,21 @@ class Matrix(sp.Matrix):
         Substitutes symbols in the matrix, in a more math-like syntax.
         """
         return self.subs(substitutions)
+    
+    def as_latex(self, print_bool: bool = True) -> None:
+        """
+        Prints the matrix as a latex string.
+        Args:
+            print_bool: if `True`, prints the latex string to the console (set to False for testing).
+        Prints:
+            The latex string (pmatrix format) of the matrix.
+        Returns:
+            The latex string (pmatrix format) of the matrix (python representation).
+        """
+        result = sp.latex(self).replace("\\left[", "").replace("\\right]", "").replace("matrix", "pmatrix")
+        if print_bool:
+            print(result)
+        return result
 
     def subs(self, substitutions: Dict) -> Matrix:
         """
