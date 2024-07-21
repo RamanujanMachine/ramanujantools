@@ -135,6 +135,18 @@ def test_inflate():
     assert expected == M.inflate(n - 1)
 
 
+def test_normalize_companion():
+    M = Matrix([[0, 0, n**3], [1, 0, n**2 + 1], [0, 1, n - 17]])
+    assert M.normalize_companion() == M.deflate(M[-1])
+
+
+def test_companion_equivalent():
+    M = Matrix([[0, 0, n**3], [1, 0, n**2 + 1], [0, 1, n - 17]])
+    M1 = M.inflate(n - 31).deflate((4 * n - 3) ** 2)
+    M2 = M.inflate(n**5)
+    assert M1.companion_equivalent(M2)
+
+
 def test_walk_0():
     m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
     assert m.walk({x: 0, y: 1}, 0, {x: x, y: y}) == Matrix.eye(2)

@@ -248,9 +248,10 @@ class Matrix(sp.Matrix):
         """
         if not self.is_square():
             raise ValueError("Can only inflate square matrices")
-        return c * self.coboundary(
+        m = c * self.coboundary(
             Matrix.inflation_coboundary_matrix(N=self.rows, c=c, symbol=symbol)
         )
+        return m.simplify()
 
     def deflate(self, c: sp.Expr, symbol: sp.Symbol = n) -> Matrix:
         r"""
@@ -261,6 +262,44 @@ class Matrix(sp.Matrix):
         """
 
         return self.inflate(c=1 / c, symbol=symbol)
+
+    def normalize_companion(self) -> Matrix:
+        r"""
+        Normalizes the companion matrix to a canonical form.
+
+        The canonical form is achieved when $p_{1}(n) = 1$ using inflations and deflations.
+
+        Returns:
+            The matrix in normalized companion form.
+        Raises:
+            ValueError: If `self` is not a companion matrix.
+        """
+        if not (self.is_companion()):
+            raise ValueError(
+                "Companion normalization can be used only on companion matrices"
+            )
+        return self.deflate(self[-1, -1])
+
+    def companion_equivalent(self, other: Matrix) -> bool:
+        r"""
+        Returns true iff both companion matrices are equivalent up to inflations.
+
+        Returns:
+            True iff they are equivalent
+        Raises:
+            ValueError: if one of the matrices are not a companion matrix
+        """
+        if not (self.is_companion()):
+            raise ValueError(
+                f"Companion normalization can be used only on companion matrices, got {self}"
+            )
+
+        if not (other.is_companion()):
+            raise ValueError(
+                f"Companion normalization can be used only on companion matrices, got {other}"
+            )
+
+        return self.normalize_companion() == other.normalize_companion()
 
     @multimethod
     def walk(  # noqa: F811
