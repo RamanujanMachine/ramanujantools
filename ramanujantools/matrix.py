@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Dict, List, Collection, Callable
+from typing import Dict, List, Set, Collection, Callable
 from functools import lru_cache
 
 from multimethod import multimethod
@@ -94,6 +94,9 @@ class Matrix(sp.Matrix):
         """
         divisors = [cell.cancel().as_numer_denom()[1] for cell in self]
         return sp.lcm(divisors)
+
+    def is_polynomial(self) -> Matrix:
+        return self.denominator_lcm() == 1
 
     def as_polynomial(self) -> Matrix:
         """
@@ -263,9 +266,9 @@ class Matrix(sp.Matrix):
 
         return self.inflate(c=1 / c, symbol=symbol)
 
-    def normalize_companion(self) -> Matrix:
+    def cannonize_companion(self) -> Matrix:
         r"""
-        Normalizes the companion matrix to a canonical form.
+        Cannonizes the companion matrix to a canonical form.
 
         The canonical form is achieved when $p_{1}(n) = 1$ using inflations and deflations.
 
@@ -291,15 +294,60 @@ class Matrix(sp.Matrix):
         """
         if not (self.is_companion()):
             raise ValueError(
-                f"Companion normalization can be used only on companion matrices, got {self}"
+                f"Attempted to compare companion matrices but received non-companion self={self}"
             )
 
         if not (other.is_companion()):
             raise ValueError(
-                f"Companion normalization can be used only on companion matrices, got {other}"
+                f"Attempted to compare companion matrices but received non-companion other={other}"
             )
 
-        return self.normalize_companion() == other.normalize_companion()
+        return self.cannonize_companion() == other.cannonize_companion()
+
+    @staticmethod
+    def select_inflation_factor(factors: Set[sp.Expr], polynomial_index: int):
+        r"""
+        Returns the next factor out of `factors` to inflate during companion normalization.
+
+        Implemented as a greedy algorithm: in the ith row, given a set of factors to inflate,
+        for every factor f in `factors` we check if any of [f+1, ..., f+(i-1)] needs factoring.
+        If that's the case, we shouldn't inflate by f, as it will be inflated anyway.
+        Otherwise, choose f for the next inflation.
+
+        Future improvement:
+        Suppose we want to inflate by f. We can select any of [f, f+1, ..., f+(i-1)].
+        A nice optimization would be to look at deeper rows and see which one is optimal.
+        """
+        # sorting lexicographically for deterministic behavior
+        for factor in sorted(list(factors), key=str):
+            inflation_candidates = [factor + j for j in range(1, polynomial_index + 1)]
+            # check if there exists a `factor + j` such that it will also inflate `factor`
+            if all(candidate not in factors for candidate in inflation_candidates):
+                return factor
+
+    def normalize_companion(self) -> Matrix:
+        r"""
+        Inflates a (rational) companion matrix by a minimal polynomial to make it polynomial
+        """
+
+        def get_next_denominator(m: Matrix):
+            for row in reversed(range(m.rows)):
+                denominator = m[row, -1].cancel().as_numer_denom()[1].expand()
+                if denominator != 1:
+                    return m.rows - row, denominator
+            return 0, 1
+
+        m = self.cannonize_companion()
+        row, denominator = get_next_denominator(m)
+        while denominator != 1:
+            factors = set(dict(sp.factor_list(denominator)[1]))
+            m = m.inflate(Matrix.select_inflation_factor(factors, row))
+            row, denominator = get_next_denominator(m)
+        return m.simplify()
+
+    def as_companion(self) -> Matrix:
+        companion = self.coboundary(self.companion_coboundary_matrix())
+        return companion.normalize_companion()
 
     @multimethod
     def walk(  # noqa: F811

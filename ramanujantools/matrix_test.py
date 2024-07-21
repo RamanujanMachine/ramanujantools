@@ -110,6 +110,45 @@ def test_companion_coboundary():
     assert m.coboundary(m.companion_coboundary_matrix()).is_companion()
 
 
+def test_select_inflation_factor():
+    factors = {n, n + 1, n + 3, n + 4}
+    assert Matrix.select_inflation_factor(factors, 0) == n
+    assert Matrix.select_inflation_factor(factors, 1) == n + 1
+    assert Matrix.select_inflation_factor(factors, 2) == n + 4
+
+
+def test_normalize_companion():
+    m = Matrix(
+        [
+            [0, 0, 1 / (n * (n - 1) * (n - 4))],
+            [1, 0, 1 / ((n - 1) * (n - 2))],
+            [0, 1, 1],
+        ]
+    )
+    expected = m.inflate(n - 1).inflate(n).inflate(n - 4)
+    assert expected.is_polynomial()
+    # optimal = m.inflate(n).inflate(n-2) - for future optimization
+    assert expected == m.normalize_companion()
+
+
+def test_as_companion():
+    m = Matrix(
+        [
+            [1, -1, -n * (1 - 1 / n) - n - 1],
+            [2 / n, 1 - 2 / n, -2 + (-2 * n - 1) / n + (-n - 1) / n + 2 / n],
+            [
+                n ** (-2),
+                (1 - 1 / n) / n + 1 / n,
+                (1 - 1 / n) ** 2 + (-2 * n - 1) / n**2,
+            ],
+        ]
+    )
+
+    companion = m.as_companion()
+    assert companion.is_companion()
+    assert companion.is_polynomial()
+
+
 def test_companion_coboundary_two_variables():
     m = Matrix([[1, x, 2 * y], [3, x * y, 5 * y], [x - 7, (x + y) ** 2 + 1, y - 3]])
     assert m.coboundary(m.companion_coboundary_matrix(x), x).is_companion()
@@ -137,7 +176,7 @@ def test_inflate():
 
 def test_normalize_companion():
     M = Matrix([[0, 0, n**3], [1, 0, n**2 + 1], [0, 1, n - 17]])
-    assert M.normalize_companion() == M.deflate(M[-1])
+    assert M.cannonize_companion() == M.deflate(M[-1])
 
 
 def test_companion_equivalent():
