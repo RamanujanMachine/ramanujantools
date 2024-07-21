@@ -155,7 +155,7 @@ class Matrix(sp.Matrix):
 
     @multimethod
     def walk(  # noqa: F811
-        self, trajectory: Dict, iterations: list[int], start: Dict
+        self, trajectory: Dict, iterations: List[int], start: Dict
     ) -> List[Matrix]:
         r"""
         Returns the multiplication result of walking in a certain trajectory.

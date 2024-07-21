@@ -251,7 +251,7 @@ class CMF:
     def walk(  # noqa: F811
         self,
         trajectory: dict,
-        iterations: List,
+        iterations: List[int],
         start: Union[dict, type(None)] = None,
     ) -> List[Matrix]:
         r"""
@@ -317,7 +317,7 @@ class CMF:
     def limit(
         self,
         trajectory: dict,
-        iterations: List,
+        iterations: List[int],
         start: Union[dict, type(None)] = None,
     ) -> List[Limit]:
         r"""
