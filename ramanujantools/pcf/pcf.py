@@ -112,34 +112,42 @@ class PCF:
     def __repr__(self):
         return f"PCF({self.a_n}, {self.b_n})"
     
-    def as_latex(self, depth: int = 3, start: int = 1, generic: bool = False, print_bool: bool = True):
+    @multimethod
+    def as_latex(self, depth: int = 3, start: int = 1) -> str:
         """
-        Prints as a continued fraction in LaTeX format.
+        Returns the continued fraction as a string in LaTeX format.
         Note: result should be printed to obtain actual LaTex string format.
 
         Args:
-            depth: The depth to display up to.
+            depth: The index to display up to.
             start: The index from which to display.
-            generic: Whether to use generic symbols like a_n, b_n or the actual values.
-        Prints:
-            The LaTeX string for the continued fraction.
         Returns:
-            The LaTeX string for the continued fraction (python representation).
+            The LaTeX string for the continued fraction (python representation, i.e. '\' is '\\').
         """
-        if generic == True:
-            # Use generic symbols
-            if start != 1:
-                result = rf'\cfrac{{b_{start}}}{{{generic_recursive_fraction(start, depth)}}}'
-            else:
-                result = rf'a_0 + \cfrac{{b_1}}{{{generic_recursive_fraction(start, depth)}}}'
+        if start != 1:
+            result = rf'\cfrac{{{self.b_n.subs(n, start)}}}{{{recursive_fraction(start, depth, self.a_n, self.b_n)}}}'
         else:
-            if start != 1:
-                result = rf'\cfrac{{{self.b_n.subs(n, start)}}}{{{recursive_fraction(start, depth, self.a_n, self.b_n)}}}'
-            else:
-                result = rf'{self.a_n.subs(n, 0)} + \cfrac{{{self.b_n.subs(n, 1)}}}{{{recursive_fraction(start, depth, self.a_n, self.b_n)}}}'
-        if print_bool:
-            print(python_to_latex(result))
-        return result
+            result = rf'{self.a_n.subs(n, 0)} + \cfrac{{{self.b_n.subs(n, 1)}}}{{{recursive_fraction(start, depth, self.a_n, self.b_n)}}}'
+        return python_to_latex(result)
+    
+    @multimethod
+    @staticmethod
+    def as_latex(depth: int = 3, start: int = 1) -> str:
+        """
+        Returns a generic continued fraction as a string in LaTeX format,
+        with symbols $a_n$ and $b_n$ as the partial denominators and numerators, respectively.
+        Args:
+            depth: The index to display up to.
+            start: The index from which to display.
+        Returns:
+            The LaTeX string for the continued fraction (python representation, i.e. '\' is '\\').
+            e.g. 'a_0 + \\cfrac{b_1}{a_1 + \\cfrac{b_2}{a_2 + \\cfrac{b_3}{\\ddots + \\cfrac{b_n}{a_n + \\ddots}}}}'.
+        """
+        if start != 1:
+            result = rf'\cfrac{{b_{start}}}{{{generic_recursive_fraction(start, depth)}}}'
+        else:
+            result = rf'a_0 + \cfrac{{b_1}}{{{generic_recursive_fraction(start, depth)}}}'
+        return python_to_latex(result)
     
     def degree(self):
         """

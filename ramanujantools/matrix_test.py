@@ -190,4 +190,4 @@ def test_walk_different_start():
 
 def test_as_latex():
     m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
-    assert m.as_latex(print_bool=False) == '\\begin{pmatrix}x & 3 x + 5 y\\\\x + y^{7} - 3 & x^{5}\\end{pmatrix}'
+    assert '\\begin{pmatrix}x & 3 x + 5 y\\\\x + y^{7} - 3 & x^{5}\\end{pmatrix}' == m.as_latex()

@@ -138,15 +138,33 @@ def test_blind_delta_sequence_agrees_with_blind_delta():
     assert expected_deltas == actual_values
 
 
-def test_as_latex():
+def test_as_latex_not_generic():
     pcf = PCF(1 + n - n**2, 3 - n**9)
-    expected = (
+
+    expected_depth5_start1 = (
         '1 + \\cfrac{2}{1 + \\cfrac{-509}{-1 + \\cfrac{-19680}'
         '{-5 + \\cfrac{-262141}{-11 + \\cfrac{-1953122}'
-        '{\\ddots + \\cfrac{3 - n**9}{-n**2 + n + 1 + \\ddots}}}}}}')
-    expected_generic = (
-        'a_0 + \\cfrac{b_1}{a_1 + \\cfrac{b_2}{a_2 + '
-        '\\cfrac{b_3}{a_3 + \\cfrac{b_4}{a_4 + '
-        '\\cfrac{b_5}{\\ddots + \\cfrac{b_n}{a_n + \\ddots}}}}}}')
-    assert pcf.as_latex(depth=5, print_bool=False) == expected
-    assert pcf.as_latex(depth=5, generic=True, print_bool=False) == expected_generic
+        '{\\ddots + \\cfrac{3 - n^9}{-n^2 + n + 1 + \\ddots}}}}}}')
+    expected_depth7_start3 = (
+        '\\cfrac{-19680}{-5 + \\cfrac{-262141}{-11 + \\cfrac{-1953122}'
+        '{-19 + \\cfrac{-10077693}{-29 + \\cfrac{-40353604}'
+        '{\\ddots + \\cfrac{3 - n^9}{-n^2 + n + 1 + \\ddots}}}}}}')
+    
+    assert expected_depth5_start1 == pcf.as_latex(depth=5, start=1)
+    assert expected_depth7_start3 == pcf.as_latex(depth=7, start=3)
+
+
+def test_as_latex_generic():
+
+    expected_depth5_start1 = (
+        'a_0 + \\cfrac{b_1}{a_1 + \\cfrac{b_2}{a_2 + \\cfrac{b_3}'
+        '{a_3 + \\cfrac{b_4}{a_4 + \\cfrac{b_5}'
+        '{\\ddots + \\cfrac{b_n}{a_n + \\ddots}}}}}}')
+    expected_depth7_start3 = (
+        '\\cfrac{b_3}{a_3 + \\cfrac{b_4}'
+        '{a_4 + \\cfrac{b_5}{a_5 + \\cfrac{b_6}{a_6 + \\cfrac{b_7}'
+        '{\\ddots + \\cfrac{b_n}{a_n + \\ddots}}}}}}')
+    
+    assert expected_depth5_start1 == PCF.as_latex(depth=5, start=1)
+    assert expected_depth7_start3 == PCF.as_latex(depth=7, start=3)
+
