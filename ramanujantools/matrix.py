@@ -266,9 +266,9 @@ class Matrix(sp.Matrix):
 
         return self.inflate(c=1 / c, symbol=symbol)
 
-    def cannonize_companion(self) -> Matrix:
+    def canonize_companion(self) -> Matrix:
         r"""
-        Cannonizes the companion matrix to a canonical form.
+        canonizes the companion matrix to a canonical form.
 
         The canonical form is achieved when $p_{1}(n) = 1$ using inflations and deflations.
 
@@ -302,7 +302,7 @@ class Matrix(sp.Matrix):
                 f"Attempted to compare companion matrices but received non-companion other={other}"
             )
 
-        return self.cannonize_companion() == other.cannonize_companion()
+        return self.canonize_companion() == other.canonize_companion()
 
     @staticmethod
     def select_inflation_factor(factors: Set[sp.Expr], polynomial_index: int):
@@ -337,7 +337,7 @@ class Matrix(sp.Matrix):
                     return m.rows - row, denominator
             return 0, 1
 
-        m = self.cannonize_companion()
+        m = self.canonize_companion()
         row, denominator = get_next_denominator(m)
         while denominator != 1:
             factors = set(dict(sp.factor_list(denominator)[1]))

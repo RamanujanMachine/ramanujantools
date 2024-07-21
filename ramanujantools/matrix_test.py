@@ -174,9 +174,9 @@ def test_inflate():
     assert expected == M.inflate(n - 1)
 
 
-def test_normalize_companion():
+def test_canonize_companion():
     M = Matrix([[0, 0, n**3], [1, 0, n**2 + 1], [0, 1, n - 17]])
-    assert M.cannonize_companion() == M.deflate(M[-1])
+    assert M.canonize_companion() == M.deflate(M[-1])
 
 
 def test_companion_equivalent():
