@@ -348,16 +348,27 @@ class Matrix(sp.Matrix):
             return 0, 1
 
         m = self.canonize_companion()
+        original = m
         row, denominator = get_next_denominator(m)
         while denominator != 1:
-            factors = set(dict(sp.factor_list(denominator)[1]))
-            m = m.inflate(Matrix.select_inflation_factor(factors, row))
+            content, factors = sp.factor_list(denominator)
+            factors = set(dict(factors))
+            m = m.inflate(content * Matrix.select_inflation_factor(factors, row))
             row, denominator = get_next_denominator(m)
+            assert m.companion_equivalent(original)
         return m.simplify()
 
-    def as_companion(self) -> Matrix:
+    def as_companion(self, inflate_all=True) -> Matrix:
+        r"""
+        Converts the matrix to companion form.
+
+        Args:
+            inflate_all: if True, will greedily inflate the companion form matrix until it's polynomial.
+        """
         companion = self.coboundary(self.companion_coboundary_matrix())
-        return companion.normalize_companion()
+        if inflate_all:
+            companion = companion.normalize_companion()
+        return companion
 
     @multimethod
     def walk(  # noqa: F811
