@@ -16,14 +16,14 @@ def test_gcd():
     d = 3 * 5 * 7
     m = Matrix([[a, b], [c, d]])
     m *= 11
-    assert 11 == m.gcd()
+    assert 11 == m.gcd
 
 
 def test_reduce():
     initial = Matrix([[2, 3], [5, 7]])
     gcd = sp.Rational(17, 13)
     m = gcd * initial
-    assert m.gcd() == gcd
+    assert m.gcd == gcd
     assert m.reduce() == initial
 
 

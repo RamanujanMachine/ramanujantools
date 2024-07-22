@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import Dict, List, Set, Callable
-from functools import lru_cache
+from functools import lru_cache, cached_property
 
 from multimethod import multimethod
 
@@ -95,7 +95,7 @@ class Matrix(sp.Matrix):
         """
         return self.rows == self.cols
 
-    @lru_cache()
+    @cached_property
     def denominator_lcm(self) -> sp.Expr:
         """
         Returns the lcm of all denominators
@@ -104,20 +104,20 @@ class Matrix(sp.Matrix):
         return sp.lcm(divisors)
 
     def is_polynomial(self) -> bool:
-        return self.denominator_lcm() == 1
+        return self.denominator_lcm == 1
 
     def as_polynomial(self) -> Matrix:
         """
         Converts the matrix to a polynomial matrix by multiplying it by the denominators lcm.
         """
-        return (self * self.denominator_lcm()).simplify()
+        return (self * self.denominator_lcm).simplify()
 
-    @lru_cache()
+    @cached_property
     def gcd(self) -> sp.Rational:
         """
         Returns the rational gcd of the matrix, which could also be parameteric.
         """
-        return sp.gcd(list(self))
+        return sp.gcd(list(self.simplify()))
 
     def reduce(self) -> Matrix:
         """
@@ -127,16 +127,16 @@ class Matrix(sp.Matrix):
         # t = x*(x - 1)*(x + 1)/(x**2 + x)
         # sp.gcd(t, x) == x
         # sp.gcd(t.simplify(), x) == 1
-        m = self.simplify()
-        return (m / m.gcd()).simplify()
+        return (self / self.gcd).simplify()
 
-    @lru_cache()
+    @lru_cache(maxsize=32)
     def inverse(self) -> Matrix:
         """
         Inverts the matrix.
         """
         return self.inv()
 
+    @lru_cache(maxsize=32)
     def simplify(self) -> Matrix:
         """
         Returns a simplified version of matrix
