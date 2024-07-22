@@ -29,8 +29,17 @@ def test_reduce():
 
 def test_can_call_numerical_subs():
     m = Matrix([[x, 1], [y, 2]])
+
+    # not enough parameters
     assert not m._can_call_numerical_subs({x: 1})
+
+    # some parameters are not integer
     assert not m._can_call_numerical_subs({x: 1, y: y})
+    assert not m._can_call_numerical_subs({x: 1, y: sp.Rational(2, 3)})
+
+    # rational matrix
+    assert not (m / x)._can_call_numerical_subs({x: 1, y: 1})
+
     assert m._can_call_numerical_subs({x: 17, y: 31})
 
 
@@ -44,7 +53,6 @@ def test_subs_degenerated():
 def test_subs_numerical():
     m = Matrix([[x, x**2], [13 + x, -x]])
     substitutions = {x: 5}
-    assert m._can_call_numerical_subs(substitutions)
     assert Matrix([[5, 25], [18, -5]]) == m.subs(substitutions)
 
 
@@ -52,6 +60,12 @@ def test_subs_symbolic():
     m = Matrix([[x, x**2, 13 + x, -x]])
     expr = y**2 + x - 3
     assert Matrix([[expr, (expr) ** 2, 13 + expr, -expr]]) == m.subs({x: expr})
+
+
+def test_subs_numerical_equivalent_to_symbolic():
+    m = Matrix([[x, x**2], [13 + x, -x]])
+    substitutions = {x: 5}
+    assert m.xreplace(substitutions) == m.numerical_subs(substitutions)
 
 
 def test_as_polynomial():
@@ -233,16 +247,6 @@ def test_walk_start_multi_variable():
             },
         )
     assert expected == actual
-
-
-def test_walk_sequence():
-    trajectory = {x: 2, y: 3}
-    start = {x: 5, y: 7}
-    iterations = [1, 2, 3, 17, 29, 53, 99]
-    m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
-    assert m.walk(trajectory, tuple(iterations), start) == m.walk(
-        trajectory, set(iterations), start
-    )
 
 
 def test_walk_axis():

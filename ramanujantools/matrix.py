@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Dict, List, Set, Collection, Callable
+from typing import Dict, List, Set, Callable
 from functools import lru_cache
 
 from multimethod import multimethod
@@ -20,7 +20,11 @@ class Matrix(sp.Matrix):
         return repr(self)
 
     def __eq__(self, other: Matrix) -> bool:
-        return all(sp.simplify(cell) == 0 for cell in self - other)
+        return (
+            self.rows == other.rows
+            and self.cols == other.cols
+            and all(sp.simplify(cell) == 0 for cell in self - other)
+        )
 
     def __hash__(self) -> int:
         return hash(frozenset(self))
@@ -49,9 +53,12 @@ class Matrix(sp.Matrix):
         """
         Returns true iff the all substitutions are numerical and we can can call `numerical_subs` instead of `xreplace`.
         """
-        return not (
-            len(substitutions) < len(self.free_symbols)
-            or any(isinstance(element, sp.Expr) for element in substitutions.values())
+        return (
+            self.is_polynomial()
+            and len(substitutions) == len(self.free_symbols)
+            and not (
+                any(isinstance(element, sp.Expr) for element in substitutions.values())
+            )
         )
 
     def numerical_subs(self, substitutions: Dict) -> Matrix:
@@ -59,7 +66,7 @@ class Matrix(sp.Matrix):
         An optimized version of `subs` for the case where all free_symbols are present in the substitutions dict,
         and all requested values are numerical (i.e not sympy expressions of any sort)
         """
-        fast_subs = self.create_fast_subs(self)
+        fast_subs = Matrix.create_fast_subs(self)
         return fast_subs(substitutions)
 
     @staticmethod
@@ -88,6 +95,7 @@ class Matrix(sp.Matrix):
         """
         return self.rows == self.cols
 
+    @lru_cache()
     def denominator_lcm(self) -> sp.Expr:
         """
         Returns the lcm of all denominators
@@ -95,7 +103,7 @@ class Matrix(sp.Matrix):
         divisors = [cell.cancel().as_numer_denom()[1] for cell in self]
         return sp.lcm(divisors)
 
-    def is_polynomial(self) -> Matrix:
+    def is_polynomial(self) -> bool:
         return self.denominator_lcm() == 1
 
     def as_polynomial(self) -> Matrix:
@@ -104,6 +112,7 @@ class Matrix(sp.Matrix):
         """
         return (self * self.denominator_lcm()).simplify()
 
+    @lru_cache()
     def gcd(self) -> sp.Rational:
         """
         Returns the rational gcd of the matrix, which could also be parameteric.
@@ -121,9 +130,10 @@ class Matrix(sp.Matrix):
         m = self.simplify()
         return (m / m.gcd()).simplify()
 
+    @lru_cache()
     def inverse(self) -> Matrix:
         """
-        Inverses the matrix.
+        Inverts the matrix.
         """
         return self.inv()
 
@@ -351,7 +361,7 @@ class Matrix(sp.Matrix):
 
     @multimethod
     def walk(  # noqa: F811
-        self, trajectory: Dict, iterations: Collection[int], start: Dict
+        self, trajectory: Dict, iterations: List[int], start: Dict
     ) -> List[Matrix]:
         r"""
         Returns the multiplication result of walking in a certain trajectory.
@@ -374,6 +384,37 @@ class Matrix(sp.Matrix):
                         if `start` and `trajectory` have different keys,
                         if `iterations` contains duplicate values
         """
+        iterations_set = set(iterations)
+        if len(iterations_set) != len(iterations):
+            raise ValueError(f"`iterations` values must be unique, got {iterations}")
+
+        if not iterations == sorted(iterations):
+            raise ValueError(f"Iterations must be sorted, got {iterations}")
+
+        if not all(depth >= 0 for depth in iterations):
+            raise ValueError(
+                f"iterations must contain only non-negative values, got {iterations}"
+            )
+
+        results = []
+        position = start
+        matrix = Matrix.eye(self.rows)
+        previous_depth = 0
+        for depth in iterations:
+            effective_depth = depth - previous_depth
+            matrix *= self.walk(trajectory, effective_depth, position)
+            position = {
+                key: position[key] + value * effective_depth
+                for key, value in trajectory.items()
+            }
+            previous_depth = depth
+            results.append(matrix)
+        return results
+
+    @multimethod
+    def walk(  # noqa: F811
+        self, trajectory: Dict, iterations: int, start: Dict
+    ) -> Matrix:
         if not self.is_square():
             raise ValueError(
                 f"Matrix.walk is only supported for square matrices, got a {self.rows}x{self.cols} matrix"
@@ -385,32 +426,16 @@ class Matrix(sp.Matrix):
                 f"start={set(start.keys())}, trajectory={set(trajectory.keys())}"
             )
 
-        if not all(depth >= 0 for depth in iterations):
-            raise ValueError(
-                f"iterations must contain only non-negative values, got {iterations}"
-            )
-
-        iterations_set = set(iterations)
-        if len(iterations_set) != len(iterations):
-            raise ValueError(f"`iterations` values must be unique, got {iterations}")
+        if iterations < 0:
+            raise ValueError(f"iterations must be non-negative, got {iterations}")
 
         position = start
         matrix = Matrix.eye(self.rows)
-        results = []
-        for i in range(
-            max(iterations_set) + 1
-        ):  # Plus one for the last requested `iterations` value
-            if i in iterations:
-                results.append(matrix)
+        # Plus one for the last requested `iterations` value
+        for i in range(1, iterations + 1):
             matrix *= self(position)
             position = {key: trajectory[key] + value for key, value in position.items()}
-        return results
-
-    @multimethod
-    def walk(  # noqa: F811
-        self, trajectory: Dict, iterations: int, start: Dict
-    ) -> Matrix:
-        return self.walk(trajectory, [iterations], start)[0]
+        return matrix
 
     def as_pcf(self, deflate_all=True):
         """
