@@ -102,7 +102,7 @@ def test_limit_diagonal():
 def test_walk_list():
     cmf = known_cmfs.e()
     trajectory = {x: 2, y: 3}
-    iterations = list(map(lambda x: x * sum(trajectory.values()), [1, 2, 3, 17, 29]))
+    iterations = [1, 2, 3, 17, 29]
     assert cmf.walk(trajectory, iterations) == [
         cmf.walk(trajectory, i) for i in iterations
     ]
@@ -164,6 +164,8 @@ def test_blind_delta_sequence_agrees_with_blind_delta():
     trajectory = {a: 1, b: 2, c: 0}
     limit = cmf.limit(trajectory, 2 * depth).as_float()
     delta_sequence = cmf.delta_sequence(trajectory, depth)
-    sequence_of_deltas = [cmf.delta(trajectory, i, limit=limit) for i in range(1, depth+1)]
+    sequence_of_deltas = [
+        cmf.delta(trajectory, i, limit=limit) for i in range(1, depth + 1)
+    ]
     assert delta_sequence == sequence_of_deltas
     assert len(delta_sequence) == depth
