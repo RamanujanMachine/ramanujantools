@@ -132,7 +132,7 @@ class Matrix(sp.Matrix):
     @lru_cache()
     def inverse(self) -> Matrix:
         """
-        Inverses the matrix.
+        Inverts the matrix.
         """
         return self.inv()
 
