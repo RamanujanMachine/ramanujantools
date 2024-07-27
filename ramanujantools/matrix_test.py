@@ -1,5 +1,5 @@
 import sympy as sp
-from sympy.abc import x, y
+from sympy.abc import x, y, n
 
 from ramanujantools import Matrix, simplify
 
@@ -16,14 +16,14 @@ def test_gcd():
     d = 3 * 5 * 7
     m = Matrix([[a, b], [c, d]])
     m *= 11
-    assert 11 == m.gcd()
+    assert 11 == m.gcd
 
 
 def test_reduce():
     initial = Matrix([[2, 3], [5, 7]])
     gcd = sp.Rational(17, 13)
     m = gcd * initial
-    assert m.gcd() == gcd
+    assert m.gcd == gcd
     assert m.reduce() == initial
 
 
@@ -97,6 +97,107 @@ def test_singular_points_single_variable():
 def test_singular_points_multi_variable():
     m = Matrix([[1, x], [1, y]])
     assert m.singular_points() == [{x: y}]
+
+
+def test_coboundary():
+    m = Matrix([[1, n, 2], [3, n**2, 5 * n], [n - 7, n**2 + 1, n - 3]])
+    U = Matrix([[3, 1, n - 2], [5, n**2 - 3 * n + 1, 0], [11 * n + 2, 3, n - 19]])
+    expected = U * m * U.inverse().subs({n: n + 1})
+    assert expected == m.coboundary(U)
+
+
+def test_coboundary_inverse():
+    m = Matrix([[1, n, 2], [3, n**2, 5 * n], [n - 7, n**2 + 1, n - 3]])
+    U = Matrix([[3, 1, n - 2], [5, n**2 - 3 * n + 1, 0], [11 * n + 2, 3, n - 19]])
+    assert m == m.coboundary(U).coboundary(U.inverse())
+
+
+def test_is_companion():
+    assert not Matrix.eye(3).is_companion()
+    m = Matrix([[0, 0, n**3 - 1], [1, 0, n**2 + 3], [0, 1, 2 * n]])
+    assert m.is_companion()
+    assert not (m + Matrix.eye(3)).is_companion()
+
+
+def test_companion_coboundary():
+    m = Matrix([[1, n, 2], [3, n**2, 5 * n], [n - 7, n**2 + 1, n - 3]])
+    assert m.coboundary(m.companion_coboundary_matrix()).is_companion()
+
+
+def test_select_inflation_factor():
+    factors = {n, n + 1, n + 3, n + 4}
+    assert Matrix.select_inflation_factor(factors, 0) == n
+    assert Matrix.select_inflation_factor(factors, 1) == n + 1
+    assert Matrix.select_inflation_factor(factors, 2) == n + 4
+
+
+def test_normalize_companion():
+    m = Matrix(
+        [
+            [0, 0, 1 / (n * (n - 1) * (n - 4))],
+            [1, 0, 1 / ((n - 1) * (n - 2))],
+            [0, 1, 1],
+        ]
+    )
+    expected = m.inflate(n - 1).inflate(n).inflate(n - 4)
+    assert expected.is_polynomial()
+    # optimal = m.inflate(n).inflate(n-2) - for future optimization
+    assert expected == m.normalize_companion()
+
+
+def test_as_companion():
+    m = Matrix(
+        [
+            [1, -1, -n * (1 - 1 / n) - n - 1],
+            [2 / n, 1 - 2 / n, -2 + (-2 * n - 1) / n + (-n - 1) / n + 2 / n],
+            [
+                n ** (-2),
+                (1 - 1 / n) / n + 1 / n,
+                (1 - 1 / n) ** 2 + (-2 * n - 1) / n**2,
+            ],
+        ]
+    )
+
+    companion = m.as_companion()
+    assert companion.is_companion()
+    assert companion.is_polynomial()
+
+
+def test_companion_coboundary_two_variables():
+    m = Matrix([[1, x, 2 * y], [3, x * y, 5 * y], [x - 7, (x + y) ** 2 + 1, y - 3]])
+    assert m.coboundary(m.companion_coboundary_matrix(x), x).is_companion()
+    assert m.coboundary(m.companion_coboundary_matrix(y), y).is_companion()
+
+
+def test_inflation_coboundary():
+    c = x - 7
+    expected = Matrix(
+        [
+            [c.subs({x: x - 2}) * c.subs({x: x - 1}), 0, 0],
+            [0, c.subs({x: x - 1}), 0],
+            [0, 0, 1],
+        ]
+    )
+    U = Matrix.inflation_coboundary_matrix(3, x - 7, symbol=x)
+    assert expected == U
+
+
+def test_inflate():
+    M = Matrix([[0, n**2], [1, n + 1]])
+    expected = Matrix([[0, n**2 * (n - 1) * (n - 2)], [1, (n + 1) * (n - 1)]])
+    assert expected == M.inflate(n - 1)
+
+
+def test_canonize_companion():
+    M = Matrix([[0, 0, n**3], [1, 0, n**2 + 1], [0, 1, n - 17]])
+    assert M.canonize_companion() == M.deflate(M[-1])
+
+
+def test_companion_equivalent():
+    M = Matrix([[0, 0, n**3], [1, 0, n**2 + 1], [0, 1, n - 17]])
+    M1 = M.inflate(n - 31).deflate((4 * n - 3) ** 2)
+    M2 = M.inflate(n**5)
+    assert M1.companion_equivalent(M2)
 
 
 def test_walk_0():

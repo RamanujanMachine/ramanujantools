@@ -1,10 +1,11 @@
 from __future__ import annotations
-from typing import Dict, List, Callable
-from functools import lru_cache
+from typing import Dict, List, Set, Callable
+from functools import lru_cache, cached_property
 
 from multimethod import multimethod
 
 import sympy as sp
+from sympy.abc import n
 
 
 class Matrix(sp.Matrix):
@@ -94,7 +95,7 @@ class Matrix(sp.Matrix):
         """
         return self.rows == self.cols
 
-    @lru_cache()
+    @cached_property
     def denominator_lcm(self) -> sp.Expr:
         """
         Returns the lcm of all denominators
@@ -103,20 +104,20 @@ class Matrix(sp.Matrix):
         return sp.lcm(divisors)
 
     def is_polynomial(self) -> bool:
-        return self.denominator_lcm() == 1
+        return self.denominator_lcm == 1
 
     def as_polynomial(self) -> Matrix:
         """
         Converts the matrix to a polynomial matrix by multiplying it by the denominators lcm.
         """
-        return (self * self.denominator_lcm()).simplify()
+        return (self * self.denominator_lcm).simplify()
 
-    @lru_cache()
+    @cached_property
     def gcd(self) -> sp.Rational:
         """
         Returns the rational gcd of the matrix, which could also be parameteric.
         """
-        return sp.gcd(list(self))
+        return sp.gcd(list(self.simplify()))
 
     def reduce(self) -> Matrix:
         """
@@ -126,16 +127,16 @@ class Matrix(sp.Matrix):
         # t = x*(x - 1)*(x + 1)/(x**2 + x)
         # sp.gcd(t, x) == x
         # sp.gcd(t.simplify(), x) == 1
-        m = self.simplify()
-        return (m / m.gcd()).simplify()
+        return (self / self.gcd).simplify()
 
-    @lru_cache()
+    @lru_cache(maxsize=32)
     def inverse(self) -> Matrix:
         """
         Inverts the matrix.
         """
         return self.inv()
 
+    @lru_cache(maxsize=32)
     def simplify(self) -> Matrix:
         """
         Returns a simplified version of matrix
@@ -152,6 +153,222 @@ class Matrix(sp.Matrix):
             That is, for each dict in result, `self.subs(dict).det() == 0`
         """
         return sp.solve(self.det(), dict=True)
+
+    def coboundary(self, U: Matrix, symbol: sp.Symbol = n) -> Matrix:
+        r"""
+        Calculates the coboundary relation of M and U $U(n) * M(n) * U^{-1}(n+1)$, where $M$ is `self`.
+
+        Args:
+            U: The coboundary matrix
+            symbol: The symbol to use when calculating the coboundary relation. `n` by default.
+        Returns:
+            The coboundary relation as described above
+        """
+        return (U * self * U.inverse().subs({symbol: symbol + 1})).simplify()
+
+    def companion_coboundary_matrix(self, symbol: sp.Symbol = n) -> Matrix:
+        r"""
+        Constructs a new matrix U such that `self.coboundary(U)` is a companion matrix.
+        """
+        if not (self.is_square()):
+            raise ValueError("Only square matrices can have a coboundary relation")
+        N = self.rows
+        e1 = Matrix.zeros(N, 1)
+        e1[0, 0] = 1
+        vectors = [e1]
+        for i in range(1, N):
+            vectors.append(self * vectors[i - 1].subs({symbol: symbol + 1}))
+        return Matrix.hstack(*vectors).inverse().simplify()
+
+    def is_companion(self) -> bool:
+        r"""
+        Returns True iff the matrix is a companion matrix.
+        """
+        if not self.is_square():
+            raise ValueError("Attempted to check if a non-square matrix is companion")
+        N = self.rows
+        for row in range(N):
+            for col in range(N - 1):
+                if row == col + 1:
+                    if self[row, col] != 1:
+                        return False
+                else:
+                    if self[row, col] != 0:
+                        return False
+        return True
+
+    @staticmethod
+    def inflation_coboundary_matrix(
+        N: int, c: sp.Expr, symbol: sp.Symbol = n
+    ) -> Matrix:
+        r"""
+        Returns the matrix inflation matrix U for polynomial c.
+
+        See `inflate`.
+
+        Args:
+            N: The dimension of the square matrix.
+            c: The polynomial to inflate by.
+            symbol: The symbol of the coboundary relation.
+
+        Returns:
+            The inflation matrix U
+        """
+        U = Matrix.eye(N)
+        for i in range(1, N):
+            U[N - (i + 1), N - (i + 1)] = U[N - i, N - i] * c.subs({symbol: symbol - i})
+        return U
+
+    def inflate(self, c: sp.Expr, symbol: sp.Symbol = n) -> Matrix:
+        r"""
+        Inflates the matrix by polynomial c.
+
+        Inflated matrix $M'(n)$ satisfies $M'(n) = c(n) * U(n) * M(n) * U^{-1}(n+1)$,
+        Where `U` is the inflation matrix.
+        Inflation is defined by the case where M is a companion matrix,
+
+        $M(n) =
+        \begin{bmatrix}
+            0&0&\cdots & 0 & 0 & p_{N}(n) \cr
+            1&0&\cdots & 0 & 0 & p_{N-1}(n) \cr
+            0&1&\cdots & 0 & 0 & p_{N-2}(n) \cr
+            \vdots & &\ddots  &  & \vdots & \vdots \cr
+            0&0&\cdots & 1 & 0 & p_{2}(n) \cr
+            0&0&\cdots & 0 & 1 & p_{1}(n) \cr
+        \end{bmatrix}$
+
+        Then the inflated matrix satisfies
+
+        $M'(n) =
+        \begin{bmatrix}
+            0&0&\cdots & 0 & 0 & p_{N}(n)\prod_{i=0}^{N-1}c(n-i) \cr
+            1&0&\cdots & 0 & 0 & p_{N-1}(n)\prod_{i=0}^{N-2}c(n-i) \cr
+            0&1&\cdots & 0 & 0 & p_{N-2}(n)\prod_{i=0}^{N-3}c(n-i) \cr
+            \vdots & &\ddots  &  & \vdots & \vdots \cr
+            0&0&\cdots & 1 & 0 & p_{2}(n)c(n)c(n-1) \cr
+            0&0&\cdots & 0 & 1 & p_{1}(n)c(n) \cr
+        \end{bmatrix}$
+
+        See `inflation_coboundary_matrix`
+
+        Args:
+            c: The polynomial to inflate by.
+            symbol: The symbol of the coboundary relation (n in the example).
+        Returns:
+            The inflated matrix as defined above.
+        Raises:
+            ValueError: if the matrix is not a square matrix.
+        """
+        if not self.is_square():
+            raise ValueError("Can only inflate square matrices")
+        m = c * self.coboundary(
+            Matrix.inflation_coboundary_matrix(N=self.rows, c=c, symbol=symbol)
+        )
+        return m.simplify()
+
+    def deflate(self, c: sp.Expr, symbol: sp.Symbol = n) -> Matrix:
+        r"""
+        Deflates the matrix by polynomial c.
+
+        This is a syntactic sugar to `self.inflate(1/c, symbol)`.
+        See `inflate`.
+        """
+
+        return self.inflate(c=1 / c, symbol=symbol)
+
+    def canonize_companion(self) -> Matrix:
+        r"""
+        canonizes the companion matrix to a canonical form.
+
+        The canonical form is achieved when $p_{1}(n) = 1$ using inflations and deflations.
+
+        Returns:
+            The matrix in normalized companion form.
+        Raises:
+            ValueError: If `self` is not a companion matrix.
+        """
+        if not (self.is_companion()):
+            raise ValueError(
+                "Companion normalization can be used only on companion matrices"
+            )
+        return self.deflate(self[-1, -1])
+
+    def companion_equivalent(self, other: Matrix) -> bool:
+        r"""
+        Returns true iff both companion matrices are equivalent up to inflations.
+
+        Returns:
+            True iff they are equivalent
+        Raises:
+            ValueError: if one of the matrices are not a companion matrix
+        """
+        if not (self.is_companion()):
+            raise ValueError(
+                f"Attempted to compare companion matrices but received non-companion self={self}"
+            )
+
+        if not (other.is_companion()):
+            raise ValueError(
+                f"Attempted to compare companion matrices but received non-companion other={other}"
+            )
+
+        return self.canonize_companion() == other.canonize_companion()
+
+    @staticmethod
+    def select_inflation_factor(factors: Set[sp.Expr], polynomial_index: int):
+        r"""
+        Returns the next factor out of `factors` to inflate during companion normalization.
+
+        Implemented as a greedy algorithm: in the ith row, given a set of factors to inflate,
+        for every factor f in `factors` we check if any of [f+1, ..., f+(i-1)] needs factoring.
+        If that's the case, we shouldn't inflate by f, as it will be inflated anyway.
+        Otherwise, choose f for the next inflation.
+
+        Future improvement:
+        Suppose we want to inflate by f. We can select any of [f, f+1, ..., f+(i-1)].
+        A nice optimization would be to look at deeper rows and see which one is optimal.
+        """
+        # sorting lexicographically for deterministic behavior
+        for factor in sorted(list(factors), key=str):
+            inflation_candidates = [factor + j for j in range(1, polynomial_index + 1)]
+            # check if there exists a `factor + j` such that it will also inflate `factor`
+            if all(candidate not in factors for candidate in inflation_candidates):
+                return factor
+
+    def normalize_companion(self) -> Matrix:
+        r"""
+        Inflates a (rational) companion matrix by a minimal polynomial to make it polynomial
+        """
+
+        def get_next_denominator(m: Matrix):
+            for row in reversed(range(m.rows)):
+                denominator = m[row, -1].cancel().as_numer_denom()[1].expand()
+                if denominator != 1:
+                    return m.rows - row, denominator
+            return 0, 1
+
+        m = self.canonize_companion()
+        original = m
+        row, denominator = get_next_denominator(m)
+        while denominator != 1:
+            content, factors = sp.factor_list(denominator)
+            factors = set(dict(factors))
+            m = m.inflate(content * Matrix.select_inflation_factor(factors, row))
+            row, denominator = get_next_denominator(m)
+            assert m.companion_equivalent(original)
+        return m.simplify()
+
+    def as_companion(self, inflate_all=True) -> Matrix:
+        r"""
+        Converts the matrix to companion form.
+
+        Args:
+            inflate_all: if True, will greedily inflate the companion form matrix until it's polynomial.
+        """
+        companion = self.coboundary(self.companion_coboundary_matrix())
+        if inflate_all:
+            companion = companion.normalize_companion()
+        return companion
 
     @multimethod
     def walk(  # noqa: F811
