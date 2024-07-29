@@ -208,6 +208,20 @@ def pFq(
         d_poly_monic = sp.Poly(d_poly / sp.LC(d_poly), theta)
         return Matrix.companion(d_poly_monic)
 
+    def axes_sorter(axes, trajectory, position):
+        def is_numerator(axis):
+            return 1 if str(axis).startswith("x") else 0
+
+        to_sort = {
+            axis: (
+                abs(trajectory[axis]),
+                sp.sign(trajectory[axis]) * position[axis],
+                sp.sign(trajectory[axis]) * is_numerator(axis),
+            )
+            for axis in axes()
+        }
+        return sorted(axes(), key=lambda k: to_sort[k], reverse=True)
+
     M = core_matrix(p, q)
 
     equation_size = M.rows
@@ -238,4 +252,4 @@ def pFq(
 
     matrices = {x[i]: Matrix(M / x[i] + sp.eye(equation_size)) for i in range(p)}
     matrices.update(y_matrices)
-    return CMF(matrices=matrices, validate=False)
+    return CMF(matrices=matrices, validate=False, axes_sorter=axes_sorter)

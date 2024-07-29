@@ -18,7 +18,12 @@ class CMF:
     for every two axes x and y, $Mx(x, y) \cdot My(x+1, y) = My(x, y) \cdot Mx(x, y+1)$.
     """
 
-    def __init__(self, matrices: Dict[sp.Symbol, Matrix], validate=True):
+    def __init__(
+        self,
+        matrices: Dict[sp.Symbol, Matrix],
+        validate: bool = True,
+        axes_sorter=lambda axes, trajectory, position: sorted(axes, key=str),
+    ):
         """
         Initializes a CMF with `Mx` and `My` matrices.
 
@@ -32,8 +37,9 @@ class CMF:
         self.matrices = matrices
         if n in self.matrices.keys():
             raise ValueError(
-                "Do not use symbol n as an axis, it's reserved for PCF conversions"
+                "Do not use symbol n as an axis, it's reserved for companion conversions"
             )
+        self.axes_sorter = axes_sorter
         self.assert_matrices_same_dimension()
         if validate:
             self.assert_conserving()
@@ -304,19 +310,7 @@ class CMF:
     ) -> Matrix:
         position = dict(start or self.default_origin())
         matrix = Matrix.eye(self.N())
-        # Shachar's ad-hoc singularity aversion:
-        if True: # should be if it is a pFq CMF - FIX
-            # the next dictionary separates numerators from non-numerator axes
-            isNumerator = {symbol: 1 if str(symbol).startswith('x') else 0 for symbol in self.axes()}
-
-            # Next - we build the tuple we are going to list lexicographically
-            lexiTuple = {axis:(abs(trajectory[axis]) , sp.sign(trajectory[axis])*position[axis],sp.sign(trajectory[axis])*isNumerator[axis]) for axis in self.axes()}
-
-            # Finally, sort the keys to an order where if traj not catastrophic, it should work.
-            axisList = sorted(self.axes(), key=lambda k: lexiTuple[k],reverse=True)
-        else :
-            axisList = self.axes()
-        for axis in axisList:
+        for axis in self.axes_sorter(self.axes(), trajectory, position):
             depth = trajectory[axis] * iterations
             sign = depth >= 0
             matrix *= self.M(axis, sign).walk(
