@@ -304,7 +304,19 @@ class CMF:
     ) -> Matrix:
         position = dict(start or self.default_origin())
         matrix = Matrix.eye(self.N())
-        for axis in self.axes():
+        # Shachar's ad-hoc singularity aversion:
+        if True: # should be if it is a pFq CMF - FIX
+            # the next dictionary separates numerators from non-numerator axes
+            isNumerator = {symbol: 1 if str(symbol).startswith('x') else 0 for symbol in self.axes()}
+
+            # Next - we build the tuple we are going to list lexicographically
+            lexiTuple = {axis:(abs(trajectory[axis]) , sp.sign(trajectory[axis])*position[axis],sp.sign(trajectory[axis])*isNumerator[axis]) for axis in self.axes()}
+
+            # Finally, sort the keys to an order where if traj not catastrophic, it should work.
+            axisList = sorted(self.axes(), key=lambda k: lexiTuple[k],reverse=True)
+        else :
+            axisList = self.axes()
+        for axis in axisList:
             depth = trajectory[axis] * iterations
             sign = depth >= 0
             matrix *= self.M(axis, sign).walk(
