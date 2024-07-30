@@ -218,9 +218,9 @@ def pFq(
                 sp.sign(trajectory[axis]) * position[axis],
                 sp.sign(trajectory[axis]) * is_numerator(axis),
             )
-            for axis in axes()
+            for axis in axes
         }
-        return sorted(axes(), key=lambda k: to_sort[k], reverse=True)
+        return sorted(axes, key=lambda k: to_sort[k], reverse=True)
 
     M = core_matrix(p, q)
 
