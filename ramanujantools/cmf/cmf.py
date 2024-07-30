@@ -18,7 +18,12 @@ class CMF:
     for every two axes x and y, $Mx(x, y) \cdot My(x+1, y) = My(x, y) \cdot Mx(x, y+1)$.
     """
 
-    def __init__(self, matrices: Dict[sp.Symbol, Matrix], validate=True):
+    def __init__(
+        self,
+        matrices: Dict[sp.Symbol, Matrix],
+        validate: bool = True,
+        axes_sorter=lambda axes, trajectory, position: sorted(axes, key=str),
+    ):
         """
         Initializes a CMF with `Mx` and `My` matrices.
 
@@ -32,8 +37,9 @@ class CMF:
         self.matrices = matrices
         if n in self.matrices.keys():
             raise ValueError(
-                "Do not use symbol n as an axis, it's reserved for PCF conversions"
+                "Do not use symbol n as an axis, it's reserved for companion conversions"
             )
+        self.axes_sorter = axes_sorter
         self.assert_matrices_same_dimension()
         if validate:
             self.assert_conserving()
@@ -304,7 +310,7 @@ class CMF:
     ) -> Matrix:
         position = dict(start or self.default_origin())
         matrix = Matrix.eye(self.N())
-        for axis in self.axes():
+        for axis in self.axes_sorter(self.axes(), trajectory, position):
             depth = trajectory[axis] * iterations
             sign = depth >= 0
             matrix *= self.M(axis, sign).walk(
