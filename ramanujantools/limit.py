@@ -48,12 +48,7 @@ class Limit:
         return repr(self)
 
     def __eq__(self, other: Limit) -> bool:
-        """
-        Returns true iff two limits converge to the same value.
-        """
-        p, q = self.as_rational()
-        other_p, other_q = other.as_rational()
-        return p * other_q == q * other_p
+        return self.current == other.current and self.previous == other.previous
 
     def as_rational(
         self, p_index: int = 0, q_index: int = 1, column_index: int = -1

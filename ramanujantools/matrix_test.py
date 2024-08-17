@@ -280,21 +280,22 @@ def test_walk_different_start():
     )
 
 
-def test_walk_equivalent_to_limit_single():
+def test_walk_equivalent_to_limit():
     trajectory = {x: 2, y: 3}
     start = {x: 5, y: 7}
     iterations = 17
     m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
-    assert m.limit(trajectory, iterations, start) == Limit(
-        m.walk(trajectory, iterations, start)
-    )
+    m_previous, m_last = m.walk(trajectory, [iterations - 1, iterations], start)
+    assert m.limit(trajectory, iterations, start) == Limit(m_last, m_previous)
 
 
-def test_walk_equivalent_to_limit_list():
+def test_limit_list():
     trajectory = {x: 2, y: 3}
     start = {x: 5, y: 7}
     iterations = [1, 2, 3, 17, 29, 53, 99]
     m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
-    assert m.limit(trajectory, iterations, start) == [
-        Limit(matrix) for matrix in m.walk(trajectory, iterations, start)
-    ]
+    limits = m.limit(trajectory, iterations, start)
+    for depth_index in range(len(iterations)):
+        assert limits[depth_index] == m.limit(
+            trajectory, iterations[depth_index], start
+        )

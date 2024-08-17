@@ -466,7 +466,22 @@ class Matrix(sp.Matrix):
     def limit(self, trajectory: Dict, iterations: List[int], start: Dict):  # noqa: F811
         from ramanujantools import Limit
 
-        return [Limit(matrix) for matrix in self.walk(trajectory, iterations, start)]
+        previous_values = [depth - 1 for depth in iterations]
+        walk_iterations = sorted(list(set(iterations + previous_values)))
+        walk_matrices = self.walk(trajectory, walk_iterations, start)
+
+        current_index = 0
+        limits = []
+        for depth in iterations:
+            while depth != walk_iterations[current_index]:
+                current_index += 1
+            limits.append(
+                Limit(
+                    walk_matrices[current_index],
+                    walk_matrices[current_index - 1],
+                )
+            )
+        return limits
 
     @multimethod
     def limit(self, trajectory: Dict, iterations: int, start: Dict):  # noqa: F811
