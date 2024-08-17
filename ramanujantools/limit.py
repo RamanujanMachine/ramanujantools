@@ -29,14 +29,20 @@ def most_round_in_range(num: mp.mpf, err: mp.mpf) -> str:
     return min(round_attempt(num, num + err), round_attempt(num, num - err), key=len)
 
 
-class Limit(Matrix):
+class Limit:
     r"""
     Represents a mathematical limit of a `walk` operation.
+
+    Contains two matrices for the two last steps of calculation.
+    Uses the last step to extract constants, and the previous one to determine precision.
     """
 
+    def __init__(self, current: Matrix, previous: Matrix = None):
+        self.current = current
+        self.previous = previous
+
     def __repr__(self) -> str:
-        matrix_string = repr(Matrix(self)).replace("Matrix(", "")[:-1]
-        return f"Limit({matrix_string})"
+        return f"Limit({self.current}, {self.previous})"
 
     def __str__(self) -> str:
         return repr(self)
@@ -64,8 +70,8 @@ class Limit(Matrix):
         Returns:
             A list of the form [p, q], representing the rational number.
         """
-        p = sp.Rational(self[p_index, column_index])
-        q = sp.Rational(self[q_index, column_index])
+        p = sp.Rational(self.current[p_index, column_index])
+        q = sp.Rational(self.current[q_index, column_index])
         return [
             sp.Integer(p.numerator * q.denominator),
             sp.Integer(p.denominator * q.numerator),
