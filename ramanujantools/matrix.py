@@ -16,6 +16,26 @@ class Matrix(sp.Matrix):
     https://docs.sympy.org/latest/modules/matrices/matrices.html
     """
 
+    @staticmethod
+    def e(N: int, index: int, column=True) -> Matrix:
+        r"""
+        Returns a coordinate vector of size N for a given index, i.e,
+        a vector of size N of zeroes with 1 in the corresponding index
+
+        Args:
+            N: The vector size
+            index: The index of the given axis
+            column: will return the vector in column form if true, in row form otherwise.
+        Returns:
+            The desired coordinate vector described above
+        """
+        if index >= N:
+            raise ValueError(f"Cannot create {index}th axis vector of size {N}")
+        if column:
+            return Matrix.eye(N).col(index)
+        else:
+            return Matrix.eye(N).row(index)
+
     def __str__(self) -> str:
         return repr(self)
 

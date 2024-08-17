@@ -36,7 +36,9 @@ def test_precision_exact():
     b = a - 1
     desired_error = 5
     denominator = 10**desired_error
-    limit = limit_for_tests(Matrix([[a, b], [denominator, denominator]]))
+    limit = Limit(
+        Matrix([[a, b], [denominator, denominator]]), Matrix([[0, a], [1, denominator]])
+    )
     assert desired_error == limit.precision()
 
 
@@ -45,7 +47,9 @@ def test_precision_floor():
     b = a - 2
     desired_error = 5
     denominator = 10**desired_error
-    limit = limit_for_tests(Matrix([[a, b], [denominator, denominator]]))
+    limit = Limit(
+        Matrix([[a, b], [denominator, denominator]]), Matrix([[0, a], [1, denominator]])
+    )
     assert desired_error - 1 == limit.precision()
 
 
