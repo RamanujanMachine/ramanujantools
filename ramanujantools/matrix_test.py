@@ -1,7 +1,7 @@
 import sympy as sp
 from sympy.abc import x, y, n
 
-from ramanujantools import Matrix, simplify
+from ramanujantools import Matrix, Limit, simplify
 
 
 def test_is_square():
@@ -278,3 +278,23 @@ def test_walk_different_start():
     assert simplify(m.walk({x: 3, y: 2}, 3, {x: 5, y: 7})) == simplify(
         m({x: 5, y: 7}) * m({x: 8, y: 9}) * m({x: 11, y: 11})
     )
+
+
+def test_walk_equivalent_to_limit_single():
+    trajectory = {x: 2, y: 3}
+    start = {x: 5, y: 7}
+    iterations = 17
+    m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
+    assert m.limit(trajectory, iterations, start) == Limit(
+        m.walk(trajectory, iterations, start)
+    )
+
+
+def test_walk_equivalent_to_limit_list():
+    trajectory = {x: 2, y: 3}
+    start = {x: 5, y: 7}
+    iterations = [1, 2, 3, 17, 29, 53, 99]
+    m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
+    assert m.limit(trajectory, iterations, start) == [
+        Limit(matrix) for matrix in m.walk(trajectory, iterations, start)
+    ]

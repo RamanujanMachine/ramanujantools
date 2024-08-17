@@ -462,6 +462,16 @@ class Matrix(sp.Matrix):
             position = {key: trajectory[key] + value for key, value in position.items()}
         return matrix
 
+    @multimethod
+    def limit(self, trajectory: Dict, iterations: List[int], start: Dict):  # noqa: F811
+        from ramanujantools import Limit
+
+        return [Limit(matrix) for matrix in self.walk(trajectory, iterations, start)]
+
+    @multimethod
+    def limit(self, trajectory: Dict, iterations: int, start: Dict):  # noqa: F811
+        return self.limit(trajectory, [iterations], start)[0]
+
     def as_pcf(self, deflate_all=True):
         """
         Converts a `Matrix` to an equivalent `PCF`
