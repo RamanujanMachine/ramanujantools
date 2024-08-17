@@ -342,9 +342,11 @@ class CMF:
             The limit of the walk multiplication as defined above.
             If `iterations` is a list, returns a list of limits.
         """
-        return list(
-            map(lambda matrix: Limit(matrix), self.walk(trajectory, iterations, start))
-        )
+
+        def walk_function(iterations):
+            return self.walk(trajectory, iterations, start)
+
+        return Limit.walk_to_limit(iterations, walk_function)
 
     @multimethod
     def limit(  # noqa: F811

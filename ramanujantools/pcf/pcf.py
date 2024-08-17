@@ -253,11 +253,13 @@ class PCF:
             limit = self.limit(2 * depth).as_float()
 
         deltas = []
+        prev = Matrix.eye(2)
         m = self.A()
-        deltas.append(Limit(m).delta(limit))
+        deltas.append(Limit(m, prev).delta(limit))
 
         for i in range(1, depth):
+            prev = m
             m *= self.M()({n: i})
-            deltas.append(Limit(m).delta(limit))
+            deltas.append(Limit(m, prev).delta(limit))
 
         return deltas

@@ -6,24 +6,28 @@ from ramanujantools import Matrix, Limit
 from .limit import most_round_in_range
 
 
+def limit_for_tests(matrix: Matrix) -> Limit:
+    return Limit(matrix, Matrix([0]))
+
+
 def test_as_rational():
     p = 2
     q = 3
-    limit = Limit(Matrix([[0, p], [1, q]]))
+    limit = limit_for_tests(Matrix([[0, p], [1, q]]))
     assert [p, q] == limit.as_rational()
 
 
 def test_as_rational_higher_order():
     p = 2
     q = 3
-    limit = Limit(Matrix([[1, 2, p], [3, 4, q], [5, 6, 7]]))
+    limit = limit_for_tests(Matrix([[1, 2, p], [3, 4, q], [5, 6, 7]]))
     assert [p, q] == limit.as_rational()
 
 
 def test_as_float():
     p = 2
     q = 3
-    limit = Limit(Matrix([[0, p], [1, q]]))
+    limit = limit_for_tests(Matrix([[0, p], [1, q]]))
     assert p / q == approx(limit.as_float(), 1e-7)
 
 
@@ -32,7 +36,7 @@ def test_precision_exact():
     b = a - 1
     desired_error = 5
     denominator = 10**desired_error
-    limit = Limit(Matrix([[a, b], [denominator, denominator]]))
+    limit = limit_for_tests(Matrix([[a, b], [denominator, denominator]]))
     assert desired_error == limit.precision()
 
 
@@ -41,7 +45,7 @@ def test_precision_floor():
     b = a - 2
     desired_error = 5
     denominator = 10**desired_error
-    limit = Limit(Matrix([[a, b], [denominator, denominator]]))
+    limit = limit_for_tests(Matrix([[a, b], [denominator, denominator]]))
     assert desired_error - 1 == limit.precision()
 
 
@@ -58,5 +62,5 @@ def test_rounding_small_change():
 
 
 def test_repr():
-    limit = Limit(Matrix([[1, 2], [3, 4]]))
+    limit = limit_for_tests(Matrix([[1, 2], [3, 4]]))
     assert limit == eval(repr(limit))

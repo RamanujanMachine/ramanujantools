@@ -37,7 +37,7 @@ class Limit:
     Uses the last step to extract constants, and the previous one to determine precision.
     """
 
-    def __init__(self, current: Matrix, previous: Matrix = None):
+    def __init__(self, current: Matrix, previous: Matrix):
         self.current = current
         self.previous = previous
 

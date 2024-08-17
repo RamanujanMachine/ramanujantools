@@ -1,7 +1,7 @@
 from pytest import raises
 from sympy.abc import a, b, c, x, y, n
 
-from ramanujantools import Limit, Matrix, simplify
+from ramanujantools import Matrix, simplify
 from ramanujantools.cmf import CMF, known_cmfs
 
 
@@ -94,9 +94,7 @@ def test_walk_diagonal():
 def test_limit_diagonal():
     cmf = known_cmfs.e()
     Mxy = cmf.trajectory_matrix({x: 1, y: 1})
-    assert cmf.limit({x: 1, y: 1}, 17) == Limit(
-        Mxy.walk({x: 1, y: 1}, 17, {x: 1, y: 1})
-    )
+    assert cmf.limit({x: 1, y: 1}, 17) == Mxy.limit({x: 1, y: 1}, 17, {x: 1, y: 1})
 
 
 def test_walk_list():
@@ -151,11 +149,9 @@ def test_delta_correctness():
     cmf = known_cmfs.hypergeometric_derived_2F1()
     depth = 100
     trajectory = {a: 1, b: 0, c: 1}
-    approximant_matrix, limit_matrix = cmf.walk(trajectory, [depth, 2 * depth])
-    approximant_matrix = Limit(approximant_matrix)
-    limit = Limit(limit_matrix).as_float()
-    assert cmf.delta(trajectory, depth) == approximant_matrix.delta(limit)
-    assert cmf.delta(trajectory, depth, limit=limit) == approximant_matrix.delta(limit)
+    l1, l2 = cmf.limit(trajectory, [depth, 2 * depth])
+    assert cmf.delta(trajectory, depth) == l1.delta(l2.as_float())
+    assert cmf.delta(trajectory, depth, limit=l2.as_float()) == l1.delta(l2.as_float())
 
 
 def test_blind_delta_sequence_agrees_with_blind_delta():
