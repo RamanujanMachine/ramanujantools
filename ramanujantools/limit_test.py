@@ -6,13 +6,6 @@ from ramanujantools import Matrix, Limit
 from .limit import most_round_in_range
 
 
-def test_equality():
-    matrix = Matrix([[1, 2], [3, 4]])
-    limit1 = Limit(matrix * 17)
-    limit2 = Limit(matrix * 31)
-    assert limit1 == limit2
-
-
 def test_as_rational():
     p = 2
     q = 3

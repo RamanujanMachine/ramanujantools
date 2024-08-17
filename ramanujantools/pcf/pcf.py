@@ -158,12 +158,11 @@ class PCF:
             raise ValueError(
                 f"iterations must contain only positive values, got {iterations}"
             )
+        actual_iterations = [depth - 1 for depth in iterations]
         if start == 0:
             return [
                 self.A() * matrix
-                for matrix in self.M().walk(
-                    {n: 1}, [iteration - 1 for iteration in iterations], {n: 1}
-                )
+                for matrix in self.M().walk({n: 1}, actual_iterations, {n: 1})
             ]
         return self.M().walk({n: 1}, iterations, {n: start})
 

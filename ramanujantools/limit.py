@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import List
+from typing import List, Callable
 
 import sympy as sp
 from mpmath import mp
@@ -49,6 +49,27 @@ class Limit:
 
     def __eq__(self, other: Limit) -> bool:
         return self.current == other.current and self.previous == other.previous
+
+    @staticmethod
+    def walk_to_limit(
+        iterations: List[int], walk_function: Callable[List[int], List[Limit]]
+    ) -> List[Limit]:
+        previous_values = [depth - 1 for depth in iterations]
+        walk_iterations = sorted(list(set(iterations + previous_values)))
+        walk_matrices = walk_function(walk_iterations)
+
+        current_index = 0
+        limits = []
+        for depth in iterations:
+            while depth != walk_iterations[current_index]:
+                current_index += 1
+            limits.append(
+                Limit(
+                    walk_matrices[current_index],
+                    walk_matrices[current_index - 1],
+                )
+            )
+        return limits
 
     def as_rational(
         self, p_index: int = 0, q_index: int = 1, column_index: int = -1
