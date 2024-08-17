@@ -145,7 +145,8 @@ class PCF:
         r"""
         Returns the matrix corresponding to calculating the PCF up to a certain depth, including $a_0$
 
-        This is essentially $A \cdot \prod_{i=0}^{n-1}M(s + i)$ where `n=iterations` and `s=start`
+        This is essentially $A \cdot \prod_{i=1}^{n-1}M(i)$ where `n=iterations` if `start==0`,
+        $\prod_{i=s}^{s+n-1}M(i)$ where `n=iterations` and `s = start` otherwise.
 
         Args:
             iterations: The amount of multiplications to perform. Can be an integer value or a list of values.
@@ -154,17 +155,24 @@ class PCF:
             The pcf convergence limit as defined above.
             If iterations is a list, returns a list of limits.
         """
-        if not all(depth > 0 for depth in iterations):
+        if not all(depth >= 0 for depth in iterations):
             raise ValueError(
-                f"iterations must contain only positive values, got {iterations}"
+                f"iterations must contain only non-negative values, got {iterations}"
             )
-        actual_iterations = [depth - 1 for depth in iterations]
+        iterations = sorted(list(set(iterations)))
+        walk_results = []
         if start == 0:
-            return [
+            if iterations[0] == 0:
+                iterations = iterations[1:]
+                walk_results.append(Matrix.eye(2))
+            actual_iterations = sorted([depth - 1 for depth in iterations])
+            walk_results += [
                 self.A() * matrix
                 for matrix in self.M().walk({n: 1}, actual_iterations, {n: 1})
             ]
-        return self.M().walk({n: 1}, iterations, {n: start})
+        else:
+            walk_results += self.M().walk({n: 1}, iterations, {n: start})
+        return walk_results
 
     @multimethod
     def walk(self, iterations: int, start: int = 0) -> Matrix:  # noqa: F811
@@ -184,7 +192,11 @@ class PCF:
             The pcf convergence limit as defined above.
             If iterations is a list, returns a list of limits.
         """
-        return list(map(lambda matrix: Limit(matrix), self.walk(iterations, start)))
+
+        def walk_function(iterations):
+            return self.walk(iterations, start)
+
+        return Limit.walk_to_limit(iterations, walk_function)
 
     @multimethod
     def limit(self, iterations: int, start: int = 0) -> Limit:  # noqa: F811

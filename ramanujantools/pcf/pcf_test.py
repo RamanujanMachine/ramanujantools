@@ -36,7 +36,7 @@ def test_walk_list():
 
 
 def test_walk_start():
-    iterations = [1]
+    iterations = [1, 2, 3, 17, 29, 53, 99]
     p = PCF(n + 7, 3 * n**2 - 1)
     expected = p.walk(sum(iterations))
     actual = rt.Matrix.eye(2)
