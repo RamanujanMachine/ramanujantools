@@ -261,6 +261,7 @@ class Matrix(sp.Matrix):
         """
         if not self.is_square():
             raise ValueError("Can only inflate square matrices")
+        c = sp.simplify(c)
         m = c * self.coboundary(
             Matrix.inflation_coboundary_matrix(N=self.rows, c=c, symbol=symbol)
         )
@@ -395,6 +396,18 @@ class Matrix(sp.Matrix):
                         if `start` and `trajectory` have different keys,
                         if `iterations` contains duplicate values
         """
+
+        if not self.is_square():
+            raise ValueError(
+                f"Matrix.walk is only supported for square matrices, got a {self.rows}x{self.cols} matrix"
+            )
+
+        if start.keys() != trajectory.keys():
+            raise ValueError(
+                f"`start` and `trajectory` must contain same keys, got "
+                f"start={set(start.keys())}, trajectory={set(trajectory.keys())}"
+            )
+
         iterations_set = set(iterations)
         if len(iterations_set) != len(iterations):
             raise ValueError(f"`iterations` values must be unique, got {iterations}")
@@ -413,7 +426,7 @@ class Matrix(sp.Matrix):
         previous_depth = 0
         for depth in iterations:
             effective_depth = depth - previous_depth
-            matrix *= self.walk(trajectory, effective_depth, position)
+            matrix *= self.walk(trajectory, effective_depth, position, validate=False)
             position = {
                 key: position[key] + value * effective_depth
                 for key, value in trajectory.items()
@@ -424,21 +437,22 @@ class Matrix(sp.Matrix):
 
     @multimethod
     def walk(  # noqa: F811
-        self, trajectory: Dict, iterations: int, start: Dict
+        self, trajectory: Dict, iterations: int, start: Dict, validate=True
     ) -> Matrix:
-        if not self.is_square():
-            raise ValueError(
-                f"Matrix.walk is only supported for square matrices, got a {self.rows}x{self.cols} matrix"
-            )
+        if validate:
+            if not self.is_square():
+                raise ValueError(
+                    f"Matrix.walk is only supported for square matrices, got a {self.rows}x{self.cols} matrix"
+                )
 
-        if start.keys() != trajectory.keys():
-            raise ValueError(
-                f"`start` and `trajectory` must contain same keys, got "
-                f"start={set(start.keys())}, trajectory={set(trajectory.keys())}"
-            )
+            if start.keys() != trajectory.keys():
+                raise ValueError(
+                    f"`start` and `trajectory` must contain same keys, got "
+                    f"start={set(start.keys())}, trajectory={set(trajectory.keys())}"
+                )
 
-        if iterations < 0:
-            raise ValueError(f"iterations must be non-negative, got {iterations}")
+            if iterations < 0:
+                raise ValueError(f"iterations must be non-negative, got {iterations}")
 
         position = start
         matrix = Matrix.eye(self.rows)

@@ -171,7 +171,9 @@ class CMF:
         Returns a new CMF with simplified Mx and My
         """
         return CMF(
-            matrices={symbol: simplify(matrix) for symbol, matrix in self.matrices}
+            matrices={
+                symbol: simplify(matrix) for symbol, matrix in self.matrices.items()
+            }
         )
 
     def default_origin(self):
