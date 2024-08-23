@@ -6,6 +6,7 @@ from multimethod import multimethod
 
 import sympy as sp
 from sympy.abc import n
+from sympy.polys.polymatrix import PolyMatrix
 
 
 class Matrix(sp.Matrix):
@@ -35,6 +36,15 @@ class Matrix(sp.Matrix):
             return Matrix.eye(N).col(index)
         else:
             return Matrix.eye(N).row(index)
+
+    @staticmethod
+    def from_PolyMatrix(poly_matrix: PolyMatrix) -> Matrix:
+        return Matrix(poly_matrix.to_Matrix())
+
+    def to_PolyMatrix(self: Matrix, free_symbols: Set = None) -> PolyMatrix:
+        gens = free_symbols or self.free_symbols
+        gens = gens if len(gens) > 0 else {n}
+        return PolyMatrix.from_Matrix(self, *gens)
 
     def __str__(self) -> str:
         return repr(self)
