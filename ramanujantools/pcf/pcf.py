@@ -1,7 +1,7 @@
 import sympy as sp
 from sympy.abc import n
 
-from typing import Dict, List, Collection
+from typing import Dict, List, Collection, Union
 from multimethod import multimethod
 
 from ramanujantools import Matrix, Limit
@@ -202,7 +202,13 @@ class PCF:
     def limit(self, iterations: int, start: int = 0) -> Limit:  # noqa: F811
         return self.limit([iterations], start)[0]
 
-    def delta(self, depth, limit=None):
+    def delta(
+        self,
+        depth,
+        limit=None,
+        p_vectors: Union[List[Matrix], type(None)] = None,
+        q_vectors: Union[List[Matrix], type(None)] = None,
+    ):
         r"""
         Calculates the irrationality measure $\delta$ defined, as:
         $|\frac{p_n}{q_n} - L| = \frac{1}{q_n}^{1+\delta}$
@@ -213,6 +219,8 @@ class PCF:
         Args:
             depth: $n$
             limit: $L$
+            p_vectors: numerator extraction vectors for delta
+            q_vectors: denominator extraction vectors for delta
         Returns:
             the delta value as defined above.
         Raises:
@@ -227,9 +235,15 @@ class PCF:
             limit = mlim.as_float()
         else:
             m = self.limit(depth)
-        return m.delta(limit)
+        return m.delta(limit, p_vectors, q_vectors)
 
-    def delta_sequence(self, depth: int, limit: float = None):
+    def delta_sequence(
+        self,
+        depth: int,
+        limit: float = None,
+        p_vectors: Union[List[Matrix], type(None)] = None,
+        q_vectors: Union[List[Matrix], type(None)] = None,
+    ):
         r"""
         Calculates the irrationality measure $\delta$ defined, as:
         $|\frac{p_n}{q_n} - L| = \frac{1}{q_n}^{1+\delta}$
@@ -240,6 +254,8 @@ class PCF:
         Args:
             depth: $n$
             limit: $L$
+            p_vectors: numerator extraction vectors for delta
+            q_vectors: denominator extraction vectors for delta
         Returns:
             the delta values for all depths up to `depth` as defined above.
         Raises:
@@ -255,11 +271,11 @@ class PCF:
         deltas = []
         prev = Matrix.eye(2)
         m = self.A()
-        deltas.append(Limit(m, prev).delta(limit))
+        deltas.append(Limit(m, prev).delta(limit, p_vectors, q_vectors))
 
         for i in range(1, depth):
             prev = m
             m *= self.M()({n: i})
-            deltas.append(Limit(m, prev).delta(limit))
+            deltas.append(Limit(m, prev).delta(limit, p_vectors, q_vectors))
 
         return deltas
