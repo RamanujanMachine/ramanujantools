@@ -450,47 +450,60 @@ class Matrix(sp.Matrix):
                 f"iterations must contain only non-negative values, got {iterations}"
             )
 
-        results = []
-        position = start
-        matrix = Matrix.eye(self.rows)
-        previous_depth = 0
-        for depth in iterations:
-            effective_depth = depth - previous_depth
-            matrix *= self.walk(trajectory, effective_depth, position, validate=False)
-            position = {
-                key: position[key] + value * effective_depth
-                for key, value in trajectory.items()
-            }
-            previous_depth = depth
-            results.append(matrix)
-        return results
+        free_symbols = self.free_symbols_after_walk(trajectory, start)
+        if len(free_symbols) == 0:
+            return self._numerical_walk(trajectory, iterations, start)
+        else:
+            return self._symbolic_walk(trajectory, iterations, start, free_symbols)
 
     @multimethod
     def walk(  # noqa: F811
-        self, trajectory: Dict, iterations: int, start: Dict, validate=True
+        self, trajectory: Dict, iterations: int, start: Dict
     ) -> Matrix:
-        if validate:
-            if not self.is_square():
-                raise ValueError(
-                    f"Matrix.walk is only supported for square matrices, got a {self.rows}x{self.cols} matrix"
-                )
+        return self.walk(trajectory, [iterations], start)[0]
 
-            if start.keys() != trajectory.keys():
-                raise ValueError(
-                    f"`start` and `trajectory` must contain same keys, got "
-                    f"start={set(start.keys())}, trajectory={set(trajectory.keys())}"
-                )
+    def free_symbols_after_walk(self, trajectory: Dict, start: Dict) -> Set:
+        def position_free_symbols(position: Dict) -> Set:
+            free_symbols = set()
+            for value in position.values():
+                free_symbols = free_symbols.union(set(sp.simplify(value).free_symbols))
+            return free_symbols
 
-            if iterations < 0:
-                raise ValueError(f"iterations must be non-negative, got {iterations}")
+        subbed_in = position_free_symbols(start).union(
+            position_free_symbols(trajectory)
+        )
 
+        subbed_out = set(start.keys()).union(set(trajectory.keys()))
+
+        return (self.free_symbols - subbed_out).union(subbed_in)
+
+    def _numerical_walk(self, trajectory: Dict, iterations: int, start: Dict) -> Matrix:
+        results = []
         position = start
         matrix = Matrix.eye(self.rows)
-        # Plus one for the last requested `iterations` value
-        for i in range(1, iterations + 1):
+        for depth in range(0, iterations[-1]):
+            if depth in iterations:
+                results.append(matrix)
             matrix *= self(position)
             position = {key: trajectory[key] + value for key, value in position.items()}
-        return matrix
+        results.append(matrix)  # Last matrix, for iterations[-1]
+        return results
+
+    def _symbolic_walk(
+        self, trajectory: Dict, iterations: int, start: Dict, free_symbols: Set
+    ) -> Matrix:
+        results = []
+        position = start
+        matrix = PolyMatrix.eye(self.rows, free_symbols)
+        for depth in range(0, iterations[-1]):
+            if depth in iterations:
+                results.append(Matrix.from_PolyMatrix(matrix))
+            matrix *= self(position).to_PolyMatrix(free_symbols)
+            position = {key: trajectory[key] + value for key, value in position.items()}
+        results.append(
+            Matrix.from_PolyMatrix(matrix)
+        )  # Last matrix, for iterations[-1]
+        return results
 
     @multimethod
     def limit(self, trajectory: Dict, iterations: List[int], start: Dict):  # noqa: F811
