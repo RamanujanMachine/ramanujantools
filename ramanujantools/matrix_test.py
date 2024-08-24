@@ -304,35 +304,48 @@ def test_limit_list():
 def test_free_symbols_after_walk_numeric():
     trajectory = {x: 2, y: 3}
     start = {x: 5, y: 7}
+    iterations = 1
     m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
     expected = set()
-    assert expected == m.free_symbols_after_walk(trajectory, start)
-    assert expected == m.walk(trajectory, 1, start).free_symbols
+    assert expected == m.free_symbols_after_walk(trajectory, iterations, start)
+    assert expected == m.walk(trajectory, iterations, start).free_symbols
 
 
 def test_free_symbols_after_walk_not_all_subbed():
     trajectory = {x: 2}
     start = {x: 5}
+    iterations = 1
     m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
     expected = {y}
-    assert expected == m.free_symbols_after_walk(trajectory, start)
-    assert expected == m.walk(trajectory, 1, start).free_symbols
+    assert expected == m.free_symbols_after_walk(trajectory, iterations, start)
+    assert expected == m.walk(trajectory, iterations, start).free_symbols
 
 
-def test_free_symbols_after_walk_symbols_subbed_in_start():
+def test_free_symbols_after_walk_symbols_start_subbed():
     trajectory = {x: 2, y: 3}
     start = {x: 5, y: x**2 + 1}
+    iterations = 1
     m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
     expected = {x}
-    assert expected == m.free_symbols_after_walk(trajectory, start)
-    assert expected == m.walk(trajectory, 1, start).free_symbols
+    assert expected == m.free_symbols_after_walk(trajectory, iterations, start)
+    assert expected == m.walk(trajectory, iterations, start).free_symbols
 
 
-def test_free_symbols_after_walk_symbols_subbed_in_trajectory():
+def test_free_symbols_after_walk_symbols_trajectory_subbed_in():
     trajectory = {x: 2, y: n}
     start = {x: 5, y: 7}
+    iterations = 2
     m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
     expected = {n}
-    # iterations=2 so the trajectory is used once
-    assert expected == m.free_symbols_after_walk(trajectory, start)
-    assert expected == m.walk(trajectory, 2, start).free_symbols
+    assert expected == m.free_symbols_after_walk(trajectory, iterations, start)
+    assert expected == m.walk(trajectory, iterations, start).free_symbols
+
+
+def test_free_symbols_after_walk_symbols_trajectory_not_subbed_in():
+    trajectory = {x: 2, y: n}
+    start = {x: 5, y: 7}
+    iterations = 1
+    m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
+    expected = set()
+    assert expected == m.free_symbols_after_walk(trajectory, iterations, start)
+    assert expected == m.walk(trajectory, iterations, start).free_symbols

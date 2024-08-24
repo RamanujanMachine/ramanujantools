@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Dict, List, Set, Callable
+from typing import Dict, List, Set, Callable, Union
 from functools import lru_cache, cached_property
 
 from multimethod import multimethod
