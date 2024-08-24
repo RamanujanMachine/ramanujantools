@@ -39,12 +39,23 @@ class Matrix(sp.Matrix):
 
     @staticmethod
     def from_PolyMatrix(poly_matrix: PolyMatrix) -> Matrix:
+        """
+        Constructs a Matrix from a PolyMatrix.
+        """
         return Matrix(poly_matrix.to_Matrix())
 
-    def to_PolyMatrix(self: Matrix, free_symbols: Set = None) -> PolyMatrix:
-        gens = free_symbols or self.free_symbols
-        gens = gens if len(gens) > 0 else {n}
-        return PolyMatrix.from_Matrix(self, *gens)
+    def to_PolyMatrix(self: Matrix, gens: Dict = None) -> PolyMatrix:
+        """
+        Constructs a PolyMatrix from this.
+        """
+        if gens:
+            return PolyMatrix.from_Matrix(self, *gens)
+        if not self.free_symbols:
+            return PolyMatrix.from_Matrix(self, n)
+        return PolyMatrix.from_Matrix(self)
+
+    def eye_PolyMatrix(N: int, free_symbols: Dict) -> PolyMatrix:
+        return PolyMatrix.eye(N, free_symbols)
 
     def __str__(self) -> str:
         return repr(self)
@@ -158,6 +169,13 @@ class Matrix(sp.Matrix):
         # sp.gcd(t, x) == x
         # sp.gcd(t.simplify(), x) == 1
         return (self / self.gcd).simplify()
+
+    def limit_equivalent(self, other: Matrix) -> bool:
+        """
+        Returns true iff two matrices are limit equivalent.
+        Two matrices are limit equivalent iff self = c * other for some c.
+        """
+        return self.as_polynomial().reduce() == other.as_polynomial().reduce()
 
     @lru_cache(maxsize=32)
     def inverse(self) -> Matrix:
@@ -503,11 +521,11 @@ class Matrix(sp.Matrix):
         """
         results = []
         position = start
-        matrix = PolyMatrix.eye(self.rows, free_symbols)
+        matrix = Matrix.eye_PolyMatrix(self.rows, free_symbols)
         for depth in range(0, iterations[-1]):
             if depth in iterations:
                 results.append(Matrix.from_PolyMatrix(matrix))
-            matrix *= self(position).to_PolyMatrix(free_symbols)
+            matrix *= self(position).to_PolyMatrix()
             position = {key: trajectory[key] + value for key, value in position.items()}
         results.append(
             Matrix.from_PolyMatrix(matrix)

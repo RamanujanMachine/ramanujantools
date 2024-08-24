@@ -184,7 +184,6 @@ class CMF:
 
     def trajectory_matrix(self, trajectory: dict, start: dict = None) -> Matrix:
         """
-
         Returns the corresponding matrix for walking in trajectory.
         If `start` is given, the new matrix will be reduced to a single variable `n`.
         Args:
@@ -206,13 +205,15 @@ class CMF:
             )
 
         position = {axis: axis for axis in self.axes()}
-        m = Matrix.eye(self.N())
+        m = Matrix.eye_PolyMatrix(self.N(), self.axes())
         for axis in self.axes():
             sign = trajectory[axis] >= 0
-            m *= self.M(axis, sign).walk(
+            axis_matrix = self.M(axis, sign).as_polynomial()
+            m *= axis_matrix.walk(
                 self.axis_vector(axis, sign), abs(trajectory[axis]), position
-            )
+            ).to_PolyMatrix(self.axes())
             position[axis] += trajectory[axis]
+        m = Matrix.from_PolyMatrix(m)
         if start:
             m = CMF.substitute_trajectory(m, trajectory, start)
         return m

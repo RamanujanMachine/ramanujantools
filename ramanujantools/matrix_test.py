@@ -306,8 +306,8 @@ def test_free_symbols_after_walk_numeric():
     start = {x: 5, y: 7}
     m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
     expected = set()
-    assert expected == m.walk(trajectory, 1, start).free_symbols
     assert expected == m.free_symbols_after_walk(trajectory, start)
+    assert expected == m.walk(trajectory, 1, start).free_symbols
 
 
 def test_free_symbols_after_walk_not_all_subbed():
@@ -315,8 +315,8 @@ def test_free_symbols_after_walk_not_all_subbed():
     start = {x: 5}
     m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
     expected = {y}
-    assert expected == m.walk(trajectory, 1, start).free_symbols
     assert expected == m.free_symbols_after_walk(trajectory, start)
+    assert expected == m.walk(trajectory, 1, start).free_symbols
 
 
 def test_free_symbols_after_walk_symbols_subbed_in_start():
@@ -324,8 +324,8 @@ def test_free_symbols_after_walk_symbols_subbed_in_start():
     start = {x: 5, y: x**2 + 1}
     m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
     expected = {x}
-    assert expected == m.walk(trajectory, 1, start).free_symbols
     assert expected == m.free_symbols_after_walk(trajectory, start)
+    assert expected == m.walk(trajectory, 1, start).free_symbols
 
 
 def test_free_symbols_after_walk_symbols_subbed_in_trajectory():
@@ -334,5 +334,5 @@ def test_free_symbols_after_walk_symbols_subbed_in_trajectory():
     m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
     expected = {n}
     # iterations=2 so the trajectory is used once
-    assert expected == m.walk(trajectory, 2, start).free_symbols
     assert expected == m.free_symbols_after_walk(trajectory, start)
+    assert expected == m.walk(trajectory, 2, start).free_symbols
