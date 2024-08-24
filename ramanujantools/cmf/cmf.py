@@ -206,7 +206,8 @@ class CMF:
 
         position = {axis: axis for axis in self.axes()}
         m = PolyMatrix.eye(self.N(), self.axes())
-        for axis in self.axes():
+        # sorting so iteration order is deterministic
+        for axis in sorted(list(self.axes()), key=str):
             sign = trajectory[axis] >= 0
             axis_matrix = self.M(axis, sign).as_polynomial()
             m *= axis_matrix.walk(
