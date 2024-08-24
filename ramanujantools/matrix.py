@@ -6,7 +6,6 @@ from multimethod import multimethod
 
 import sympy as sp
 from sympy.abc import n
-from sympy.polys.polymatrix import PolyMatrix
 
 
 class Matrix(sp.Matrix):
@@ -36,26 +35,6 @@ class Matrix(sp.Matrix):
             return Matrix.eye(N).col(index)
         else:
             return Matrix.eye(N).row(index)
-
-    @staticmethod
-    def from_PolyMatrix(poly_matrix: PolyMatrix) -> Matrix:
-        """
-        Constructs a Matrix from a PolyMatrix.
-        """
-        return Matrix(poly_matrix.to_Matrix())
-
-    def to_PolyMatrix(self: Matrix, gens: Dict = None) -> PolyMatrix:
-        """
-        Constructs a PolyMatrix from this.
-        """
-        if gens:
-            return PolyMatrix.from_Matrix(self, *gens)
-        if not self.free_symbols:
-            return PolyMatrix.from_Matrix(self, n)
-        return PolyMatrix.from_Matrix(self)
-
-    def eye_PolyMatrix(N: int, free_symbols: Dict) -> PolyMatrix:
-        return PolyMatrix.eye(N, free_symbols)
 
     def __str__(self) -> str:
         return repr(self)
@@ -519,17 +498,17 @@ class Matrix(sp.Matrix):
         This flow optimizes the symbolic multiplication using `PolyMatrix`,
         which multiplies polynomials faster than the normal `Expr` multiplication.
         """
+        from ramanujantools import PolyMatrix
+
         results = []
         position = start
-        matrix = Matrix.eye_PolyMatrix(self.rows, free_symbols)
+        matrix = PolyMatrix.eye(self.rows, free_symbols)
         for depth in range(0, iterations[-1]):
             if depth in iterations:
-                results.append(Matrix.from_PolyMatrix(matrix))
-            matrix *= self(position).to_PolyMatrix()
+                results.append(matrix.to_Matrix())
+            matrix *= self(position)
             position = {key: trajectory[key] + value for key, value in position.items()}
-        results.append(
-            Matrix.from_PolyMatrix(matrix)
-        )  # Last matrix, for iterations[-1]
+        results.append(matrix.to_Matrix())  # Last matrix, for iterations[-1]
         return results
 
     @multimethod

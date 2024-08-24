@@ -6,7 +6,7 @@ from typing import Dict, List, Set, Union
 import sympy as sp
 from sympy.abc import n
 
-from ramanujantools import Matrix, Limit, simplify
+from ramanujantools import Matrix, PolyMatrix, Limit, simplify
 from ramanujantools.pcf import PCFFromMatrix
 
 
@@ -205,15 +205,15 @@ class CMF:
             )
 
         position = {axis: axis for axis in self.axes()}
-        m = Matrix.eye_PolyMatrix(self.N(), self.axes())
+        m = PolyMatrix.eye(self.N(), self.axes())
         for axis in self.axes():
             sign = trajectory[axis] >= 0
             axis_matrix = self.M(axis, sign).as_polynomial()
             m *= axis_matrix.walk(
                 self.axis_vector(axis, sign), abs(trajectory[axis]), position
-            ).to_PolyMatrix(self.axes())
+            )
             position[axis] += trajectory[axis]
-        m = Matrix.from_PolyMatrix(m)
+        m = m.to_Matrix()
         if start:
             m = CMF.substitute_trajectory(m, trajectory, start)
         return m
