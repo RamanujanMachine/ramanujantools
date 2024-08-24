@@ -184,7 +184,7 @@ class CMF:
 
     def trajectory_matrix(self, trajectory: dict, start: dict = None) -> Matrix:
         """
-        Returns the corresponding matrix for walking in trajectory.
+        Returns a corresponding matrix for walking in a trajectory, up to a constant.
         If `start` is given, the new matrix will be reduced to a single variable `n`.
         Args:
             trajectory: a dict containing the amount of steps in each direction.
