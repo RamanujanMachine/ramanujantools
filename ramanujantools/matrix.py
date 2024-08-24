@@ -16,6 +16,14 @@ class Matrix(sp.Matrix):
     https://docs.sympy.org/latest/modules/matrices/matrices.html
     """
 
+    def __new__(cls, *args, **kwargs):
+        from ramanujantools import PolyMatrix
+
+        if len(args) == 1 and len(kwargs) == 0 and isinstance(args[0], PolyMatrix):
+            return args[0].to_Matrix()
+        else:
+            return super().__new__(cls, *args, **kwargs)
+
     @staticmethod
     def e(N: int, index: int, column=True) -> Matrix:
         r"""
@@ -423,6 +431,7 @@ class Matrix(sp.Matrix):
                         if `start` and `trajectory` have different keys,
                         if `iterations` contains duplicate values
         """
+        from ramanujantools import PolyMatrix
 
         if not self.is_square():
             raise ValueError(
@@ -447,11 +456,21 @@ class Matrix(sp.Matrix):
                 f"iterations must contain only non-negative values, got {iterations}"
             )
 
-        free_symbols = self.free_symbols_after_walk(trajectory, start)
+        free_symbols = self.free_symbols_after_walk(trajectory, iterations, start)
         if len(free_symbols) == 0:
-            return self._numerical_walk(trajectory, iterations, start)
+            matrix = Matrix.eye(self.rows)
         else:
-            return self._symbolic_walk(trajectory, iterations, start, free_symbols)
+            matrix = PolyMatrix.eye(self.rows, free_symbols)
+
+        results = []
+        position = start
+        for depth in range(0, iterations[-1]):
+            if depth in iterations:
+                results.append(matrix)
+            matrix *= self(position)
+            position = {key: trajectory[key] + value for key, value in position.items()}
+        results.append(matrix)  # Last matrix, for iterations[-1]
+        return [Matrix(matrix) for matrix in results]  # in case we have PolyMatrix
 
     @multimethod
     def walk(  # noqa: F811
@@ -459,57 +478,29 @@ class Matrix(sp.Matrix):
     ) -> Matrix:
         return self.walk(trajectory, [iterations], start)[0]
 
-    def free_symbols_after_walk(self, trajectory: Dict, start: Dict) -> Set:
+    def free_symbols_after_walk(
+        self, trajectory: Dict, iterations: Union[List, int], start: Dict
+    ) -> Set:
+        """
+        Returns the expected free_symbols of the expression `self.walk(trajectory, iterations, start)`
+        """
+
         def position_free_symbols(position: Dict) -> Set:
             free_symbols = set()
             for value in position.values():
                 free_symbols = free_symbols.union(set(sp.simplify(value).free_symbols))
             return free_symbols
 
-        subbed_in = position_free_symbols(start).union(
-            position_free_symbols(trajectory)
+        subbed_in = position_free_symbols(start)
+        using_trajectory = (isinstance(iterations, int) and iterations > 1) or (
+            isinstance(iterations, list) and any(depth > 1 for depth in iterations)
         )
+        if using_trajectory:
+            subbed_in = subbed_in.union(position_free_symbols(trajectory))
 
         subbed_out = set(start.keys()).union(set(trajectory.keys()))
 
         return (self.free_symbols - subbed_out).union(subbed_in)
-
-    def _numerical_walk(self, trajectory: Dict, iterations: int, start: Dict) -> Matrix:
-        """
-        Implementation for walk when all symbols are substituted to numericals.
-        This flow exists because the `_symbolic_walk` is slower for numerical walk.
-        """
-        results = []
-        position = start
-        matrix = Matrix.eye(self.rows)
-        for depth in range(0, iterations[-1]):
-            if depth in iterations:
-                results.append(matrix)
-            matrix *= self(position)
-            position = {key: trajectory[key] + value for key, value in position.items()}
-        results.append(matrix)  # Last matrix, for iterations[-1]
-        return results
-
-    def _symbolic_walk(
-        self, trajectory: Dict, iterations: int, start: Dict, free_symbols: Set
-    ) -> Matrix:
-        """
-        Implementation for walk when not all symbols are substituted to numericals.
-        This flow optimizes the symbolic multiplication using `PolyMatrix`,
-        which multiplies polynomials faster than the normal `Expr` multiplication.
-        """
-        from ramanujantools import PolyMatrix
-
-        results = []
-        position = start
-        matrix = PolyMatrix.eye(self.rows, free_symbols)
-        for depth in range(0, iterations[-1]):
-            if depth in iterations:
-                results.append(matrix.to_Matrix())
-            matrix *= self(position)
-            position = {key: trajectory[key] + value for key, value in position.items()}
-        results.append(matrix.to_Matrix())  # Last matrix, for iterations[-1]
-        return results
 
     @multimethod
     def limit(self, trajectory: Dict, iterations: List[int], start: Dict):  # noqa: F811
