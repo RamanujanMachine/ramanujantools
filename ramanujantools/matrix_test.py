@@ -299,3 +299,40 @@ def test_limit_list():
         assert limits[depth_index] == m.limit(
             trajectory, iterations[depth_index], start
         )
+
+
+def test_free_symbols_after_walk_numeric():
+    trajectory = {x: 2, y: 3}
+    start = {x: 5, y: 7}
+    m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
+    expected = set()
+    assert expected == m.walk(trajectory, 1, start).free_symbols
+    assert expected == m.free_symbols_after_walk(trajectory, start)
+
+
+def test_free_symbols_after_walk_not_all_subbed():
+    trajectory = {x: 2}
+    start = {x: 5}
+    m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
+    expected = {y}
+    assert expected == m.walk(trajectory, 1, start).free_symbols
+    assert expected == m.free_symbols_after_walk(trajectory, start)
+
+
+def test_free_symbols_after_walk_symbols_subbed_in_start():
+    trajectory = {x: 2, y: 3}
+    start = {x: 5, y: x**2 + 1}
+    m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
+    expected = {x}
+    assert expected == m.walk(trajectory, 1, start).free_symbols
+    assert expected == m.free_symbols_after_walk(trajectory, start)
+
+
+def test_free_symbols_after_walk_symbols_subbed_in_trajectory():
+    trajectory = {x: 2, y: n}
+    start = {x: 5, y: 7}
+    m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
+    expected = {n}
+    # iterations=2 so the trajectory is used once
+    assert expected == m.walk(trajectory, 2, start).free_symbols
+    assert expected == m.free_symbols_after_walk(trajectory, start)

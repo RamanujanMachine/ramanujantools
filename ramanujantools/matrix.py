@@ -478,6 +478,10 @@ class Matrix(sp.Matrix):
         return (self.free_symbols - subbed_out).union(subbed_in)
 
     def _numerical_walk(self, trajectory: Dict, iterations: int, start: Dict) -> Matrix:
+        """
+        Implementation for walk when all symbols are substituted to numericals.
+        This flow exists because the `_symbolic_walk` is slower for numerical walk.
+        """
         results = []
         position = start
         matrix = Matrix.eye(self.rows)
@@ -492,6 +496,11 @@ class Matrix(sp.Matrix):
     def _symbolic_walk(
         self, trajectory: Dict, iterations: int, start: Dict, free_symbols: Set
     ) -> Matrix:
+        """
+        Implementation for walk when not all symbols are substituted to numericals.
+        This flow optimizes the symbolic multiplication using `PolyMatrix`,
+        which multiplies polynomials faster than the normal `Expr` multiplication.
+        """
         results = []
         position = start
         matrix = PolyMatrix.eye(self.rows, free_symbols)
