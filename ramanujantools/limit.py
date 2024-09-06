@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import List
+from typing import List, Callable, Union
 
 import sympy as sp
 from mpmath import mp
@@ -29,49 +29,97 @@ def most_round_in_range(num: mp.mpf, err: mp.mpf) -> str:
     return min(round_attempt(num, num + err), round_attempt(num, num - err), key=len)
 
 
-class Limit(Matrix):
+class Limit:
     r"""
     Represents a mathematical limit of a `walk` operation.
+
+    Contains two matrices for the two last steps of calculation.
+    Uses the last step to extract constants, and the previous one to determine precision.
     """
 
+    def __init__(self, current: Matrix, previous: Matrix):
+        self.current = current
+        self.previous = previous
+
     def __repr__(self) -> str:
-        matrix_string = repr(Matrix(self)).replace("Matrix(", "")[:-1]
-        return f"Limit({matrix_string})"
+        return f"Limit({self.current}, {self.previous})"
 
     def __str__(self) -> str:
         return repr(self)
 
     def __eq__(self, other: Limit) -> bool:
-        """
-        Returns true iff two limits converge to the same value.
-        """
-        p, q = self.as_rational()
-        other_p, other_q = other.as_rational()
-        return p * other_q == q * other_p
+        return self.current == other.current and self.previous == other.previous
+
+    def N(self) -> int:
+        return self.current.rows
+
+    @staticmethod
+    def walk_to_limit(
+        iterations: List[int], walk_function: Callable[List[int], List[Limit]]
+    ) -> List[Limit]:
+        previous_values = [depth - 1 for depth in iterations]
+        walk_iterations = sorted(list(set(iterations + previous_values)))
+        walk_matrices = walk_function(walk_iterations)
+
+        current_index = 0
+        limits = []
+        for depth in iterations:
+            while depth != walk_iterations[current_index]:
+                current_index += 1
+            limits.append(
+                Limit(
+                    walk_matrices[current_index],
+                    walk_matrices[current_index - 1],
+                )
+            )
+        return limits
 
     def as_rational(
-        self, p_index: int = 0, q_index: int = 1, column_index: int = -1
+        self,
+        p_vectors: Union[List[Matrix], type(None)] = None,
+        q_vectors: Union[List[Matrix], type(None)] = None,
+        previous=False,
     ) -> List:
         r"""
         Returns the limit as a rational number $\frac{p}{q}$.
 
+        The numbers p and q are extracted using matrix multiplication.
+        For each number, a row vector `v1` and a column vector `v2` are received.
+        We then extract a number using `v1 * M * v2`, where M is the limit matrix.
+
         Researcher's note: rational representation of the limit is so far only well-defined for 2x2 matrices,
         and we are still looking for a generalization of this representation for NxN matrices.
         Args:
-            p_index : The row index of the numerator $p$
-            q_index: The row index of the denominator $q$
-            column_index: The column index of both $p, q$.
+            p_vectors: The extraction vectors for the numerator $p$.
+            q_vectors: The extraction vectors for the denominator $q$.
+            previous: Will use $M$ = `self.previous` if True, else `self.current`. False by default.
         Returns:
             A list of the form [p, q], representing the rational number.
         """
-        p = sp.Rational(self[p_index, column_index])
-        q = sp.Rational(self[q_index, column_index])
+        p_vectors = p_vectors or [
+            Matrix.e(self.N(), 0, column=False),
+            Matrix.e(self.N(), self.N() - 1, column=True),
+        ]
+
+        q_vectors = q_vectors or [
+            Matrix.e(self.N(), 1, column=False),
+            Matrix.e(self.N(), self.N() - 1, column=True),
+        ]
+
+        matrix = self.previous if previous else self.current
+        p = sp.Rational((p_vectors[0] * matrix * p_vectors[1])[0])
+        q = sp.Rational((q_vectors[0] * matrix * q_vectors[1])[0])
         return [
             sp.Integer(p.numerator * q.denominator),
             sp.Integer(p.denominator * q.numerator),
         ]
 
-    def precision(self, p_index=0, q_index=1, base: int = 10) -> int:
+    def precision(
+        self,
+        p_vectors: Union[List[Matrix], type(None)] = None,
+        q_vectors: Union[List[Matrix], type(None)] = None,
+        base: int = 10,
+    ) -> int:
         """
         Returns the error in 'digits' for the PCF convergence.
 
@@ -79,8 +127,8 @@ class Limit(Matrix):
             base: The numerical base in which to return the precision (by default 10)
         """
         try:
-            p1, q1 = self.as_rational(p_index, q_index)
-            p2, q2 = self.as_rational(p_index, q_index, column_index=-2)
+            p1, q1 = self.as_rational(p_vectors, q_vectors)
+            p2, q2 = self.as_rational(p_vectors, q_vectors, previous=True)
             numerator = p1 * q2 - q1 * p2
             denominator = q1 * q2
             # extracting real because sometimes log returns a complex with tiny imaginary type due to precision
@@ -91,39 +139,56 @@ class Limit(Matrix):
         except (ZeroDivisionError, ValueError):
             return 0
 
-    def increase_precision(self, p_index: int = 0, q_index: int = 1) -> int:
+    def increase_precision(
+        self,
+        p_vectors: Union[List[Matrix], type(None)] = None,
+        q_vectors: Union[List[Matrix], type(None)] = None,
+    ) -> int:
         """
         Increases the global mpmath precision to the lever required to handle this limit.
         Returns the current precision after the increase.
         """
         requested_precision = (
-            self.precision(p_index, q_index) * 1.1
+            self.precision(p_vectors, q_vectors) * 1.1
         )  # Taking 10% digits buffer
         mp.dps = max(mp.dps, requested_precision)
         return mp.dps
 
-    def as_float(self, p_index: int = 0, q_index: int = 1) -> mp.mpf:
+    def as_float(
+        self,
+        p_vectors: Union[List[Matrix], type(None)] = None,
+        q_vectors: Union[List[Matrix], type(None)] = None,
+    ) -> mp.mpf:
         r"""
         Returns the limit as a floating point number f, such that $m \cdot v = f$, where `m=self` and `v=vector`.
 
         This function increases the global mpmath precision if needed.
         """
-        self.increase_precision(p_index, q_index)
-        p, q = self.as_rational(p_index, q_index)
+        self.increase_precision(p_vectors, q_vectors)
+        p, q = self.as_rational(p_vectors, q_vectors)
         return mp.mpf(p) / mp.mpf(q)
 
-    def as_rounded_number(self, p_index: int = 0, q_index: int = 1) -> str:
+    def as_rounded_number(
+        self,
+        p_vectors: Union[List[Matrix], type(None)] = None,
+        q_vectors: Union[List[Matrix], type(None)] = None,
+    ) -> str:
         """
         Same as `as_float`, but also rounds the result to the shortest number possible within the error range.
 
         This function increases the global mpmath precision if needed.
         """
         return most_round_in_range(
-            self.as_float(p_index, q_index),
-            10 ** -self.precision(p_index, q_index),
+            self.as_float(p_vectors, q_vectors),
+            10 ** -self.precision(p_vectors, q_vectors),
         )
 
-    def delta(self, L: mp.mpf, p_index: int = 0, q_index: int = 1) -> mp.mpf:
+    def delta(
+        self,
+        L: mp.mpf,
+        p_vectors: Union[List[Matrix], type(None)] = None,
+        q_vectors: Union[List[Matrix], type(None)] = None,
+    ) -> mp.mpf:
         r"""
         Calculates the irrationality measure $\delta$ defined, as:
         $|\frac{p_n}{q_n} - L| = \frac{1}{q_n}^{1+\delta}$
@@ -134,8 +199,8 @@ class Limit(Matrix):
         Returns:
             the delta value as defined above.
         """
-        self.increase_precision(p_index, q_index)
-        p, q = self.as_rational(p_index, q_index)
+        self.increase_precision(p_vectors, q_vectors)
+        p, q = self.as_rational(p_vectors, q_vectors)
         gcd = sp.gcd(p, q)
         reduced_q = mp.fabs(q // gcd)
         if reduced_q == 1:

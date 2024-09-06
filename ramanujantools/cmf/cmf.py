@@ -171,7 +171,9 @@ class CMF:
         Returns a new CMF with simplified Mx and My
         """
         return CMF(
-            matrices={symbol: simplify(matrix) for symbol, matrix in self.matrices}
+            matrices={
+                symbol: simplify(matrix) for symbol, matrix in self.matrices.items()
+            }
         )
 
     def default_origin(self):
@@ -340,9 +342,11 @@ class CMF:
             The limit of the walk multiplication as defined above.
             If `iterations` is a list, returns a list of limits.
         """
-        return list(
-            map(lambda matrix: Limit(matrix), self.walk(trajectory, iterations, start))
-        )
+
+        def walk_function(iterations):
+            return self.walk(trajectory, iterations, start)
+
+        return Limit.walk_to_limit(iterations, walk_function)
 
     @multimethod
     def limit(  # noqa: F811
@@ -354,7 +358,13 @@ class CMF:
         return self.limit(trajectory, [iterations], start)[0]
 
     def delta(
-        self, trajectory: dict, depth: int, start: dict = None, limit: float = None
+        self,
+        trajectory: dict,
+        depth: int,
+        start: dict = None,
+        limit: float = None,
+        p_vectors: Union[List[Matrix], type(None)] = None,
+        q_vectors: Union[List[Matrix], type(None)] = None,
     ):
         r"""
         Calculates the irrationality measure $\delta$ defined, as:
@@ -369,7 +379,10 @@ class CMF:
             trajectory: the trajectory of the walk.
             depth: $n$, is the number of trajectory matrices multiplied.
                 The $\ell_1$ distance walked from the start point is `depth * sum(trajectory.values())`.
+            start: the starting point of the walk operation.
             limit: $L$
+            p_vectors: numerator extraction vectors for delta
+            q_vectors: denominator extraction vectors for delta
         Returns:
             the delta value as defined above.
         """
@@ -380,13 +393,30 @@ class CMF:
             approximants = approximants[:-1]
         else:
             approximants = self.limit(trajectory, [depth], start)
-        return approximants[0].delta(limit)
+        return approximants[0].delta(limit, p_vectors, q_vectors)
 
     def delta_sequence(
-        self, trajectory: dict, depth: int, start: dict = None, limit: float = None
+        self,
+        trajectory: dict,
+        depth: int,
+        start: dict = None,
+        limit: float = None,
+        p_vectors: Union[List[Matrix], type(None)] = None,
+        q_vectors: Union[List[Matrix], type(None)] = None,
     ):
         r"""
-        Add description here
+        Calculates delta values sequentially up to `depth`.
+
+        Args:
+            trajectory: the trajectory of the walk.
+            depth: $n$, is the number of trajectory matrices multiplied.
+                The $\ell_1$ distance walked from the start point is `depth * sum(trajectory.values())`.
+            start: the starting point of the walk operation.
+            limit: $L$
+            p_vectors: numerator extraction vectors for delta
+            q_vectors: denominator extraction vectors for delta
+        Returns:
+            the delta value as defined above.
         """
         depths = list(range(1, depth + 1))
         if limit is None:
@@ -396,4 +426,7 @@ class CMF:
             approximants = approximants[:-1]
         else:
             approximants = self.limit(trajectory, depths, start)
-        return [approximant.delta(limit) for approximant in approximants]
+        return [
+            approximant.delta(limit, p_vectors, q_vectors)
+            for approximant in approximants
+        ]

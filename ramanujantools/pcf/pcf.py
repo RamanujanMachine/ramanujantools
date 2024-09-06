@@ -1,7 +1,7 @@
 import sympy as sp
 from sympy.abc import n
 
-from typing import Dict, List, Collection
+from typing import Dict, List, Collection, Union
 from multimethod import multimethod
 
 from ramanujantools import Matrix, Limit
@@ -145,7 +145,8 @@ class PCF:
         r"""
         Returns the matrix corresponding to calculating the PCF up to a certain depth, including $a_0$
 
-        This is essentially $A \cdot \prod_{i=0}^{n-1}M(s + i)$ where `n=iterations` and `s=start`
+        This is essentially $A \cdot \prod_{i=1}^{n-1}M(i)$ where `n=iterations` if `start==0`,
+        $\prod_{i=s}^{s+n-1}M(i)$ where `n=iterations` and `s = start` otherwise.
 
         Args:
             iterations: The amount of multiplications to perform. Can be an integer value or a list of values.
@@ -154,18 +155,24 @@ class PCF:
             The pcf convergence limit as defined above.
             If iterations is a list, returns a list of limits.
         """
-        if not all(depth > 0 for depth in iterations):
+        if not all(depth >= 0 for depth in iterations):
             raise ValueError(
-                f"iterations must contain only positive values, got {iterations}"
+                f"iterations must contain only non-negative values, got {iterations}"
             )
+        iterations = sorted(list(set(iterations)))
+        walk_results = []
         if start == 0:
-            return [
+            if iterations[0] == 0:
+                iterations = iterations[1:]
+                walk_results.append(Matrix.eye(2))
+            actual_iterations = sorted([depth - 1 for depth in iterations])
+            walk_results += [
                 self.A() * matrix
-                for matrix in self.M().walk(
-                    {n: 1}, [iteration - 1 for iteration in iterations], {n: 1}
-                )
+                for matrix in self.M().walk({n: 1}, actual_iterations, {n: 1})
             ]
-        return self.M().walk({n: 1}, iterations, {n: start})
+        else:
+            walk_results += self.M().walk({n: 1}, iterations, {n: start})
+        return walk_results
 
     @multimethod
     def walk(self, iterations: int, start: int = 0) -> Matrix:  # noqa: F811
@@ -185,13 +192,23 @@ class PCF:
             The pcf convergence limit as defined above.
             If iterations is a list, returns a list of limits.
         """
-        return list(map(lambda matrix: Limit(matrix), self.walk(iterations, start)))
+
+        def walk_function(iterations):
+            return self.walk(iterations, start)
+
+        return Limit.walk_to_limit(iterations, walk_function)
 
     @multimethod
     def limit(self, iterations: int, start: int = 0) -> Limit:  # noqa: F811
         return self.limit([iterations], start)[0]
 
-    def delta(self, depth, limit=None):
+    def delta(
+        self,
+        depth,
+        limit=None,
+        p_vectors: Union[List[Matrix], type(None)] = None,
+        q_vectors: Union[List[Matrix], type(None)] = None,
+    ):
         r"""
         Calculates the irrationality measure $\delta$ defined, as:
         $|\frac{p_n}{q_n} - L| = \frac{1}{q_n}^{1+\delta}$
@@ -202,6 +219,8 @@ class PCF:
         Args:
             depth: $n$
             limit: $L$
+            p_vectors: numerator extraction vectors for delta
+            q_vectors: denominator extraction vectors for delta
         Returns:
             the delta value as defined above.
         Raises:
@@ -216,9 +235,15 @@ class PCF:
             limit = mlim.as_float()
         else:
             m = self.limit(depth)
-        return m.delta(limit)
+        return m.delta(limit, p_vectors, q_vectors)
 
-    def delta_sequence(self, depth: int, limit: float = None):
+    def delta_sequence(
+        self,
+        depth: int,
+        limit: float = None,
+        p_vectors: Union[List[Matrix], type(None)] = None,
+        q_vectors: Union[List[Matrix], type(None)] = None,
+    ):
         r"""
         Calculates the irrationality measure $\delta$ defined, as:
         $|\frac{p_n}{q_n} - L| = \frac{1}{q_n}^{1+\delta}$
@@ -229,6 +254,8 @@ class PCF:
         Args:
             depth: $n$
             limit: $L$
+            p_vectors: numerator extraction vectors for delta
+            q_vectors: denominator extraction vectors for delta
         Returns:
             the delta values for all depths up to `depth` as defined above.
         Raises:
@@ -242,11 +269,13 @@ class PCF:
             limit = self.limit(2 * depth).as_float()
 
         deltas = []
+        prev = Matrix.eye(2)
         m = self.A()
-        deltas.append(Limit(m).delta(limit))
+        deltas.append(Limit(m, prev).delta(limit, p_vectors, q_vectors))
 
         for i in range(1, depth):
+            prev = m
             m *= self.M()({n: i})
-            deltas.append(Limit(m).delta(limit))
+            deltas.append(Limit(m, prev).delta(limit, p_vectors, q_vectors))
 
         return deltas

@@ -2,7 +2,7 @@ from pytest import approx
 from sympy.abc import c, n
 import mpmath as mp
 
-import ramanujantools as rt
+from ramanujantools import Matrix
 from ramanujantools.pcf import PCF
 
 
@@ -36,10 +36,10 @@ def test_walk_list():
 
 
 def test_walk_start():
-    iterations = [1]
+    iterations = [1, 2, 3, 17, 29, 53, 99]
     p = PCF(n + 7, 3 * n**2 - 1)
     expected = p.walk(sum(iterations))
-    actual = rt.Matrix.eye(2)
+    actual = Matrix.eye(2)
     for i in range(len(iterations)):
         actual *= p.walk(iterations[i], start=sum(iterations[0:i]))
     assert expected == actual
@@ -126,15 +126,17 @@ def test_precision_phi():
 
 def test_delta_sequence_agrees_with_delta():
     # To prevent dynamic precision errors, setting it high enough
+    p_vectors = [Matrix([[1, 1]]), Matrix([[0], [1]])]
+    q_vectors = [Matrix([[1, 0]]), Matrix([[1], [1]])]
     mp.mp.dps = 50
     pcf = PCF(2 * n + 1, n**2)
     depth = 50
     limit = 4 / mp.pi
 
-    actual_deltas = pcf.delta_sequence(depth, limit)
+    actual_deltas = pcf.delta_sequence(depth, limit, p_vectors, q_vectors)
     expected_deltas = []
     for dep in range(1, depth + 1):
-        expected_deltas.append(pcf.delta(dep, limit))
+        expected_deltas.append(pcf.delta(dep, limit, p_vectors, q_vectors))
 
     assert expected_deltas == actual_deltas
 
