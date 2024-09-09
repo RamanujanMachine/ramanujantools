@@ -7,6 +7,13 @@ from mpmath import mp
 from ramanujantools import Matrix
 
 
+def expr_from_pslq(pslq_results, active_indices):
+    expr = 0
+    for i in active_indices:
+        expr += sp.Symbol(f"p{i}") * pslq_results.pop(0)
+    return expr
+
+
 def first_unmatch(a: str, b: str) -> int:
     """
     Returns the index of the biggest digit that does not match in a and b
@@ -145,7 +152,7 @@ class Limit:
         q_vectors: Union[List[Matrix], type(None)] = None,
     ) -> int:
         """
-        Increases the global mpmath precision to the lever required to handle this limit.
+        Increases the global mpmath precision to the level required to handle this limit.
         Returns the current precision after the increase.
         """
         requested_precision = (
@@ -206,3 +213,41 @@ class Limit:
         if reduced_q == 1:
             return mp.mpf("inf")
         return -(1 + mp.log(mp.fabs(L - (p / q)), reduced_q))
+
+    def identify_rational(self):
+        pslq_result = mp.pslq(self.current.col(-1))
+        if pslq_result is None:
+            return None
+        return f"0 = {expr_from_pslq(pslq_result, range(self.N()))}"
+
+    def identify(self, L: mp.mpf):
+        if L == 1:
+            return self.identify_rational()
+
+        def linear_independent_indices():
+            indices = list(range(self.N()))
+
+            def remove_index(pslq_result):
+                for index, value in enumerate(pslq_result):
+                    if value != 0:  # found a dependency
+                        indices.pop(index)
+                        return
+
+            while len(indices) > 1:  # a single index is linear independent vacuously
+                integer_sequences = [self.current.col(-1)[i] for i in indices]
+                pslq_result = mp.pslq(integer_sequences)
+                if pslq_result is None:
+                    return indices
+                remove_index(pslq_result)
+
+            return indices
+
+        used_indices = linear_independent_indices()
+        integer_sequences = [self.current.col(-1)[i] for i in used_indices]
+        to_identify = integer_sequences + [L * p for p in integer_sequences]
+        pslq_result = mp.pslq(to_identify)
+        if pslq_result is None:
+            return None
+        numerator = expr_from_pslq(pslq_result[: len(used_indices)], used_indices)
+        denominator = expr_from_pslq(pslq_result[len(used_indices) :], used_indices)
+        return f"0 = {numerator} - {sp.Symbol('L') * denominator}"
