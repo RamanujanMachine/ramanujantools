@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import sympy as sp
 
 
@@ -20,8 +22,17 @@ class IntegerRelation:
     def __init__(self, coefficients):
         self.coefficients = coefficients
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"IntegerRelation({self.coefficients})"
+
+    def __str__(self) -> str:
+        if len(self.coefficients) == 1:
+            return f"0 = {self.coefficients_expression(0)}"
+        else:
+            return f"0 = {self.coefficients_expression(0)} - {sp.Symbol('L') * self.coefficients_expression(1)}"
+
+    def __eq__(self, other: IntegerRelation) -> bool:
+        return self.coefficients == other.coefficients
 
     def coefficients_expression(self, index):
         coefficients = self.coefficients[index]
@@ -29,9 +40,3 @@ class IntegerRelation:
         for i in range(len(coefficients)):
             expr += sp.Symbol(f"p{i}") * coefficients[i]
         return expr
-
-    def __str__(self):
-        if len(self.coefficients) == 1:
-            return f"0 = {self.coefficients_expression(0)}"
-        else:
-            return f"0 = {self.coefficients_expression(0)} - {sp.Symbol('L') * self.coefficients_expression(1)}"

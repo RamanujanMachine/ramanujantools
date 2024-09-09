@@ -8,7 +8,7 @@ from mpmath import mp, zeta
 import sympy as sp
 from sympy.abc import x, y, z, n
 
-from ramanujantools import Matrix
+from ramanujantools import Matrix, IntegerRelation
 from ramanujantools.pcf import PCF
 from ramanujantools.cmf import known_cmfs, CMF
 
@@ -208,6 +208,16 @@ def test_2F1_z_evaluation():
     assert known_cmfs.pFq(p, q, z_eval=z_value) == known_cmfs.pFq(p, q).subs(
         {z: z_value}
     )
+
+
+def test_gamma():
+    cmf = known_cmfs.pFq(2, 2, negate_denominator_params=True, z_eval=-1)
+    x0, x1 = sp.symbols("x:2")
+    y0, y1 = sp.symbols("y:2")
+    trajectory = {x0: 1, x1: 1, y0: 1, y1: 0}
+    start = {x0: 1, x1: 1, y0: 1, y1: 1}
+    limit = cmf.limit(trajectory, 100, start)
+    assert IntegerRelation([[1, 3, 0], [-3, -5, 0]]) == limit.identify(mp.euler)
 
 
 def test_all_conserving():
