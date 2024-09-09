@@ -214,14 +214,36 @@ class Limit:
             return mp.mpf("inf")
         return -(1 + mp.log(mp.fabs(L - (p / q)), reduced_q))
 
-    def identify_rational(self):
-        pslq_result = mp.pslq(self.current.col(-1))
+    def identify_rational(self, column_index=-1) -> Union[str, type(None)]:
+        r"""
+        Searches for constants $a_0, \dots, a_{N-1}
+        such that $0 \approx \prod_{i=0}^{N-1}a_i * p_i$,
+        Where $p_i$ a column of the Limit matrix.
+
+        This is essentially the same as `self.identify(0, column_inde)`
+
+        Args:
+            column_index: The column to use in order to extract $p_i$. -1 by default.
+        Returns:
+            a string describing the integer relation, if exists. None otherwise.
+        """
+        pslq_result = mp.pslq(self.current.col(column_index))
         if pslq_result is None:
             return None
         return f"0 = {expr_from_pslq(pslq_result, range(self.N()))}"
 
-    def identify(self, L: mp.mpf):
-        if L == 1:
+    def identify(self, L: mp.mpf, column_index=-1) -> Union[str, type(None)]:
+        r"""
+        Given a constant $L$, searches for constants $a_0, \dots, a_{N-1}, b_0, \dots, b_{N-1}$
+        such that $0 \approx \prod_{i=0}^{N-1}a_i * p_i - L * \prod_{i=0}^{N-1}b_i * p_i$,
+        Where $p_i$ a column of the Limit matrix.
+
+        Args:
+            column_index: The column to use in order to extract $p_i$. -1 by default.
+        Returns:
+            a string describing the integer relation, if exists. None otherwise.
+        """
+        if L == 0:
             return self.identify_rational()
 
         def linear_independent_indices():
@@ -234,7 +256,7 @@ class Limit:
                         return
 
             while len(indices) > 1:  # a single index is linear independent vacuously
-                integer_sequences = [self.current.col(-1)[i] for i in indices]
+                integer_sequences = [self.current.col(column_index)[i] for i in indices]
                 pslq_result = mp.pslq(integer_sequences)
                 if pslq_result is None:
                     return indices
