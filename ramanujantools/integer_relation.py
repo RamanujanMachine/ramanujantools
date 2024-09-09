@@ -21,7 +21,7 @@ class IntegerRelation:
         self.coefficients = coefficients
 
     def __repr__(self):
-        return f"IntegerRelation{self.coefficients}"
+        return f"IntegerRelation({self.coefficients})"
 
     def coefficients_expression(self, index):
         coefficients = self.coefficients[index]
