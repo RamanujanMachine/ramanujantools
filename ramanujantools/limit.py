@@ -250,7 +250,7 @@ class Limit:
             indices = list(range(self.N()))
 
             def remove_index(pslq_result):
-                for index, value in enumerate(pslq_result):
+                for index, value in reversed(list(enumerate(pslq_result))):
                     if value != 0:  # found a dependency
                         indices.pop(index)
                         return
