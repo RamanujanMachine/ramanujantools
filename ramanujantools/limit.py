@@ -4,14 +4,7 @@ from typing import List, Callable, Union
 import sympy as sp
 from mpmath import mp
 
-from ramanujantools import Matrix
-
-
-def expr_from_pslq(pslq_results, active_indices):
-    expr = 0
-    for i in active_indices:
-        expr += sp.Symbol(f"p{i}") * pslq_results.pop(0)
-    return expr
+from ramanujantools import IntegerRelation, Matrix
 
 
 def first_unmatch(a: str, b: str) -> int:
@@ -214,7 +207,13 @@ class Limit:
             return mp.mpf("inf")
         return -(1 + mp.log(mp.fabs(L - (p / q)), reduced_q))
 
-    def identify_rational(self, column_index=-1) -> Union[str, type(None)]:
+    def coefficients_from_pslq(self, pslq_results, active_indices):
+        coefficients = [0] * self.N()
+        for i in active_indices:
+            coefficients[i] = pslq_results.pop(0)
+        return coefficients
+
+    def identify_rational(self, column_index=-1) -> Union[IntegerRelation, type(None)]:
         r"""
         Searches for constants $a_0, \dots, a_{N-1}
         such that $0 \approx \prod_{i=0}^{N-1}a_i * p_i$,
@@ -230,9 +229,13 @@ class Limit:
         pslq_result = mp.pslq(self.current.col(column_index))
         if pslq_result is None:
             return None
-        return f"0 = {expr_from_pslq(pslq_result, range(self.N()))}"
+        return IntegerRelation(
+            [self.coefficients_from_pslq(pslq_result, range(self.N()))]
+        )
 
-    def identify(self, L: mp.mpf, column_index=-1) -> Union[str, type(None)]:
+    def identify(
+        self, L: mp.mpf, column_index=-1
+    ) -> Union[IntegerRelation, type(None)]:
         r"""
         Given a constant $L$, searches for constants $a_0, \dots, a_{N-1}, b_0, \dots, b_{N-1}$
         such that $0 \approx \prod_{i=0}^{N-1}a_i * p_i - L * \prod_{i=0}^{N-1}b_i * p_i$,
@@ -265,11 +268,16 @@ class Limit:
             return indices
 
         used_indices = linear_independent_indices()
+        total_indices = len(used_indices)
         integer_sequences = [self.current.col(-1)[i] for i in used_indices]
         to_identify = integer_sequences + [L * p for p in integer_sequences]
         pslq_result = mp.pslq(to_identify)
         if pslq_result is None:
             return None
-        numerator = expr_from_pslq(pslq_result[: len(used_indices)], used_indices)
-        denominator = expr_from_pslq(pslq_result[len(used_indices) :], used_indices)
-        return f"0 = {numerator} - {sp.Symbol('L') * denominator}"
+        numerator = self.coefficients_from_pslq(
+            pslq_result[:total_indices], used_indices
+        )
+        denominator = self.coefficients_from_pslq(
+            pslq_result[total_indices:], used_indices
+        )
+        return IntegerRelation([numerator, denominator])
