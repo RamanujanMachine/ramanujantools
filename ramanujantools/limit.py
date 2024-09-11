@@ -139,21 +139,6 @@ class Limit:
         except (ZeroDivisionError, ValueError):
             return 0
 
-    def increase_precision(
-        self,
-        p_vectors: Union[List[Matrix], type(None)] = None,
-        q_vectors: Union[List[Matrix], type(None)] = None,
-    ) -> int:
-        """
-        Increases the global mpmath precision to the level required to handle this limit.
-        Returns the current precision after the increase.
-        """
-        requested_precision = (
-            self.precision(p_vectors, q_vectors) * 1.1
-        )  # Taking 10% digits buffer
-        mp.dps = max(mp.dps, requested_precision)
-        return mp.dps
-
     def as_float(
         self,
         p_vectors: Union[List[Matrix], type(None)] = None,
@@ -161,10 +146,7 @@ class Limit:
     ) -> mp.mpf:
         r"""
         Returns the limit as a floating point number f, such that $m \cdot v = f$, where `m=self` and `v=vector`.
-
-        This function increases the global mpmath precision if needed.
         """
-        self.increase_precision(p_vectors, q_vectors)
         p, q = self.as_rational(p_vectors, q_vectors)
         return mp.mpf(p) / mp.mpf(q)
 
@@ -175,13 +157,12 @@ class Limit:
     ) -> str:
         """
         Same as `as_float`, but also rounds the result to the shortest number possible within the error range.
-
-        This function increases the global mpmath precision if needed.
         """
-        return most_round_in_range(
-            self.as_float(p_vectors, q_vectors),
-            10 ** -self.precision(p_vectors, q_vectors),
-        )
+        with mp.workdps(self.precision()):
+            return most_round_in_range(
+                self.as_float(p_vectors, q_vectors),
+                10 ** -self.precision(p_vectors, q_vectors),
+            )
 
     def delta(
         self,
@@ -192,20 +173,18 @@ class Limit:
         r"""
         Calculates the irrationality measure $\delta$ defined, as:
         $|\frac{p_n}{q_n} - L| = \frac{1}{q_n}^{1+\delta}$
-
-        This function increases the global mpmath precision if needed.
         Args:
             L: $L$
         Returns:
             the delta value as defined above.
         """
-        self.increase_precision(p_vectors, q_vectors)
         p, q = self.as_rational(p_vectors, q_vectors)
         gcd = sp.gcd(p, q)
         reduced_q = mp.fabs(q // gcd)
         if reduced_q == 1:
             return mp.mpf("inf")
-        return -(1 + mp.log(mp.fabs(L - (p / q)), reduced_q))
+        with mp.workdps(self.precision()):
+            return -(1 + mp.log(mp.fabs(L - (p / q)), reduced_q))
 
     def coefficients_from_pslq(self, pslq_results, active_indices):
         coefficients = [0] * self.N()
@@ -226,7 +205,8 @@ class Limit:
         Returns:
             a string describing the integer relation, if exists. None otherwise.
         """
-        pslq_result = mp.pslq(self.current.col(column_index))
+        with mp.workdps(self.precision()):
+            pslq_result = mp.pslq(self.current.col(column_index))
         if pslq_result is None:
             return None
         return IntegerRelation(

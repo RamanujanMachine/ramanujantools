@@ -38,11 +38,11 @@ def test_apery():
 
     depth = 2000
     actual_limit = pcf.limit(depth)
-    actual_limit.increase_precision()  # Must before expected_limit, to ensure precision for zeta(3)
-    expected_limit = mp.mpf(6 / zeta(3))
-    assert actual_limit.as_float() == approx(float(expected_limit))
-    delta = pcf.delta(depth, expected_limit)
-    assert delta > 0.08
+    with mp.workdps(actual_limit.precision()):
+        expected_limit = mp.mpf(6 / zeta(3))
+        assert actual_limit.as_float() == approx(float(expected_limit))
+        delta = pcf.delta(depth, expected_limit)
+        assert delta > 0.08
 
 
 def test_cmf1():

@@ -1,3 +1,4 @@
+import mpmath as mp
 import sympy as sp
 from sympy.abc import n
 
@@ -229,10 +230,11 @@ class PCF:
 
         if limit is None:
             m, mlim = self.limit([depth, 2 * depth])
-            limit = mlim.as_float()
+            with mp.workdps(mlim.precision()):
+                return m.delta(mlim.as_float(), p_vectors, q_vectors)
         else:
             m = self.limit(depth)
-        return m.delta(limit, p_vectors, q_vectors)
+            return m.delta(limit, p_vectors, q_vectors)
 
     def delta_sequence(
         self,
