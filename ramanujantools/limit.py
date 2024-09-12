@@ -1,8 +1,9 @@
 from __future__ import annotations
 from typing import List, Callable, Union
+from functools import cached_property
 
 import sympy as sp
-from mpmath import mp
+import mpmath as mp
 
 from ramanujantools import IntegerRelation, Matrix
 
@@ -52,6 +53,12 @@ class Limit:
 
     def N(self) -> int:
         return self.current.rows
+
+    @cached_property
+    def mp(self):
+        limit_ctx = mp.mp.clone()
+        limit_ctx.dps = self.precision()
+        return limit_ctx
 
     @staticmethod
     def walk_to_limit(
@@ -126,18 +133,19 @@ class Limit:
         Args:
             base: The numerical base in which to return the precision (by default 10)
         """
-        try:
-            p1, q1 = self.as_rational(p_vectors, q_vectors)
-            p2, q2 = self.as_rational(p_vectors, q_vectors, previous=True)
-            numerator = p1 * q2 - q1 * p2
-            denominator = q1 * q2
-            # extracting real because sometimes log returns a complex with tiny imaginary type due to precision
-            digits = -mp.re(
-                (mp.log(int(numerator), base) - mp.log(int(denominator), base))
-            )
-            return int(mp.floor(digits))
-        except (ZeroDivisionError, ValueError):
+        p1, q1 = self.as_rational(p_vectors, q_vectors)
+        p2, q2 = self.as_rational(p_vectors, q_vectors, previous=True)
+        numerator = p1 * q2 - q1 * p2
+        denominator = q1 * q2
+        if denominator == 0:
             return 0
+        if numerator == 0:
+            return 100  # big enough, this should be infinity
+        # extracting real because sometimes log returns a complex with tiny imaginary type due to precision
+        digits = -mp.re(
+            (mp.log(int(numerator), base) - mp.log(int(denominator), base))
+        )
+        return int(mp.floor(digits))
 
     def as_float(
         self,
@@ -148,7 +156,7 @@ class Limit:
         Returns the limit as a floating point number f, such that $m \cdot v = f$, where `m=self` and `v=vector`.
         """
         p, q = self.as_rational(p_vectors, q_vectors)
-        return mp.mpf(p) / mp.mpf(q)
+        return self.mp.mpf(p) / self.mp.mpf(q)
 
     def as_rounded_number(
         self,
@@ -158,11 +166,10 @@ class Limit:
         """
         Same as `as_float`, but also rounds the result to the shortest number possible within the error range.
         """
-        with mp.workdps(self.precision()):
-            return most_round_in_range(
-                self.as_float(p_vectors, q_vectors),
-                10 ** -self.precision(p_vectors, q_vectors),
-            )
+        return most_round_in_range(
+            self.as_float(p_vectors, q_vectors),
+            10 ** -self.precision(p_vectors, q_vectors),
+        )
 
     def delta(
         self,
@@ -180,11 +187,10 @@ class Limit:
         """
         p, q = self.as_rational(p_vectors, q_vectors)
         gcd = sp.gcd(p, q)
-        reduced_q = mp.fabs(q // gcd)
+        reduced_q = self.mp.fabs(q // gcd)
         if reduced_q == 1:
-            return mp.mpf("inf")
-        with mp.workdps(self.precision()):
-            return -(1 + mp.log(mp.fabs(L - (p / q)), reduced_q))
+            return self.mp.mpf("inf")
+        return -(1 + self.mp.log(self.mp.fabs(L - (p / q)), reduced_q))
 
     def coefficients_from_pslq(self, pslq_results, active_indices):
         coefficients = [0] * self.N()
@@ -205,8 +211,7 @@ class Limit:
         Returns:
             a string describing the integer relation, if exists. None otherwise.
         """
-        with mp.workdps(self.precision()):
-            pslq_result = mp.pslq(self.current.col(column_index))
+        pslq_result = self.mp.pslq(self.current.col(column_index))
         if pslq_result is None:
             return None
         return IntegerRelation(
@@ -240,7 +245,7 @@ class Limit:
 
             while len(indices) > 1:  # a single index is linear independent vacuously
                 integer_sequences = [self.current.col(column_index)[i] for i in indices]
-                pslq_result = mp.pslq(integer_sequences)
+                pslq_result = self.mp.pslq(integer_sequences)
                 if pslq_result is None:
                     return indices
                 remove_index(pslq_result)
@@ -251,7 +256,7 @@ class Limit:
         total_indices = len(used_indices)
         integer_sequences = [self.current.col(-1)[i] for i in used_indices]
         to_identify = integer_sequences + [L * p for p in integer_sequences]
-        pslq_result = mp.pslq(to_identify)
+        pslq_result = self.mp.pslq(to_identify)
         if pslq_result is None:
             return None
         numerator = self.coefficients_from_pslq(

@@ -3,8 +3,7 @@ from pytest import approx
 import itertools
 from math import e, pi, log
 
-from mpmath import mp, zeta
-
+import mpmath as mp
 import sympy as sp
 from sympy.abc import x, y, z, n
 
@@ -26,7 +25,7 @@ def test_cmf_pi():
 def test_cmf_zeta3():
     cmf = known_cmfs.zeta3()
     assert cmf.limit({x: 1, y: 1}, 50, {x: 1, y: 1}).as_float() == approx(
-        (1 - zeta(3)) / zeta(3)
+        (1 - mp.zeta(3)) / mp.zeta(3)
     )
 
 
@@ -38,11 +37,11 @@ def test_apery():
 
     depth = 2000
     actual_limit = pcf.limit(depth)
-    with mp.workdps(actual_limit.precision()):
-        expected_limit = mp.mpf(6 / zeta(3))
-        assert actual_limit.as_float() == approx(float(expected_limit))
-        delta = pcf.delta(depth, expected_limit)
-        assert delta > 0.08
+    ctx = actual_limit.mp
+    expected_limit = ctx.mpf(6 / ctx.zeta(3))
+    assert actual_limit.as_float() == approx(float(expected_limit))
+    delta = pcf.delta(depth, expected_limit)
+    assert delta > 0.08
 
 
 def test_cmf1():

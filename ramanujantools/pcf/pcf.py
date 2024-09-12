@@ -230,8 +230,7 @@ class PCF:
 
         if limit is None:
             m, mlim = self.limit([depth, 2 * depth])
-            with mp.workdps(mlim.precision()):
-                return m.delta(mlim.as_float(), p_vectors, q_vectors)
+            return m.delta(mlim.as_float(), p_vectors, q_vectors)
         else:
             m = self.limit(depth)
             return m.delta(limit, p_vectors, q_vectors)
