@@ -125,10 +125,8 @@ def test_precision_phi():
 
 
 def test_delta_sequence_agrees_with_delta():
-    # To prevent dynamic precision errors, setting it high enough
     p_vectors = [Matrix([[1, 1]]), Matrix([[0], [1]])]
     q_vectors = [Matrix([[1, 0]]), Matrix([[1], [1]])]
-    mp.mp.dps = 50
     pcf = PCF(2 * n + 1, n**2)
     depth = 50
     limit = 4 / mp.pi
@@ -142,8 +140,6 @@ def test_delta_sequence_agrees_with_delta():
 
 
 def test_blind_delta_sequence_agrees_with_blind_delta():
-    # To prevent dynamic precision errors, setting it high enough
-    mp.mp.dps = 50
     pcf = PCF(2 * n + 1, n**2)
     depth = 50
     limit = pcf.limit(2 * depth).as_float()

@@ -1,9 +1,7 @@
 from pytest import approx
 
 import itertools
-from math import e, pi, log
 
-import mpmath as mp
 import sympy as sp
 from sympy.abc import x, y, z, n
 
@@ -14,19 +12,20 @@ from ramanujantools.cmf import known_cmfs, CMF
 
 def test_cmf_e():
     cmf = known_cmfs.e()
-    assert cmf.limit({x: 1, y: 1}, 50, {x: 0, y: 0}).as_float() == approx(1 / (1 - e))
+    limit = cmf.limit({x: 1, y: 1}, 50, {x: 0, y: 0})
+    assert limit.as_float() == approx(1 / (1 - limit.mp.e))
 
 
 def test_cmf_pi():
     cmf = known_cmfs.pi()
-    assert cmf.limit({x: 1, y: 1}, 50, {x: 1, y: 0}).as_float() == approx((2 - pi) / 2)
+    limit = cmf.limit({x: 1, y: 1}, 50, {x: 1, y: 0})
+    assert limit.as_float() == approx((2 - limit.mp.pi) / 2)
 
 
 def test_cmf_zeta3():
     cmf = known_cmfs.zeta3()
-    assert cmf.limit({x: 1, y: 1}, 50, {x: 1, y: 1}).as_float() == approx(
-        (1 - mp.zeta(3)) / mp.zeta(3)
-    )
+    limit = cmf.limit({x: 1, y: 1}, 50, {x: 1, y: 1})
+    assert limit.as_float() == approx((1 - limit.mp.zeta(3)) / limit.mp.zeta(3))
 
 
 def test_apery():
@@ -49,9 +48,8 @@ def test_cmf1():
 
     cmf = known_cmfs.cmf1()
     for a, b in itertools.product(range(1, 10), range(1, 10)):
-        assert cmf.subs({c0: 0, c1: a, c2: 0, c3: b}).limit(
-            {x: 1, y: 1}, 50
-        ).as_float() == approx(-a + b / log(1 + b / a), 1e-4)
+        limit = cmf.subs({c0: 0, c1: a, c2: 0, c3: b}).limit({x: 1, y: 1}, 50)
+        assert limit.as_float() == approx(-a + b / limit.mp.log(1 + b / a), 1e-4)
 
 
 def test_2F1_theta_derivative():
@@ -216,7 +214,7 @@ def test_gamma():
     trajectory = {x0: 1, x1: 1, y0: 1, y1: 0}
     start = {x0: 1, x1: 1, y0: 1, y1: 1}
     limit = cmf.limit(trajectory, 100, start)
-    assert IntegerRelation([[1, 3, 0], [-3, -5, 0]]) == limit.identify(mp.euler)
+    assert IntegerRelation([[1, 3, 0], [-3, -5, 0]]) == limit.identify(limit.mp.euler)
 
 
 def test_all_conserving():
