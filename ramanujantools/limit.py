@@ -76,7 +76,10 @@ class Limit:
 
     @staticmethod
     def walk_to_limit(
-        iterations: List[int], walk_function: Callable[List[int], List[Limit]]
+        iterations: List[int],
+        walk_function: Callable[List[int], List[Limit]],
+        p_vectors: Union[List[Matrix], type(None)] = None,
+        q_vectors: Union[List[Matrix], type(None)] = None,
     ) -> List[Limit]:
         previous_values = [depth - 1 for depth in iterations]
         walk_iterations = sorted(list(set(iterations + previous_values)))
@@ -91,6 +94,8 @@ class Limit:
                 Limit(
                     walk_matrices[current_index],
                     walk_matrices[current_index - 1],
+                    p_vectors,
+                    q_vectors,
                 )
             )
         return limits
