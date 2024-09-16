@@ -97,6 +97,21 @@ def test_limit_diagonal():
     assert cmf.limit({x: 1, y: 1}, 17) == Mxy.limit({x: 1, y: 1}, 17, {x: 1, y: 1})
 
 
+def test_limit_vectors():
+    cmf = known_cmfs.e()
+    trajectory = {x: 1, y: 3}
+    depths = [12, 13, 17]
+    p_vectors = [Matrix([[1, 2, 3]]), Matrix([4, 5, 6])]
+    q_vectors = [Matrix([[4, 5, 6]]), Matrix([1, 2, 3])]
+    expected = cmf.limit(trajectory, depths)
+    for lim in expected:
+        lim.p_vectors = p_vectors
+        lim.q_vectors = q_vectors
+    assert expected == cmf.limit(
+        trajectory, depths, p_vectors=p_vectors, q_vectors=q_vectors
+    )
+
+
 def test_walk_list():
     cmf = known_cmfs.e()
     trajectory = {x: 2, y: 3}

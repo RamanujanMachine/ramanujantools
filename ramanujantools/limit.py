@@ -63,7 +63,12 @@ class Limit:
         return repr(self)
 
     def __eq__(self, other: Limit) -> bool:
-        return self.current == other.current and self.previous == other.previous
+        return (
+            self.current == other.current
+            and self.previous == other.previous
+            and self.p_vectors == other.p_vectors
+            and self.q_vectors == other.q_vectors
+        )
 
     def N(self) -> int:
         return self.current.rows
