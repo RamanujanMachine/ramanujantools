@@ -200,13 +200,7 @@ class PCF:
     def limit(self, iterations: int, start: int = 0) -> Limit:  # noqa: F811
         return self.limit([iterations], start)[0]
 
-    def delta(
-        self,
-        depth,
-        limit=None,
-        p_vectors: Union[List[Matrix], type(None)] = None,
-        q_vectors: Union[List[Matrix], type(None)] = None,
-    ):
+    def delta(self, depth, limit=None):
         r"""
         Calculates the irrationality measure $\delta$ defined, as:
         $|\frac{p_n}{q_n} - L| = \frac{1}{q_n}^{1+\delta}$
@@ -230,18 +224,12 @@ class PCF:
 
         if limit is None:
             m, mlim = self.limit([depth, 2 * depth])
-            return m.delta(mlim.as_float(), p_vectors, q_vectors)
+            limit = mlim.as_float()
         else:
             m = self.limit(depth)
-            return m.delta(limit, p_vectors, q_vectors)
+        return m.delta(limit)
 
-    def delta_sequence(
-        self,
-        depth: int,
-        limit: float = None,
-        p_vectors: Union[List[Matrix], type(None)] = None,
-        q_vectors: Union[List[Matrix], type(None)] = None,
-    ):
+    def delta_sequence(self, depth: int, limit: float = None):
         r"""
         Calculates the irrationality measure $\delta$ defined, as:
         $|\frac{p_n}{q_n} - L| = \frac{1}{q_n}^{1+\delta}$
@@ -269,11 +257,11 @@ class PCF:
         deltas = []
         prev = Matrix.eye(2)
         m = self.A()
-        deltas.append(Limit(m, prev).delta(limit, p_vectors, q_vectors))
+        deltas.append(Limit(m, prev).delta(limit))
 
         for i in range(1, depth):
             prev = m
             m *= self.M()({n: i})
-            deltas.append(Limit(m, prev).delta(limit, p_vectors, q_vectors))
+            deltas.append(Limit(m, prev).delta(limit))
 
         return deltas
