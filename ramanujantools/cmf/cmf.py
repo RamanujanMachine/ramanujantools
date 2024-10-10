@@ -6,7 +6,7 @@ from typing import Dict, List, Set, Union
 import sympy as sp
 from sympy.abc import n
 
-from ramanujantools import Matrix, Limit, simplify
+from ramanujantools import Matrix, PolyMatrix, Limit, simplify
 from ramanujantools.pcf import PCFFromMatrix
 
 
@@ -184,8 +184,7 @@ class CMF:
 
     def trajectory_matrix(self, trajectory: dict, start: dict = None) -> Matrix:
         """
-
-        Returns the corresponding matrix for walking in trajectory.
+        Returns a corresponding matrix for walking in a trajectory, up to a constant.
         If `start` is given, the new matrix will be reduced to a single variable `n`.
         Args:
             trajectory: a dict containing the amount of steps in each direction.
@@ -206,13 +205,16 @@ class CMF:
             )
 
         position = {axis: axis for axis in self.axes()}
-        m = Matrix.eye(self.N())
-        for axis in self.axes():
+        m = PolyMatrix.eye(self.N(), self.axes())
+        # sorting so iteration order is deterministic
+        for axis in sorted(list(self.axes()), key=str):
             sign = trajectory[axis] >= 0
-            m *= self.M(axis, sign).walk(
+            axis_matrix = self.M(axis, sign).as_polynomial()
+            m *= axis_matrix.walk(
                 self.axis_vector(axis, sign), abs(trajectory[axis]), position
             )
             position[axis] += trajectory[axis]
+        m = m.to_Matrix()
         if start:
             m = CMF.substitute_trajectory(m, trajectory, start)
         return m

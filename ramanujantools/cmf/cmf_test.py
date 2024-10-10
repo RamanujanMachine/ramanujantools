@@ -50,11 +50,11 @@ def test_back_negates_forward():
 
 def test_trajectory_matrix_negative_axis():
     cmf = known_cmfs.e()
-    assert cmf.trajectory_matrix({x: -3, y: 0}) == cmf.M(x, False).walk(
-        {x: -1, y: 0}, 3, {x: x, y: y}
+    assert cmf.trajectory_matrix({x: -3, y: 0}).limit_equivalent(
+        cmf.M(x, False).walk({x: -1, y: 0}, 3, {x: x, y: y})
     )
-    assert cmf.trajectory_matrix({x: 0, y: -2}) == cmf.M(y, False).walk(
-        {x: 0, y: -1}, 2, {x: x, y: y}
+    assert cmf.trajectory_matrix({x: 0, y: -2}).limit_equivalent(
+        cmf.M(y, False).walk({x: 0, y: -1}, 2, {x: x, y: y})
     )
 
 
@@ -67,7 +67,7 @@ def test_trajectory_matrix_negative():
         * cmf.M(c, sign=False).subs({a: a + 1, b: b - 2})
     )
 
-    assert expected == cmf.trajectory_matrix({a: 1, b: -2, c: -1})
+    assert cmf.trajectory_matrix({a: 1, b: -2, c: -1}).limit_equivalent(expected)
 
 
 def test_trajectory_matrix_diagonal_substitute():

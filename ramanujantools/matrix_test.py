@@ -299,3 +299,53 @@ def test_limit_list():
         assert limits[depth_index] == m.limit(
             trajectory, iterations[depth_index], start
         )
+
+
+def test_free_symbols_after_walk_numeric():
+    trajectory = {x: 2, y: 3}
+    start = {x: 5, y: 7}
+    iterations = 1
+    m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
+    expected = set()
+    assert expected == m.free_symbols_after_walk(trajectory, iterations, start)
+    assert expected == m.walk(trajectory, iterations, start).free_symbols
+
+
+def test_free_symbols_after_walk_not_all_subbed():
+    trajectory = {x: 2}
+    start = {x: 5}
+    iterations = 1
+    m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
+    expected = {y}
+    assert expected == m.free_symbols_after_walk(trajectory, iterations, start)
+    assert expected == m.walk(trajectory, iterations, start).free_symbols
+
+
+def test_free_symbols_after_walk_symbols_start_subbed():
+    trajectory = {x: 2, y: 3}
+    start = {x: 5, y: x**2 + 1}
+    iterations = 1
+    m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
+    expected = {x}
+    assert expected == m.free_symbols_after_walk(trajectory, iterations, start)
+    assert expected == m.walk(trajectory, iterations, start).free_symbols
+
+
+def test_free_symbols_after_walk_symbols_trajectory_subbed_in():
+    trajectory = {x: 2, y: n}
+    start = {x: 5, y: 7}
+    iterations = 2
+    m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
+    expected = {n}
+    assert expected == m.free_symbols_after_walk(trajectory, iterations, start)
+    assert expected == m.walk(trajectory, iterations, start).free_symbols
+
+
+def test_free_symbols_after_walk_symbols_trajectory_not_subbed_in():
+    trajectory = {x: 2, y: n}
+    start = {x: 5, y: 7}
+    iterations = 1
+    m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
+    expected = set()
+    assert expected == m.free_symbols_after_walk(trajectory, iterations, start)
+    assert expected == m.walk(trajectory, iterations, start).free_symbols
