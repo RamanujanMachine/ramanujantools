@@ -106,20 +106,19 @@ def test_walk_list():
     ]
 
 
-def test_substitute_trajectory_axis():
+def test_variable_reduction_substitution_axis():
     cmf = known_cmfs.e()
-    assert CMF.substitute_trajectory(cmf.M(x), {x: 1, y: 0}, {x: 1, y: 0}) == cmf.M(x)(
-        {x: n, y: 0}
-    )
-    assert CMF.substitute_trajectory(cmf.M(y), {x: 0, y: 1}, {x: 0, y: 1}) == cmf.M(y)(
-        {x: 0, y: n}
-    )
+    x_axis = cmf.axis_vector(x)
+    y_axis = cmf.axis_vector(y)
+    assert {x: n, y: 0} == CMF.variable_reduction_substitution(x_axis, x_axis)
+    assert {x: 0, y: n} == CMF.variable_reduction_substitution(y_axis, y_axis)
 
 
-def test_substitute_trajectory_diagonal():
-    m = known_cmfs.e().trajectory_matrix({x: 1, y: 2})
-    assert CMF.substitute_trajectory(m, {x: 1, y: 2}, {x: 3, y: 5}) == m.subs(
-        {x: n + 2, y: 2 * n + 3}
+def test_variable_reduction_substitution_diagonal():
+    trajectory = {x: 1, y: 2}
+    start = {x: 3, y: 5}
+    assert {x: n + 2, y: 2 * n + 3} == CMF.variable_reduction_substitution(
+        trajectory, start
     )
 
 
@@ -133,7 +132,7 @@ def test_dim():
     assert 3 == cmf.dim()
 
 
-def test_substitute_trajectory_walk_equivalence():
+def test_variable_reduction_walk_equivalence():
     cmf = known_cmfs.e()
     iterations = 7
     trajectory = {x: 1, y: 1}

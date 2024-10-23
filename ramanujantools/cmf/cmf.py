@@ -204,20 +204,22 @@ class CMF:
                 f"Start axes {start.keys()} do not match CMF axes {self.axes()}"
             )
 
-        position = {axis: axis for axis in self.axes()}
-        m = PolyMatrix.eye(self.N(), self.axes())
-        # sorting so iteration order is deterministic
-        for axis in sorted(list(self.axes()), key=str):
-            sign = trajectory[axis] >= 0
-            axis_matrix = self.M(axis, sign).as_polynomial()
-            m *= axis_matrix.walk(
-                self.axis_vector(axis, sign), abs(trajectory[axis]), position
-            )
-            position[axis] += trajectory[axis]
-        m = m.to_Matrix()
-        if start:
-            m = CMF.substitute_trajectory(m, trajectory, start)
-        return m
+        if start is None:
+            position = {axis: axis for axis in self.axes()}
+            m = Matrix.eye(self.N())
+            # sorting so iteration order is deterministic
+            for axis in sorted(list(self.axes()), key=str):
+                sign = trajectory[axis] >= 0
+                axis_matrix = self.M(axis, sign)
+                m *= axis_matrix.walk(
+                    self.axis_vector(axis, sign), abs(trajectory[axis]), position
+                )
+                position[axis] += trajectory[axis]
+            return m
+
+        else:
+            subbed_start = CMF.variable_reduction_substitution(trajectory, start)
+            return self.walk(trajectory, 1, subbed_start).applyfunc(sp.factor)
 
     def as_pcf(self, trajectory) -> PCFFromMatrix:
         """
@@ -226,11 +228,9 @@ class CMF:
         return self.trajectory_matrix(trajectory, self.default_origin()).as_pcf()
 
     @staticmethod
-    def substitute_trajectory(
-        trajectory_matrix: Matrix, trajectory: dict, start: dict
-    ) -> Matrix:
+    def variable_reduction_substitution(trajectory: dict, start: dict) -> Matrix:
         """
-        Reduces a trajectory matrix to have a single variable `n`.
+        Returns the substitution that reduces all CMF variables into one variable `n`.
 
         This transformation is possible only when the starting point is known.
         Each incrementation of the variable `n` represents a full step in `trajectory`.
@@ -240,8 +240,7 @@ class CMF:
             trajectory: The trajectory that was used to create the trajectory matrix.
             start: The starting point from which the walk operation is to be calculated.
         Returns:
-            A matrix that with one variable n that is equivalent to trajectory matrix,
-            such that every step in the n axis is eqivalent to a step in `trajectory` when starting from `start`.
+            A dict representing the above variable reduction substitution
         Raises:
             ValueError: if trajectory keys and start keys do not match
         """
@@ -252,10 +251,9 @@ class CMF:
                 f"Trajectory axes {trajectory.keys()} do not match start axes {start.keys()}"
             )
 
-        def replace(i):
-            return start[i] + (n - 1) * trajectory[i]
-
-        return trajectory_matrix({axis: replace(axis) for axis in trajectory.keys()})
+        return {
+            axis: start[axis] + (n - 1) * trajectory[axis] for axis in trajectory.keys()
+        }
 
     @multimethod
     def walk(  # noqa: F811
