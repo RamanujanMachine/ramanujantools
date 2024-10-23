@@ -32,7 +32,7 @@ def test_cmf_zeta3():
 
 def test_apery():
     cmf = known_cmfs.zeta3()
-    pcf = cmf.as_pcf({x: 1, y: 1}).pcf
+    pcf = cmf.trajectory_matrix({x: 1, y: 1}, {x: 1, y: 1}).as_pcf().pcf
     # This is Apery's PCF
     assert pcf == PCF(34 * n**3 + 51 * n**2 + 27 * n + 5, -(n**6))
 
@@ -51,7 +51,7 @@ def test_cmf1():
     cmf = known_cmfs.cmf1()
     for a, b in itertools.product(range(1, 10), range(1, 10)):
         assert cmf.subs({c0: 0, c1: a, c2: 0, c3: b}).limit(
-            {x: 1, y: 1}, 50
+            {x: 1, y: 1}, 50, {x: 1, y: 1}
         ).as_float() == approx(-a + b / log(1 + b / a), 1e-4)
 
 

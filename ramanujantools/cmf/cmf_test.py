@@ -70,39 +70,45 @@ def test_trajectory_matrix_negative():
     assert cmf.trajectory_matrix({a: 1, b: -2, c: -1}).limit_equivalent(expected)
 
 
-def test_trajectory_matrix_diagonal_substitute():
-    from sympy.abc import n
-
+def test_trajectory_matrix_variable_reduction():
     cmf = known_cmfs.e()
-    assert cmf.trajectory_matrix({x: 1, y: 1}, {x: 3, y: 5}) == simplify(
-        cmf.trajectory_matrix({x: 1, y: 1}).subs({x: n + 2, y: n + 4})
-    )
+    trajectory = {x: -2, y: 3}
+    start = {x: 5, y: -7}
+    assert cmf.trajectory_matrix(trajectory).subs(
+        CMF.variable_reduction_substitution(trajectory, start)
+    ) == cmf.trajectory_matrix(trajectory, start)
 
 
 def test_walk_axis():
     cmf = known_cmfs.e()
-    assert cmf.walk({x: 1, y: 0}, 17) == cmf.M(x).walk({x: 1, y: 0}, 17, {x: 1, y: 1})
-    assert cmf.walk({x: 0, y: 1}, 17) == cmf.M(y).walk({x: 0, y: 1}, 17, {x: 1, y: 1})
+    start = {x: 1, y: 1}
+    assert cmf.walk({x: 1, y: 0}, 17, start) == cmf.M(x).walk({x: 1, y: 0}, 17, start)
+    assert cmf.walk({x: 0, y: 1}, 17, start) == cmf.M(y).walk({x: 0, y: 1}, 17, start)
 
 
 def test_walk_diagonal():
     cmf = known_cmfs.e()
-    Mxy = cmf.trajectory_matrix({x: 1, y: 1}, {x: 1, y: 1})
-    assert cmf.walk({x: 1, y: 1}, 9) == Mxy.walk({n: 1}, 9, {n: 1})
+    trajectory = {x: 1, y: 1}
+    start = {x: 1, y: 1}
+    Mxy = cmf.trajectory_matrix(trajectory, start)
+    assert cmf.walk(trajectory, 9, start) == Mxy.walk({n: 1}, 9, {n: 1})
 
 
 def test_limit_diagonal():
     cmf = known_cmfs.e()
-    Mxy = cmf.trajectory_matrix({x: 1, y: 1})
-    assert cmf.limit({x: 1, y: 1}, 17) == Mxy.limit({x: 1, y: 1}, 17, {x: 1, y: 1})
+    trajectory = {x: 1, y: 1}
+    start = {x: 1, y: 1}
+    Mxy = cmf.trajectory_matrix(trajectory)
+    assert cmf.limit(trajectory, 17, start) == Mxy.limit(trajectory, 17, start)
 
 
 def test_walk_list():
     cmf = known_cmfs.e()
     trajectory = {x: 2, y: 3}
+    start = {x: 5, y: 7}
     iterations = [1, 2, 3, 17, 29]
-    assert cmf.walk(trajectory, iterations) == [
-        cmf.walk(trajectory, i) for i in iterations
+    assert cmf.walk(trajectory, iterations, start) == [
+        cmf.walk(trajectory, i, start) for i in iterations
     ]
 
 
@@ -148,19 +154,23 @@ def test_delta_correctness():
     cmf = known_cmfs.hypergeometric_derived_2F1()
     depth = 100
     trajectory = {a: 1, b: 0, c: 1}
-    l1, l2 = cmf.limit(trajectory, [depth, 2 * depth])
-    assert cmf.delta(trajectory, depth) == l1.delta(l2.as_float())
-    assert cmf.delta(trajectory, depth, limit=l2.as_float()) == l1.delta(l2.as_float())
+    start = {a: 1, b: 1, c: 1}
+    l1, l2 = cmf.limit(trajectory, [depth, 2 * depth], start)
+    assert cmf.delta(trajectory, depth, start) == l1.delta(l2.as_float())
+    assert cmf.delta(trajectory, depth, start, limit=l2.as_float()) == l1.delta(
+        l2.as_float()
+    )
 
 
 def test_blind_delta_sequence_agrees_with_blind_delta():
     cmf = known_cmfs.hypergeometric_derived_2F1()
     depth = 30
     trajectory = {a: 1, b: 2, c: 0}
-    limit = cmf.limit(trajectory, 2 * depth).as_float()
-    delta_sequence = cmf.delta_sequence(trajectory, depth)
+    start = {a: 2, b: 3, c: 4}
+    limit = cmf.limit(trajectory, 2 * depth, start).as_float()
+    delta_sequence = cmf.delta_sequence(trajectory, depth, start)
     sequence_of_deltas = [
-        cmf.delta(trajectory, i, limit=limit) for i in range(1, depth + 1)
+        cmf.delta(trajectory, i, start, limit=limit) for i in range(1, depth + 1)
     ]
     assert delta_sequence == sequence_of_deltas
     assert len(delta_sequence) == depth

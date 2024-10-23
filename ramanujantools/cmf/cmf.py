@@ -6,7 +6,7 @@ from typing import Dict, List, Set, Union
 import sympy as sp
 from sympy.abc import n
 
-from ramanujantools import Matrix, PolyMatrix, Limit, simplify
+from ramanujantools import Matrix, Limit, simplify
 from ramanujantools.pcf import PCFFromMatrix
 
 
@@ -176,12 +176,6 @@ class CMF:
             }
         )
 
-    def default_origin(self):
-        """
-        Returns the default origin value, which is 1 for every axis.
-        """
-        return {axis: 1 for axis in self.axes()}
-
     def trajectory_matrix(self, trajectory: dict, start: dict = None) -> Matrix:
         """
         Returns a corresponding matrix for walking in a trajectory, up to a constant.
@@ -205,27 +199,10 @@ class CMF:
             )
 
         if start is None:
-            position = {axis: axis for axis in self.axes()}
-            m = Matrix.eye(self.N())
-            # sorting so iteration order is deterministic
-            for axis in sorted(list(self.axes()), key=str):
-                sign = trajectory[axis] >= 0
-                axis_matrix = self.M(axis, sign)
-                m *= axis_matrix.walk(
-                    self.axis_vector(axis, sign), abs(trajectory[axis]), position
-                )
-                position[axis] += trajectory[axis]
-            return m
-
+            start = {axis: axis for axis in self.axes()}
         else:
-            subbed_start = CMF.variable_reduction_substitution(trajectory, start)
-            return self.walk(trajectory, 1, subbed_start).applyfunc(sp.factor)
-
-    def as_pcf(self, trajectory) -> PCFFromMatrix:
-        """
-        Returns the PCF equivalent to the CMF in a certain trajectory, up to a mobius transform.
-        """
-        return self.trajectory_matrix(trajectory, self.default_origin()).as_pcf()
+            start = CMF.variable_reduction_substitution(trajectory, start)
+        return self.walk(trajectory, 1, start).applyfunc(sp.factor)
 
     @staticmethod
     def variable_reduction_substitution(trajectory: dict, start: dict) -> Matrix:
@@ -260,7 +237,7 @@ class CMF:
         self,
         trajectory: dict,
         iterations: List[int],
-        start: Union[dict, type(None)] = None,
+        start: dict,
     ) -> List[Matrix]:
         r"""
         Returns a list of trajectorial walk multiplication matrices in the desired depths.
@@ -271,7 +248,7 @@ class CMF:
         Args:
             trajectory: A dict containing the amount of steps in each direction.
             iterations: The amount of trajectory matrix multiplications to perform, either an integer or a list.
-            start: A dict representing the starting point of the multiplication, `default_origin` by default.
+            start: A dict representing the starting point of the multiplication.
         Returns:
             The limit of the walk multiplication as defined above.
             If `iterations` is a list, returns a list of limits.
@@ -289,7 +266,7 @@ class CMF:
             )
 
         results = []
-        position = dict(start or self.default_origin())
+        position = start
         matrix = Matrix.eye(self.N())
         previous_depth = 0
         for depth in iterations:
@@ -308,9 +285,9 @@ class CMF:
         self,
         trajectory: dict,
         iterations: int,
-        start: Union[dict, type(None)] = None,
+        start: dict,
     ) -> Matrix:
-        position = dict(start or self.default_origin())
+        position = dict(start)
         matrix = Matrix.eye(self.N())
         for axis in self.axes_sorter(self.axes(), trajectory, position):
             depth = trajectory[axis] * iterations
@@ -326,7 +303,7 @@ class CMF:
         self,
         trajectory: dict,
         iterations: List[int],
-        start: Union[dict, type(None)] = None,
+        start: dict,
     ) -> List[Limit]:
         r"""
         Returns a list of limits of trajectorial walk multiplication matrices in the desired depths.
@@ -337,7 +314,7 @@ class CMF:
         Args:
             trajectory: A dict containing the amount of steps in each direction.
             iterations: The amount of trajectory matrix multiplications to perform, either an integer or a list.
-            start: A dict representing the starting point of the multiplication, `default_origin` by default.
+            start: A dict representing the starting point of the multiplication.
         Returns:
             The limit of the walk multiplication as defined above.
             If `iterations` is a list, returns a list of limits.
@@ -353,7 +330,7 @@ class CMF:
         self,
         trajectory: dict,
         iterations: int,
-        start: Union[dict, type(None)] = None,
+        start: dict,
     ) -> Limit:
         return self.limit(trajectory, [iterations], start)[0]
 
@@ -361,7 +338,7 @@ class CMF:
         self,
         trajectory: dict,
         depth: int,
-        start: dict = None,
+        start: dict,
         limit: float = None,
         p_vectors: Union[List[Matrix], type(None)] = None,
         q_vectors: Union[List[Matrix], type(None)] = None,
@@ -399,7 +376,7 @@ class CMF:
         self,
         trajectory: dict,
         depth: int,
-        start: dict = None,
+        start: dict,
         limit: float = None,
         p_vectors: Union[List[Matrix], type(None)] = None,
         q_vectors: Union[List[Matrix], type(None)] = None,
