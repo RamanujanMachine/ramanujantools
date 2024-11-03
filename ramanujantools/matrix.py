@@ -312,6 +312,15 @@ class Matrix(sp.Matrix):
 
         return self.inflate(c=1 / c, symbol=symbol)
 
+    @staticmethod
+    def companion(values: List[sp.Expr]) -> Matrix:
+        N = len(values)
+        columns = []
+        for i in range(N - 1):
+            columns.append(Matrix.e(N, i + 1))
+        columns.append(Matrix(list(reversed(values))))
+        return Matrix.hstack(*columns)
+
     def canonize_companion(self) -> Matrix:
         r"""
         canonizes the companion matrix to a canonical form.
