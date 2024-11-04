@@ -1,6 +1,7 @@
 from .matrix import Matrix
 from .poly_matrix import PolyMatrix
 from .limit import Limit
+from .linear_recurrence import LinearRecurrence
 from .generic_polynomial import GenericPolynomial
 from .simplify_object import simplify
 
@@ -11,6 +12,7 @@ __all__ = [
     "Matrix",
     "PolyMatrix",
     "Limit",
+    "LinearRecurrence",
     "GenericPolynomial",
     "simplify",
     "pcf",
