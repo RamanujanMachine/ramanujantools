@@ -32,13 +32,17 @@ class LinearRecurrence:
             raise ValueError("LinearRecurrence only supports the usage of the symbol n")
         self.recurrence_matrix = recurrence_matrix
 
+    @property
     def relation(self) -> List[sp.Expr]:
         relation = self.recurrence_matrix.col(-1)
         denominator = relation.denominator_lcm
         return [denominator] + [c * denominator for c in reversed(relation)]
 
     def __repr__(self) -> str:
-        return f"LinearRecurrence({self.relation()})"
+        return f"LinearRecurrence({self.relation})"
 
-    def limit(self, iterations: int, initial_values: List[int]) -> Limit:
+    def limit(self, iterations: int) -> Limit:
+        r"""
+        Returns the Limit matrix of the recursion up to a certain depth
+        """
         return self.recurrence_matrix.limit({n: 1}, iterations, {n: 1})
