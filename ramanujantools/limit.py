@@ -2,9 +2,9 @@ from __future__ import annotations
 from typing import List, Callable, Union
 
 import sympy as sp
-from mpmath import mp
+import mpmath as mp
 
-from ramanujantools import Matrix
+from ramanujantools import IntegerRelation, Matrix
 
 
 def first_unmatch(a: str, b: str) -> int:
@@ -37,9 +37,24 @@ class Limit:
     Uses the last step to extract constants, and the previous one to determine precision.
     """
 
-    def __init__(self, current: Matrix, previous: Matrix):
+    def __init__(
+        self,
+        current: Matrix,
+        previous: Matrix,
+        p_vectors: Union[List[Matrix], type(None)] = None,
+        q_vectors: Union[List[Matrix], type(None)] = None,
+    ):
         self.current = current
         self.previous = previous
+        self.p_vectors = p_vectors or [
+            Matrix.e(self.N(), 0, column=False),
+            Matrix.e(self.N(), self.N() - 1, column=True),
+        ]
+
+        self.q_vectors = q_vectors or [
+            Matrix.e(self.N(), 1, column=False),
+            Matrix.e(self.N(), self.N() - 1, column=True),
+        ]
 
     def __repr__(self) -> str:
         return f"Limit({self.current}, {self.previous})"
@@ -48,14 +63,28 @@ class Limit:
         return repr(self)
 
     def __eq__(self, other: Limit) -> bool:
-        return self.current == other.current and self.previous == other.previous
+        return (
+            self.current == other.current
+            and self.previous == other.previous
+            and self.p_vectors == other.p_vectors
+            and self.q_vectors == other.q_vectors
+        )
 
     def N(self) -> int:
         return self.current.rows
 
+    @property
+    def mp(self):
+        limit_ctx = mp.mp.clone()
+        limit_ctx.dps = self.precision()
+        return limit_ctx
+
     @staticmethod
     def walk_to_limit(
-        iterations: List[int], walk_function: Callable[List[int], List[Limit]]
+        iterations: List[int],
+        walk_function: Callable[List[int], List[Limit]],
+        p_vectors: Union[List[Matrix], type(None)] = None,
+        q_vectors: Union[List[Matrix], type(None)] = None,
     ) -> List[Limit]:
         previous_values = [depth - 1 for depth in iterations]
         walk_iterations = sorted(list(set(iterations + previous_values)))
@@ -70,16 +99,13 @@ class Limit:
                 Limit(
                     walk_matrices[current_index],
                     walk_matrices[current_index - 1],
+                    p_vectors,
+                    q_vectors,
                 )
             )
         return limits
 
-    def as_rational(
-        self,
-        p_vectors: Union[List[Matrix], type(None)] = None,
-        q_vectors: Union[List[Matrix], type(None)] = None,
-        previous=False,
-    ) -> List:
+    def as_rational(self, previous=False) -> List:
         r"""
         Returns the limit as a rational number $\frac{p}{q}$.
 
@@ -90,119 +116,137 @@ class Limit:
         Researcher's note: rational representation of the limit is so far only well-defined for 2x2 matrices,
         and we are still looking for a generalization of this representation for NxN matrices.
         Args:
-            p_vectors: The extraction vectors for the numerator $p$.
-            q_vectors: The extraction vectors for the denominator $q$.
             previous: Will use $M$ = `self.previous` if True, else `self.current`. False by default.
         Returns:
             A list of the form [p, q], representing the rational number.
         """
-        p_vectors = p_vectors or [
-            Matrix.e(self.N(), 0, column=False),
-            Matrix.e(self.N(), self.N() - 1, column=True),
-        ]
-
-        q_vectors = q_vectors or [
-            Matrix.e(self.N(), 1, column=False),
-            Matrix.e(self.N(), self.N() - 1, column=True),
-        ]
-
         matrix = self.previous if previous else self.current
-        p = sp.Rational((p_vectors[0] * matrix * p_vectors[1])[0])
-        q = sp.Rational((q_vectors[0] * matrix * q_vectors[1])[0])
+        p = sp.Rational((self.p_vectors[0] * matrix * self.p_vectors[1])[0])
+        q = sp.Rational((self.q_vectors[0] * matrix * self.q_vectors[1])[0])
         return [
             sp.Integer(p.numerator * q.denominator),
             sp.Integer(p.denominator * q.numerator),
         ]
 
-    def precision(
-        self,
-        p_vectors: Union[List[Matrix], type(None)] = None,
-        q_vectors: Union[List[Matrix], type(None)] = None,
-        base: int = 10,
-    ) -> int:
+    def precision(self, base: int = 10) -> int:
         """
         Returns the error in 'digits' for the PCF convergence.
 
         Args:
             base: The numerical base in which to return the precision (by default 10)
         """
-        try:
-            p1, q1 = self.as_rational(p_vectors, q_vectors)
-            p2, q2 = self.as_rational(p_vectors, q_vectors, previous=True)
-            numerator = p1 * q2 - q1 * p2
-            denominator = q1 * q2
-            # extracting real because sometimes log returns a complex with tiny imaginary type due to precision
-            digits = -mp.re(
-                (mp.log(int(numerator), base) - mp.log(int(denominator), base))
-            )
-            return int(mp.floor(digits))
-        except (ZeroDivisionError, ValueError):
+        p1, q1 = self.as_rational()
+        p2, q2 = self.as_rational(previous=True)
+        numerator = p1 * q2 - q1 * p2
+        denominator = q1 * q2
+        if denominator == 0:
             return 0
+        if numerator == 0:
+            return 100  # big enough, this should be infinity
+        # extracting real because sometimes log returns a complex with tiny imaginary type due to precision
+        digits = -mp.re((mp.log(int(numerator), base) - mp.log(int(denominator), base)))
+        return int(mp.floor(digits))
 
-    def increase_precision(
-        self,
-        p_vectors: Union[List[Matrix], type(None)] = None,
-        q_vectors: Union[List[Matrix], type(None)] = None,
-    ) -> int:
-        """
-        Increases the global mpmath precision to the lever required to handle this limit.
-        Returns the current precision after the increase.
-        """
-        requested_precision = (
-            self.precision(p_vectors, q_vectors) * 1.1
-        )  # Taking 10% digits buffer
-        mp.dps = max(mp.dps, requested_precision)
-        return mp.dps
-
-    def as_float(
-        self,
-        p_vectors: Union[List[Matrix], type(None)] = None,
-        q_vectors: Union[List[Matrix], type(None)] = None,
-    ) -> mp.mpf:
+    def as_float(self) -> mp.mpf:
         r"""
         Returns the limit as a floating point number f, such that $m \cdot v = f$, where `m=self` and `v=vector`.
-
-        This function increases the global mpmath precision if needed.
         """
-        self.increase_precision(p_vectors, q_vectors)
-        p, q = self.as_rational(p_vectors, q_vectors)
-        return mp.mpf(p) / mp.mpf(q)
+        p, q = self.as_rational()
+        return self.mp.mpf(p) / self.mp.mpf(q)
 
-    def as_rounded_number(
-        self,
-        p_vectors: Union[List[Matrix], type(None)] = None,
-        q_vectors: Union[List[Matrix], type(None)] = None,
-    ) -> str:
+    def as_rounded_number(self) -> str:
         """
         Same as `as_float`, but also rounds the result to the shortest number possible within the error range.
-
-        This function increases the global mpmath precision if needed.
         """
-        return most_round_in_range(
-            self.as_float(p_vectors, q_vectors),
-            10 ** -self.precision(p_vectors, q_vectors),
-        )
+        return most_round_in_range(self.as_float(), 10 ** -self.precision())
 
-    def delta(
-        self,
-        L: mp.mpf,
-        p_vectors: Union[List[Matrix], type(None)] = None,
-        q_vectors: Union[List[Matrix], type(None)] = None,
-    ) -> mp.mpf:
+    def delta(self, L: mp.mpf) -> mp.mpf:
         r"""
         Calculates the irrationality measure $\delta$ defined, as:
         $|\frac{p_n}{q_n} - L| = \frac{1}{q_n}^{1+\delta}$
-
-        This function increases the global mpmath precision if needed.
         Args:
             L: $L$
         Returns:
             the delta value as defined above.
         """
-        self.increase_precision(p_vectors, q_vectors)
-        p, q = self.as_rational(p_vectors, q_vectors)
+        p, q = self.as_rational()
         gcd = sp.gcd(p, q)
-        reduced_q = mp.fabs(q // gcd)
+        reduced_q = self.mp.fabs(q // gcd)
         if reduced_q == 1:
-            return mp.mpf("inf")
-        return -(1 + mp.log(mp.fabs(L - (p / q)), reduced_q))
+            return self.mp.mpf("inf")
+        return -(1 + self.mp.log(self.mp.fabs(L - (p / q)), reduced_q))
+
+    def coefficients_from_pslq(self, pslq_results, active_indices):
+        coefficients = [0] * self.N()
+        for i in active_indices:
+            coefficients[i] = pslq_results.pop(0)
+        return coefficients
+
+    def identify_rational(self, column_index=-1) -> Union[IntegerRelation, type(None)]:
+        r"""
+        Searches for constants $a_0, \dots, a_{N-1}
+        such that $0 \approx \prod_{i=0}^{N-1}a_i * p_i$,
+        Where $p_i$ a column of the Limit matrix.
+
+        This is essentially the same as `self.identify(0, column_inde)`
+
+        Args:
+            column_index: The column to use in order to extract $p_i$. -1 by default.
+        Returns:
+            a string describing the integer relation, if exists. None otherwise.
+        """
+        pslq_result = self.mp.pslq(self.current.col(column_index))
+        if pslq_result is None:
+            return None
+        return IntegerRelation(
+            [self.coefficients_from_pslq(pslq_result, range(self.N()))]
+        )
+
+    def identify(
+        self, L: mp.mpf, column_index=-1, maxcoeff=1000
+    ) -> Union[IntegerRelation, type(None)]:
+        r"""
+        Given a constant $L$, searches for constants $a_0, \dots, a_{N-1}, b_0, \dots, b_{N-1}$
+        such that $0 \approx \prod_{i=0}^{N-1}a_i * p_i - L * \prod_{i=0}^{N-1}b_i * p_i$,
+        Where $p_i$ a column of the Limit matrix.
+
+        Args:
+            column_index: The column to use in order to extract $p_i$. -1 by default.
+        Returns:
+            a string describing the integer relation, if exists. None otherwise.
+        """
+        if L == 0:
+            return self.identify_rational()
+
+        def linear_independent_indices():
+            indices = list(range(self.N()))
+
+            def remove_index(pslq_result):
+                for index, value in reversed(list(enumerate(pslq_result))):
+                    if value != 0:  # found a dependency
+                        indices.pop(index)
+                        return
+
+            while len(indices) > 1:  # a single index is linear independent vacuously
+                integer_sequences = [self.current.col(column_index)[i] for i in indices]
+                pslq_result = self.mp.pslq(integer_sequences)
+                if pslq_result is None:
+                    return indices
+                remove_index(pslq_result)
+
+            return indices
+
+        used_indices = linear_independent_indices()
+        total_indices = len(used_indices)
+        integer_sequences = [self.current.col(column_index)[i] for i in used_indices]
+        to_identify = integer_sequences + [L * p for p in integer_sequences]
+        pslq_result = self.mp.pslq(to_identify, maxcoeff=maxcoeff)
+        if pslq_result is None:
+            return None
+        numerator = self.coefficients_from_pslq(
+            pslq_result[:total_indices], used_indices
+        )
+        denominator = self.coefficients_from_pslq(
+            pslq_result[total_indices:], used_indices
+        )
+        return IntegerRelation([numerator, denominator])

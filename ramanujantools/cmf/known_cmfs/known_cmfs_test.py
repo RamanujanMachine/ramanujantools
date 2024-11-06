@@ -1,45 +1,43 @@
 from pytest import approx
 
 import itertools
-from math import e, pi, log
-
-from mpmath import mp, zeta
 
 import sympy as sp
 from sympy.abc import x, y, z, n
 
-from ramanujantools import Matrix
+from ramanujantools import Matrix, IntegerRelation
 from ramanujantools.pcf import PCF
 from ramanujantools.cmf import known_cmfs, CMF
 
 
 def test_cmf_e():
     cmf = known_cmfs.e()
-    assert cmf.limit({x: 1, y: 1}, 50, {x: 0, y: 0}).as_float() == approx(1 / (1 - e))
+    limit = cmf.limit({x: 1, y: 1}, 50, {x: 0, y: 0})
+    assert limit.as_float() == approx(1 / (1 - limit.mp.e))
 
 
 def test_cmf_pi():
     cmf = known_cmfs.pi()
-    assert cmf.limit({x: 1, y: 1}, 50, {x: 1, y: 0}).as_float() == approx((2 - pi) / 2)
+    limit = cmf.limit({x: 1, y: 1}, 50, {x: 1, y: 0})
+    assert limit.as_float() == approx((2 - limit.mp.pi) / 2)
 
 
 def test_cmf_zeta3():
     cmf = known_cmfs.zeta3()
-    assert cmf.limit({x: 1, y: 1}, 50, {x: 1, y: 1}).as_float() == approx(
-        (1 - zeta(3)) / zeta(3)
-    )
+    limit = cmf.limit({x: 1, y: 1}, 50, {x: 1, y: 1})
+    assert limit.as_float() == approx((1 - limit.mp.zeta(3)) / limit.mp.zeta(3))
 
 
 def test_apery():
     cmf = known_cmfs.zeta3()
-    pcf = cmf.as_pcf({x: 1, y: 1}).pcf
+    pcf = cmf.trajectory_matrix({x: 1, y: 1}, {x: 1, y: 1}).as_pcf().pcf
     # This is Apery's PCF
     assert pcf == PCF(34 * n**3 + 51 * n**2 + 27 * n + 5, -(n**6))
 
     depth = 2000
     actual_limit = pcf.limit(depth)
-    actual_limit.increase_precision()  # Must before expected_limit, to ensure precision for zeta(3)
-    expected_limit = mp.mpf(6 / zeta(3))
+    ctx = actual_limit.mp
+    expected_limit = ctx.mpf(6 / ctx.zeta(3))
     assert actual_limit.as_float() == approx(float(expected_limit))
     delta = pcf.delta(depth, expected_limit)
     assert delta > 0.08
@@ -50,9 +48,10 @@ def test_cmf1():
 
     cmf = known_cmfs.cmf1()
     for a, b in itertools.product(range(1, 10), range(1, 10)):
-        assert cmf.subs({c0: 0, c1: a, c2: 0, c3: b}).limit(
-            {x: 1, y: 1}, 50
-        ).as_float() == approx(-a + b / log(1 + b / a), 1e-4)
+        limit = cmf.subs({c0: 0, c1: a, c2: 0, c3: b}).limit(
+            {x: 1, y: 1}, 50, {x: 1, y: 1}
+        )
+        assert limit.as_float() == approx(-a + b / limit.mp.log(1 + b / a), 1e-4)
 
 
 def test_2F1_theta_derivative():
@@ -208,6 +207,16 @@ def test_2F1_z_evaluation():
     assert known_cmfs.pFq(p, q, z_eval=z_value) == known_cmfs.pFq(p, q).subs(
         {z: z_value}
     )
+
+
+def test_gamma():
+    cmf = known_cmfs.pFq(2, 2, negate_denominator_params=True, z_eval=-1)
+    x0, x1 = sp.symbols("x:2")
+    y0, y1 = sp.symbols("y:2")
+    trajectory = {x0: 1, x1: 1, y0: 1, y1: 0}
+    start = {x0: 1, x1: 1, y0: 1, y1: 1}
+    limit = cmf.limit(trajectory, 100, start)
+    assert IntegerRelation([[1, 3, 0], [-3, -5, 0]]) == limit.identify(limit.mp.euler)
 
 
 def test_all_conserving():

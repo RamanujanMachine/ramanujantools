@@ -417,7 +417,11 @@ class Matrix(sp.Matrix):
 
     @multimethod
     def walk(  # noqa: F811
-        self, trajectory: Dict, iterations: List[int], start: Dict
+        self,
+        trajectory: Dict,
+        iterations: List[int],
+        start: Dict,
+        initial_values: Union[Matrix, type(None)] = None,
     ) -> List[Matrix]:
         r"""
         Returns the multiplication result of walking in a certain trajectory.
@@ -465,11 +469,10 @@ class Matrix(sp.Matrix):
                 f"iterations must contain only non-negative values, got {iterations}"
             )
 
+        matrix = initial_values or Matrix.eye(self.rows)
         free_symbols = self.free_symbols_after_walk(trajectory, iterations, start)
-        if len(free_symbols) == 0:
-            matrix = Matrix.eye(self.rows)
-        else:
-            matrix = PolyMatrix.eye(self.rows, free_symbols)
+        if len(free_symbols) > 0:
+            matrix = PolyMatrix(matrix, *free_symbols)
 
         results = []
         position = start
@@ -483,12 +486,20 @@ class Matrix(sp.Matrix):
 
     @multimethod
     def walk(  # noqa: F811
-        self, trajectory: Dict, iterations: int, start: Dict
+        self,
+        trajectory: Dict,
+        iterations: int,
+        start: Dict,
+        initial_values: Union[Matrix, type(None)] = None,
     ) -> Matrix:
-        return self.walk(trajectory, [iterations], start)[0]
+        return self.walk(trajectory, [iterations], start, initial_values)[0]
 
     def free_symbols_after_walk(
-        self, trajectory: Dict, iterations: Union[List, int], start: Dict
+        self,
+        trajectory: Dict,
+        iterations: Union[List, int],
+        start: Dict,
+        initial_values: Union[Matrix, type(None)] = None,
     ) -> Set:
         """
         Returns the expected free_symbols of the expression `self.walk(trajectory, iterations, start)`
@@ -500,6 +511,9 @@ class Matrix(sp.Matrix):
                 free_symbols = free_symbols.union(set(sp.simplify(value).free_symbols))
             return free_symbols
 
+        initial_values_symbols = (
+            initial_values.free_symbols if initial_values else set()
+        )
         subbed_in = position_free_symbols(start)
         using_trajectory = (isinstance(iterations, int) and iterations > 1) or (
             isinstance(iterations, list) and any(depth > 1 for depth in iterations)
@@ -509,20 +523,36 @@ class Matrix(sp.Matrix):
 
         subbed_out = set(start.keys()).union(set(trajectory.keys()))
 
-        return (self.free_symbols - subbed_out).union(subbed_in)
+        return (
+            (self.free_symbols - subbed_out)
+            .union(subbed_in)
+            .union(initial_values_symbols)
+        )
 
     @multimethod
-    def limit(self, trajectory: Dict, iterations: List[int], start: Dict):  # noqa: F811
+    def limit(
+        self,
+        trajectory: Dict,
+        iterations: List[int],
+        start: Dict,
+        initial_values: Union[Matrix, type(None)] = None,
+    ):  # noqa: F811
         from ramanujantools import Limit
 
         def walk_function(iterations):
-            return self.walk(trajectory, iterations, start)
+            return self.walk(trajectory, iterations, start, initial_values)
 
         return Limit.walk_to_limit(iterations, walk_function)
 
     @multimethod
-    def limit(self, trajectory: Dict, iterations: int, start: Dict):  # noqa: F811
-        return self.limit(trajectory, [iterations], start)[0]
+    def limit(  # noqa: F811
+        self,
+        trajectory: Dict,
+        iterations: int,
+        start: Dict,
+        initial_values: Union[Matrix, type(None)] = None,
+    ):
+        return self.limit(trajectory, [iterations], start, initial_values)[0]
 
     def as_pcf(self, deflate_all=True):
         """
