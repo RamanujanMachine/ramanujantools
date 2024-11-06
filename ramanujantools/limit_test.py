@@ -7,7 +7,7 @@ from .limit import most_round_in_range
 
 
 def limit_for_tests(matrix: Matrix) -> Limit:
-    return Limit(matrix, Matrix([0]))
+    return Limit(matrix, matrix)
 
 
 def test_as_rational():
@@ -28,6 +28,7 @@ def test_as_float():
     p = 2
     q = 3
     limit = limit_for_tests(Matrix([[0, p], [1, q]]))
+    print(limit.as_float())
     assert p / q == approx(limit.as_float(), 1e-7)
 
 

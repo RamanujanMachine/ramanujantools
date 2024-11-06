@@ -304,6 +304,8 @@ class CMF:
         trajectory: dict,
         iterations: List[int],
         start: dict,
+        p_vectors: Union[List[Matrix], type(None)] = None,
+        q_vectors: Union[List[Matrix], type(None)] = None,
     ) -> List[Limit]:
         r"""
         Returns a list of limits of trajectorial walk multiplication matrices in the desired depths.
@@ -323,7 +325,7 @@ class CMF:
         def walk_function(iterations):
             return self.walk(trajectory, iterations, start)
 
-        return Limit.walk_to_limit(iterations, walk_function)
+        return Limit.walk_to_limit(iterations, walk_function, p_vectors, q_vectors)
 
     @multimethod
     def limit(  # noqa: F811
@@ -331,8 +333,10 @@ class CMF:
         trajectory: dict,
         iterations: int,
         start: dict,
+        p_vectors: Union[List[Matrix], type(None)] = None,
+        q_vectors: Union[List[Matrix], type(None)] = None,
     ) -> Limit:
-        return self.limit(trajectory, [iterations], start)[0]
+        return self.limit(trajectory, [iterations], start, p_vectors, q_vectors)[0]
 
     def delta(
         self,
@@ -364,13 +368,13 @@ class CMF:
             the delta value as defined above.
         """
         if limit is None:
-            depths = [depth, 2 * depth]
-            approximants = self.limit(trajectory, depths, start)
-            limit = approximants[-1].as_float()
-            approximants = approximants[:-1]
+            m, mlim = self.limit(
+                trajectory, [depth, 2 * depth], start, p_vectors, q_vectors
+            )
+            limit = mlim.as_float()
         else:
-            approximants = self.limit(trajectory, [depth], start)
-        return approximants[0].delta(limit, p_vectors, q_vectors)
+            m = self.limit(trajectory, depth, start, p_vectors, q_vectors)
+        return m.delta(limit)
 
     def delta_sequence(
         self,
@@ -403,7 +407,4 @@ class CMF:
             approximants = approximants[:-1]
         else:
             approximants = self.limit(trajectory, depths, start)
-        return [
-            approximant.delta(limit, p_vectors, q_vectors)
-            for approximant in approximants
-        ]
+        return [approximant.delta(limit) for approximant in approximants]
