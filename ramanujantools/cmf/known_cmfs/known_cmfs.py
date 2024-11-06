@@ -215,12 +215,12 @@ def pFq(
         to_sort = {
             axis: (
                 abs(trajectory[axis]),
-                sp.sign(trajectory[axis]) * position[axis],
                 sp.sign(trajectory[axis]) * is_numerator(axis),
+                str(axis),
             )
             for axis in axes
         }
-        return sorted(axes, key=lambda k: to_sort[k], reverse=True)
+        return sorted(axes, key=lambda k: to_sort[k])
 
     M = core_matrix(p, q)
 
