@@ -1,5 +1,6 @@
 from __future__ import annotations
-from typing import Union, List
+from typing import Union, List, Dict
+import itertools
 
 import sympy as sp
 from sympy.abc import n
@@ -32,17 +33,34 @@ class LinearRecurrence:
             raise ValueError("LinearRecurrence only supports the usage of the symbol n")
         self.recurrence_matrix = recurrence_matrix
 
-    @property
+    def __eq__(self, other: Matrix) -> bool:
+        return self.recurrence_matrix == other.recurrence_matrix
+
     def relation(self) -> List[sp.Expr]:
         relation = self.recurrence_matrix.col(-1)
         denominator = relation.denominator_lcm
         return [denominator] + [c * denominator for c in reversed(relation)]
 
     def __repr__(self) -> str:
-        return f"LinearRecurrence({self.relation})"
+        return f"LinearRecurrence({self.relation()})"
 
-    def limit(self, iterations: int) -> Limit:
+    def limit(self, iterations: int, start=1) -> Limit:
         r"""
         Returns the Limit matrix of the recursion up to a certain depth
         """
-        return self.recurrence_matrix.limit({n: 1}, iterations, {n: 1})
+        return self.recurrence_matrix.limit({n: 1}, iterations, {n: start})
+
+    def compose(self, subs: Dict) -> LinearRecurrence:
+        relation = self.relation()
+        for index, amount in subs.items():
+            shift = n + 1 - index
+            modification = (
+                [0] * shift
+                + [-amount * self.relation()[0].subs({n: index - 1})]
+                + [amount * c.subs({n: index - 1}) for c in self.relation()[1:]]
+            )
+            relation = [
+                sum(d)
+                for d in itertools.zip_longest(relation, modification, fillvalue=0)
+            ]
+        return LinearRecurrence(relation)

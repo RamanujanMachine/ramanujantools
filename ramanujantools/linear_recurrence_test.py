@@ -11,7 +11,7 @@ def test_repr():
 
 def test_relation():
     expected = [1, n, n**2, n**3 - 7, 13 * n - 12]
-    assert expected == LinearRecurrence(expected).relation
+    assert expected == LinearRecurrence(expected).relation()
 
 
 def test_matrix():
@@ -23,3 +23,10 @@ def test_limit():
     r = LinearRecurrence([1, n, n**2])
     depths = [2, 3, 19, 101]
     assert r.limit(depths) == r.recurrence_matrix.limit({n: 1}, depths, {n: 1})
+
+
+def test_compose():
+    r = LinearRecurrence([1, n, n**2 - 3])
+    assert LinearRecurrence(
+        [1, n - 1, n**2 - 3 + n - 1, (n - 1) ** 2 - 3]
+    ) == r.compose({n: 1})
