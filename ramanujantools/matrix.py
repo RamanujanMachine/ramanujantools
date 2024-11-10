@@ -216,7 +216,7 @@ class Matrix(sp.Matrix):
         return Matrix.hstack(*vectors).inverse().simplify()
 
     @staticmethod
-    def companion(values: List[sp.Expr]) -> Matrix:
+    def companion_form(values: List[sp.Expr]) -> Matrix:
         N = len(values)
         columns = []
         for i in range(N - 1):

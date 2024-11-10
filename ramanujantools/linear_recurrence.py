@@ -1,11 +1,11 @@
 from __future__ import annotations
-from typing import Union, List, Dict
+from typing import Union, List, Dict, Set
 import itertools
 
 import sympy as sp
 from sympy.abc import n
 
-from ramanujantools import Matrix, Limit
+from ramanujantools import Matrix, Limit, GenericPolynomial
 
 
 class LinearRecurrence:
@@ -26,23 +26,27 @@ class LinearRecurrence:
                 raise ValueError("Attempted to construct an empty recurrence!")
             denominator = sp.simplify(recurrence[0])
             column = [c / denominator for c in recurrence[1:]]
-            recurrence_matrix = Matrix.companion(list(reversed(column)))
+            recurrence_matrix = Matrix.companion_form(list(reversed(column)))
         else:
             recurrence_matrix = recurrence.as_companion(inflate_all=False)
-        if not recurrence_matrix.free_symbols.issubset({n}):
-            raise ValueError("LinearRecurrence only supports the usage of the symbol n")
         self.recurrence_matrix = recurrence_matrix
 
     def __eq__(self, other: Matrix) -> bool:
         return self.recurrence_matrix == other.recurrence_matrix
+
+    def __repr__(self) -> str:
+        return f"LinearRecurrence({self.relation()})"
+
+    def subs(self, substitutions: Dict) -> LinearRecurrence:
+        return LinearRecurrence([p.subs(substitutions) for p in self.relation()])
 
     def relation(self) -> List[sp.Expr]:
         relation = self.recurrence_matrix.col(-1)
         denominator = relation.denominator_lcm
         return [denominator] + [c * denominator for c in reversed(relation)]
 
-    def __repr__(self) -> str:
-        return f"LinearRecurrence({self.relation()})"
+    def free_symbols(self) -> Set[sp.Symbol]:
+        return set.union(*[p.free_symbols for p in self.relation()]) - {n}
 
     def limit(self, iterations: int, start=1) -> Limit:
         r"""
@@ -50,9 +54,9 @@ class LinearRecurrence:
         """
         return self.recurrence_matrix.limit({n: 1}, iterations, {n: start})
 
-    def compose(self, subs: Dict) -> LinearRecurrence:
+    def compose(self, composition: Dict) -> LinearRecurrence:
         relation = self.relation()
-        for index, amount in subs.items():
+        for index, amount in composition.items():
             shift = n + 1 - index
             modification = (
                 [0] * shift
@@ -64,3 +68,49 @@ class LinearRecurrence:
                 for d in itertools.zip_longest(relation, modification, fillvalue=0)
             ]
         return LinearRecurrence(relation)
+
+    @staticmethod
+    def degree(p):
+        return max(sp.Poly(p, n).degree(), 1)
+
+    @staticmethod
+    def generic_relation(degrees: List[int]) -> List[sp.Expr]:
+        relation = []
+        variable = "a"
+        for degree in degrees:
+            poly, _ = GenericPolynomial.of_degree(degree, variable, n)
+            variable = chr(ord(variable) + 1)
+            relation.append(poly.as_expr())
+        return relation
+
+    def decompose(self, fast_exit=True):
+        """
+        For now only attempting to reduce depth by 1
+        """
+        results = []
+        relation = self.relation()
+        max_composition_degree = min([LinearRecurrence.degree(p) for p in relation[1:]])
+        for d in range(max_composition_degree):
+            composition, _ = GenericPolynomial.of_degree(d, "C", n)
+            composition = composition.as_expr()
+            lead = relation[0]
+            tailing = LinearRecurrence.generic_relation(
+                [LinearRecurrence.degree(p) for p in relation[1:-1]]
+            )
+            recurrence = LinearRecurrence([lead] + tailing)
+            generic = recurrence.compose({n: composition})
+            polynomials = [
+                sp.Poly(p - q, n)
+                for p, q in itertools.zip_longest(
+                    generic.relation()[1:], self.relation()[1:], fillvalue=0
+                )
+            ]
+            equations = sum([p.coeffs() for p in polynomials], [])
+            solutions = sp.solve(equations)
+            for solution in solutions:
+                results.append(
+                    (recurrence.subs(solution), {n: composition.subs(solution)})
+                )
+            if fast_exit and len(results) > 0:
+                return results
+        return results
