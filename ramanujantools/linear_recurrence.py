@@ -43,7 +43,9 @@ class LinearRecurrence:
     def relation(self) -> List[sp.Expr]:
         relation = self.recurrence_matrix.col(-1)
         denominator = relation.denominator_lcm
-        return [denominator] + [c * denominator for c in reversed(relation)]
+        return [denominator] + [
+            sp.simplify(c * denominator) for c in reversed(relation)
+        ]
 
     def free_symbols(self) -> Set[sp.Symbol]:
         return set.union(*[p.free_symbols for p in self.relation()]) - {n}
@@ -83,34 +85,59 @@ class LinearRecurrence:
             relation.append(poly.as_expr())
         return relation
 
-    def decompose(self, fast_exit=True):
+    @staticmethod
+    def all_divisors(p: sp.Poly) -> List[sp.Poly]:
+        p = sp.Poly(p, n)
+        content, factors_list = p.factor_list()
+        factors = []
+        for factor, order in factors_list:
+            factors.append([factor**d for d in range(order + 1)])
+        for root, order in content.factors().items():
+            factors.append([root**d for d in range(order + 1)])
+        combinations = itertools.product(*factors)
+        divisors = []
+        for combination in combinations:
+            divisors.append(sp.prod(combination))
+        return divisors
+
+    def possible_decompositions(self) -> List[sp.Poly]:
+        return LinearRecurrence.all_divisors(self.relation()[-1])
+
+    def decompose_degree(self, degree: int) -> List:
+        results = []
+        relation = self.relation()
+        composition, _ = GenericPolynomial.of_degree(degree, "C", n)
+        composition = composition.as_expr()
+        lead = relation[0]
+        tailing = LinearRecurrence.generic_relation(
+            [degree + LinearRecurrence.degree(p) for p in relation[1:-1]]
+        )
+        recurrence = LinearRecurrence([lead] + tailing)
+        generic = recurrence.compose({n: composition})
+        polynomials = [
+            sp.Poly(p - q, n)
+            for p, q in itertools.zip_longest(
+                generic.relation()[1:], relation[1:], fillvalue=0
+            )
+        ]
+        equations = sum([p.coeffs() for p in polynomials], [])
+        solutions = sp.solve(equations)
+        for solution in solutions:
+            results.append((recurrence.subs(solution), {n: composition.subs(solution)}))
+        return results
+
+    def decompose(self, early_exit=True):
         """
         For now only attempting to reduce depth by 1
         """
         results = []
         relation = self.relation()
         max_composition_degree = min([LinearRecurrence.degree(p) for p in relation[1:]])
-        for d in range(max_composition_degree):
-            composition, _ = GenericPolynomial.of_degree(d, "C", n)
-            composition = composition.as_expr()
-            lead = relation[0]
-            tailing = LinearRecurrence.generic_relation(
-                [LinearRecurrence.degree(p) for p in relation[1:-1]]
-            )
-            recurrence = LinearRecurrence([lead] + tailing)
-            generic = recurrence.compose({n: composition})
-            polynomials = [
-                sp.Poly(p - q, n)
-                for p, q in itertools.zip_longest(
-                    generic.relation()[1:], self.relation()[1:], fillvalue=0
-                )
-            ]
-            equations = sum([p.coeffs() for p in polynomials], [])
-            solutions = sp.solve(equations)
-            for solution in solutions:
-                results.append(
-                    (recurrence.subs(solution), {n: composition.subs(solution)})
-                )
-            if fast_exit and len(results) > 0:
-                return results
-        return results
+        if early_exit:
+            for d in range(max_composition_degree):
+                results = self.decompose_degree(d)
+                if len(results) > 0:
+                    return results
+            return []
+        else:
+            return self.decompose_degree(max_composition_degree)
