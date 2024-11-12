@@ -11,7 +11,7 @@ def test_repr():
 
 def test_relation():
     expected = [1, n, n**2, n**3 - 7, 13 * n - 12]
-    assert expected == LinearRecurrence(expected).relation()
+    assert expected == LinearRecurrence(expected).relation
 
 
 def test_matrix():

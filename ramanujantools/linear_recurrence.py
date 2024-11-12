@@ -1,6 +1,8 @@
 from __future__ import annotations
 from typing import Union, List, Dict, Set
+import copy
 import itertools
+from multimethod import multimethod
 
 import sympy as sp
 from sympy.abc import n
@@ -19,36 +21,40 @@ class LinearRecurrence:
         Construct the recurrence.
 
         The recurrence argument can be one of two types:
-            1. A list of the coefficients of the recurrence [a_0(n), ..., a_
+            1. A list of the coefficients of the recurrence [a_0(n), ..., a_N(n)]
         """
         if type(recurrence) is not Matrix:
             if len(recurrence) == 0:
                 raise ValueError("Attempted to construct an empty recurrence!")
-            denominator = sp.simplify(recurrence[0])
-            column = [c / denominator for c in recurrence[1:]]
-            recurrence_matrix = Matrix.companion_form(list(reversed(column)))
+            gcd = sp.gcd(recurrence)
+            self.relation = [sp.simplify(p / gcd) for p in recurrence]
         else:
             recurrence_matrix = recurrence.as_companion(inflate_all=False)
-        self.recurrence_matrix = recurrence_matrix
+            col = recurrence_matrix.col(-1)
+            lead = col.denominator_lcm()
+            coeffs = [sp.simplify(p * lead) for p in col]
+            self.relation = [lead] + coeffs
+
+    @property
+    def recurrence_matrix(self):
+        denominator = sp.simplify(self.relation[0])
+        column = [c / denominator for c in self.relation[1:]]
+        return Matrix.companion_form(list(reversed(column)))
+
+    def depth(self):
+        return len(self.relation) - 1
 
     def __eq__(self, other: Matrix) -> bool:
-        return self.recurrence_matrix == other.recurrence_matrix
+        return self.relation == other.relation
 
     def __repr__(self) -> str:
-        return f"LinearRecurrence({self.relation()})"
+        return f"LinearRecurrence({self.relation})"
 
     def subs(self, substitutions: Dict) -> LinearRecurrence:
-        return LinearRecurrence([p.subs(substitutions) for p in self.relation()])
-
-    def relation(self) -> List[sp.Expr]:
-        relation = self.recurrence_matrix.col(-1)
-        denominator = relation.denominator_lcm
-        return [denominator] + [
-            sp.simplify(c * denominator) for c in reversed(relation)
-        ]
+        return LinearRecurrence([p.subs(substitutions) for p in self.relation])
 
     def free_symbols(self) -> Set[sp.Symbol]:
-        return set.union(*[p.free_symbols for p in self.relation()]) - {n}
+        return set.union(*[p.free_symbols for p in self.relation]) - {n}
 
     def limit(self, iterations: int, start=1) -> Limit:
         r"""
@@ -56,19 +62,16 @@ class LinearRecurrence:
         """
         return self.recurrence_matrix.limit({n: 1}, iterations, {n: start})
 
-    def compose(self, composition: Dict) -> LinearRecurrence:
-        relation = self.relation()
-        for index, amount in composition.items():
-            shift = n + 1 - index
-            modification = (
-                [0] * shift
-                + [-amount * self.relation()[0].subs({n: index - 1})]
-                + [amount * c.subs({n: index - 1}) for c in self.relation()[1:]]
-            )
-            relation = [
-                sum(d)
-                for d in itertools.zip_longest(relation, modification, fillvalue=0)
-            ]
+    def compose(self, composition: sp.Expr) -> LinearRecurrence:
+        relation = self.relation
+        modification = (
+            [0]
+            + [-composition * self.relation[0].subs({n: n - 1})]
+            + [composition * c.subs({n: n - 1}) for c in self.relation[1:]]
+        )
+        relation = [
+            sum(d) for d in itertools.zip_longest(relation, modification, fillvalue=0)
+        ]
         return LinearRecurrence(relation)
 
     @staticmethod
@@ -101,43 +104,37 @@ class LinearRecurrence:
         return divisors
 
     def possible_decompositions(self) -> List[sp.Poly]:
-        return LinearRecurrence.all_divisors(self.relation()[-1])
+        return LinearRecurrence.all_divisors(self.relation[-1])
 
-    def decompose_degree(self, degree: int) -> List:
-        results = []
-        relation = self.relation()
-        composition, _ = GenericPolynomial.of_degree(degree, "C", n)
-        composition = composition.as_expr()
-        lead = relation[0]
-        tailing = LinearRecurrence.generic_relation(
-            [degree + LinearRecurrence.degree(p) for p in relation[1:-1]]
-        )
-        recurrence = LinearRecurrence([lead] + tailing)
-        generic = recurrence.compose({n: composition})
-        polynomials = [
-            sp.Poly(p - q, n)
-            for p, q in itertools.zip_longest(
-                generic.relation()[1:], relation[1:], fillvalue=0
+    @multimethod
+    def decompose(self, decomposition: sp.Poly):
+        decomposed = [self.relation[0]]
+        for index in range(1, len(self.relation) - 1):
+            next = (-1 if index == 1 else 1) * decomposed[index - 1].subs({n: n - 1})
+            decomposed.append(
+                sp.simplify(self.relation[index] - next * decomposition.as_expr())
             )
-        ]
-        equations = sum([p.coeffs() for p in polynomials], [])
-        solutions = sp.solve(equations)
-        for solution in solutions:
-            results.append((recurrence.subs(solution), {n: composition.subs(solution)}))
+        if decomposed[-1].subs({n: n - 1}) * decomposition == self.relation[-1]:
+            return LinearRecurrence(decomposed)
+        return None
+
+    @multimethod
+    def decompose(self):  # noqa: F811
+        results = []
+        for decomposition in self.possible_decompositions():
+            recurrence = self.decompose(decomposition)
+            if recurrence is not None:
+                results.append((recurrence, decomposition))
         return results
 
-    def decompose(self, early_exit=True):
-        """
-        For now only attempting to reduce depth by 1
-        """
-        results = []
-        relation = self.relation()
-        max_composition_degree = min([LinearRecurrence.degree(p) for p in relation[1:]])
-        if early_exit:
-            for d in range(max_composition_degree):
-                results = self.decompose_degree(d)
-                if len(results) > 0:
-                    return results
-            return []
-        else:
-            return self.decompose_degree(max_composition_degree)
+    def inflate(self, p: sp.Expr) -> LinearRecurrence:
+        p = sp.simplify(p)
+        current = p
+        relation = copy.deepcopy(self.relation)
+        for i in range(1, len(self.relation)):
+            relation[i] *= current
+            current *= p.subs({n: n - i})
+        return LinearRecurrence(relation)
+
+    def deflate(self, p: sp.Expr) -> LinearRecurrence:
+        return self.inflate(1 / p)
