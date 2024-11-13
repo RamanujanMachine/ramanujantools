@@ -56,6 +56,9 @@ class LinearRecurrence:
     def free_symbols(self) -> Set[sp.Symbol]:
         return set.union(*[p.free_symbols for p in self.relation]) - {n}
 
+    def simplify(self) -> LinearRecurrence:
+        return LinearRecurrence([p.simplify() for p in self.relation])
+
     def limit(self, iterations: int, start=1) -> Limit:
         r"""
         Returns the Limit matrix of the recursion up to a certain depth
@@ -137,4 +140,11 @@ class LinearRecurrence:
         return LinearRecurrence(relation)
 
     def deflate(self, p: sp.Expr) -> LinearRecurrence:
-        return self.inflate(1 / p)
+        recurrence = self.inflate(1 / p)
+        denominators = []
+        for r in recurrence.relation:
+            denominators.append(r.as_numer_denom()[1])
+        lcm = sp.lcm(denominators)
+        for i in range(len(recurrence.relation)):
+            recurrence.relation[i] *= lcm
+        return recurrence.simplify()

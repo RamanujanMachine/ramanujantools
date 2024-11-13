@@ -198,9 +198,11 @@ class Limit:
         pslq_result = self.mp.pslq(self.current.col(column_index))
         if pslq_result is None:
             return None
-        return IntegerRelation(
+        result = IntegerRelation(
             [self.coefficients_from_pslq(pslq_result, range(self.N()))]
         )
+        self.set_vectors(result)
+        return result
 
     def identify(
         self, L: mp.mpf, column_index=-1, maxcoeff=1000
@@ -249,4 +251,10 @@ class Limit:
         denominator = self.coefficients_from_pslq(
             pslq_result[total_indices:], used_indices
         )
-        return IntegerRelation([numerator, denominator])
+        result = IntegerRelation([numerator, denominator])
+        self.set_vectors(result)
+        return result
+
+    def set_vectors(self, relation: IntegerRelation) -> None:
+        self.p_vectors = [Matrix([relation.coefficients[0]]), Matrix([0, 0, 1])]
+        self.q_vectors = [Matrix([relation.coefficients[1]]), Matrix([0, 0, -1])]
