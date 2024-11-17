@@ -57,7 +57,7 @@ class LinearRecurrence:
         return set.union(*[p.free_symbols for p in self.relation]) - {n}
 
     def simplify(self) -> LinearRecurrence:
-        return LinearRecurrence([p.simplify() for p in self.relation])
+        return LinearRecurrence([sp.factor(p.simplify()) for p in self.relation])
 
     def limit(self, iterations: int, start=1) -> Limit:
         r"""
@@ -131,7 +131,7 @@ class LinearRecurrence:
         return results
 
     def inflate(self, p: sp.Expr) -> LinearRecurrence:
-        p = sp.simplify(p)
+        p = sp.simplify(p.as_expr())
         current = p
         relation = copy.deepcopy(self.relation)
         for i in range(1, len(self.relation)):

@@ -29,4 +29,4 @@ def test_compose():
     r = LinearRecurrence([1, n, n**2 - 3])
     assert LinearRecurrence(
         [1, n - 1, n**2 - 3 + n - 1, (n - 1) ** 2 - 3]
-    ) == r.compose({n: 1})
+    ) == r.compose(1)

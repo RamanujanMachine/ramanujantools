@@ -201,7 +201,6 @@ class Limit:
         result = IntegerRelation(
             [self.coefficients_from_pslq(pslq_result, range(self.N()))]
         )
-        self.set_vectors(result)
         return result
 
     def identify(
@@ -256,5 +255,5 @@ class Limit:
         return result
 
     def set_vectors(self, relation: IntegerRelation) -> None:
-        self.p_vectors = [Matrix([relation.coefficients[0]]), Matrix([0, 0, 1])]
-        self.q_vectors = [Matrix([relation.coefficients[1]]), Matrix([0, 0, -1])]
+        self.p_vectors = [Matrix([relation.coefficients[0]]), Matrix.e(self.N(), -1)]
+        self.q_vectors = [Matrix([relation.coefficients[1]]), -Matrix.e(self.N(), -1)]
