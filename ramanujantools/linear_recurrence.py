@@ -31,8 +31,8 @@ class LinearRecurrence:
         else:
             recurrence_matrix = recurrence.as_companion(inflate_all=False)
             col = recurrence_matrix.col(-1)
-            lead = col.denominator_lcm()
-            coeffs = [sp.simplify(p * lead) for p in col]
+            lead = col.denominator_lcm
+            coeffs = [sp.simplify(p * lead) for p in reversed(col)]
             self.relation = [lead] + coeffs
 
     @property
@@ -43,6 +43,9 @@ class LinearRecurrence:
 
     def depth(self):
         return len(self.relation) - 1
+
+    def degrees(self):
+        return [LinearRecurrence.degree(p) for p in self.relation]
 
     def __eq__(self, other: Matrix) -> bool:
         return self.relation == other.relation
