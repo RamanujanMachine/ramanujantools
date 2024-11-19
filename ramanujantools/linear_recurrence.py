@@ -4,6 +4,7 @@ from functools import cached_property
 import copy
 import itertools
 
+from tqdm import tqdm
 import sympy as sp
 from sympy.abc import n
 
@@ -231,8 +232,8 @@ class LinearRecurrence:
             recurrence = self.deflate(inflation)
         else:
             recurrence = self
-        for decomposition in self.possible_decompositions():
-            decomposed = recurrence.decompose(decomposition)
+        for decomposition in tqdm(self.possible_decompositions()):
+            decomposed = recurrence.decompose_poly(decomposition)
             if decomposed is not None:
                 results.append((decomposed, decomposition))
         return results
