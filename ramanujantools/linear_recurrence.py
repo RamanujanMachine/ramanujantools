@@ -59,8 +59,11 @@ class LinearRecurrence:
         return f"LinearRecurrence({self.relation})"
 
     def __str__(self) -> str:
-        lhs = f"({self.relation[0]})*p(n+1)"
-        rhs = " + ".join([f"({c})*p({n-i})" for i, c in enumerate(self.relation[1:])])
+        p = sp.Function("p")(n)
+        lhs = f"{(self.relation[0])*p.subs({n: n+1})}"
+        rhs = " + ".join(
+            [f"{c*p.subs({n: n-i})}" for i, c in enumerate(self.relation[1:])]
+        )
         return f"{lhs} = {rhs}"
 
     @cached_property
