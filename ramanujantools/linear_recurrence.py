@@ -204,7 +204,7 @@ class LinearRecurrence:
             next = (-1 if index == 1 else 1) * decomposed[index - 1].subs({n: n - 1})
             decomposed.append(sp.simplify(self.relation[index] - next * decomposition))
         expected_tail = decomposed[-1].subs({n: n - 1}) * decomposition
-        if expected_tail == self.relation[-1]:
+        if sp.simplify(expected_tail - self.relation[-1]) == 0:
             return LinearRecurrence(decomposed)
         if len(self.free_symbols()) > 0:
             solutions = sp.solve(sp.Poly(expected_tail - self.relation[-1], n).coeffs())
