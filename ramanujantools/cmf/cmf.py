@@ -7,7 +7,6 @@ import sympy as sp
 from sympy.abc import n
 
 from ramanujantools import Matrix, Limit, simplify
-from ramanujantools.pcf import PCFFromMatrix
 
 
 class CMF:
