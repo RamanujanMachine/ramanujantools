@@ -198,12 +198,11 @@ class LinearRecurrence:
         In case of success, the returned recurrence will be substituted with the solution.
         i.e, for that solution, `recurrence.compose(decomposition) == self.subs(solution)`
         """
+        decomposition = sp.Poly(decomposition, n).as_expr()
         decomposed = [self.relation[0]]
         for index in range(1, len(self.relation) - 1):
             next = (-1 if index == 1 else 1) * decomposed[index - 1].subs({n: n - 1})
-            decomposed.append(
-                sp.simplify(self.relation[index] - next * decomposition.as_expr())
-            )
+            decomposed.append(sp.simplify(self.relation[index] - next * decomposition))
         expected_tail = decomposed[-1].subs({n: n - 1}) * decomposition
         if expected_tail == self.relation[-1]:
             return LinearRecurrence(decomposed)
@@ -247,7 +246,7 @@ class LinearRecurrence:
 
         The inflated recurrence converges to the same limit up to different initial values.
         """
-        c = sp.simplify(c.as_expr())
+        c = sp.simplify(c).as_expr()
         current = c
         relation = copy.deepcopy(self.relation)
         for i in range(1, len(self.relation)):

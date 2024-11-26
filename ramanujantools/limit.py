@@ -240,8 +240,8 @@ class Limit:
         used_indices = linear_independent_indices()
         total_indices = len(used_indices)
         integer_sequences = [self.current.col(column_index)[i] for i in used_indices]
-        to_identify = integer_sequences + [L * p for p in integer_sequences]
-        pslq_result = self.mp.pslq(to_identify, maxcoeff=maxcoeff)
+        to_identify = integer_sequences + [p * L for p in integer_sequences]
+        pslq_result = self.mp.pslq(to_identify, maxcoeff=maxcoeff, maxsteps=maxcoeff)
         if pslq_result is None:
             return None
         numerator = self.coefficients_from_pslq(
