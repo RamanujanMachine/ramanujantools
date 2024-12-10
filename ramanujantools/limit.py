@@ -182,7 +182,9 @@ class Limit:
             coefficients[i] = pslq_results.pop(0)
         return coefficients
 
-    def identify_rational(self, column_index=-1) -> Union[IntegerRelation, type(None)]:
+    def identify_rational(
+        self, column_index=-1, maxcoeff=1000
+    ) -> Union[IntegerRelation, type(None)]:
         r"""
         Searches for constants $a_0, \dots, a_{N-1}
         such that $0 \approx \prod_{i=0}^{N-1}a_i * p_i$,
@@ -195,7 +197,7 @@ class Limit:
         Returns:
             a string describing the integer relation, if exists. None otherwise.
         """
-        pslq_result = self.mp.pslq(self.current.col(column_index))
+        pslq_result = self.mp.pslq(self.current.col(column_index), maxcoeff=maxcoeff)
         if pslq_result is None:
             return None
         result = IntegerRelation(
@@ -230,7 +232,7 @@ class Limit:
 
             while len(indices) > 1:  # a single index is linear independent vacuously
                 integer_sequences = [self.current.col(column_index)[i] for i in indices]
-                pslq_result = self.mp.pslq(integer_sequences)
+                pslq_result = self.mp.pslq(integer_sequences, maxcoeff=maxcoeff)
                 if pslq_result is None:
                     return indices
                 remove_index(pslq_result)
