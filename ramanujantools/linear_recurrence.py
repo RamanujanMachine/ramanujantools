@@ -75,6 +75,10 @@ class LinearRecurrence:
         return sp.gcd(self.relation)
 
     @cached_property
+    def denominator_lcm(self) -> sp.Expr:
+        return sp.lcm([r.as_numer_denom()[1] for r in self.relation])
+
+    @cached_property
     def recurrence_matrix(self) -> Matrix:
         """
         Returns the companion form recurrence matrix corresponding to the recurrence
@@ -117,7 +121,7 @@ class LinearRecurrence:
         """
         Removes gcd from the recurrence
         """
-        relation = [p / self.gcd for p in self.relation]
+        relation = [p * self.denominator_lcm / self.gcd for p in self.relation]
         return LinearRecurrence(relation).simplify()
 
     def simplify(self) -> LinearRecurrence:
