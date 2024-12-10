@@ -32,7 +32,10 @@ class IntegerRelation:
             return f"0 = {self.coefficients_expression(0)} - {sp.Symbol('L') * self.coefficients_expression(1)}"
 
     def __eq__(self, other: IntegerRelation) -> bool:
-        return self.coefficients == other.coefficients
+        negated = [
+            [-c for c in coefficients_list] for coefficients_list in self.coefficients
+        ]
+        return self.coefficients == other.coefficients or negated == other.coefficients
 
     def coefficients_expression(self, index):
         coefficients = self.coefficients[index]

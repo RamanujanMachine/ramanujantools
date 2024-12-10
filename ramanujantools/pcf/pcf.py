@@ -1,8 +1,7 @@
-import mpmath as mp
 import sympy as sp
 from sympy.abc import n
 
-from typing import Dict, List, Collection, Union
+from typing import Dict, List, Collection
 from multimethod import multimethod
 
 from ramanujantools import Matrix, Limit

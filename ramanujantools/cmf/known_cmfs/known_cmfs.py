@@ -220,7 +220,7 @@ def pFq(
             )
             for axis in axes
         }
-        return sorted(axes, key=lambda k: to_sort[k])
+        return sorted(axes, key=lambda k: to_sort[k], reverse=True)
 
     M = core_matrix(p, q)
 
