@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import Union, List, Dict, Set, Tuple
 from functools import cached_property
 import copy
+
 import itertools
 
 from tqdm import tqdm

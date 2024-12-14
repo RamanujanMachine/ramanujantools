@@ -421,7 +421,7 @@ class Matrix(sp.Matrix):
         trajectory: Dict,
         iterations: List[int],
         start: Dict,
-        initial_values: Union[Matrix, type(None)] = None,
+        initial_values: Union[Matrix, None] = None,
     ) -> List[Matrix]:
         r"""
         Returns the multiplication result of walking in a certain trajectory.
@@ -490,7 +490,7 @@ class Matrix(sp.Matrix):
         trajectory: Dict,
         iterations: int,
         start: Dict,
-        initial_values: Union[Matrix, type(None)] = None,
+        initial_values: Union[Matrix, None] = None,
     ) -> Matrix:
         return self.walk(trajectory, [iterations], start, initial_values)[0]
 
@@ -499,7 +499,7 @@ class Matrix(sp.Matrix):
         trajectory: Dict,
         iterations: Union[List, int],
         start: Dict,
-        initial_values: Union[Matrix, type(None)] = None,
+        initial_values: Union[Matrix, None] = None,
     ) -> Set:
         """
         Returns the expected free_symbols of the expression `self.walk(trajectory, iterations, start)`
@@ -535,7 +535,7 @@ class Matrix(sp.Matrix):
         trajectory: Dict,
         iterations: List[int],
         start: Dict,
-        initial_values: Union[Matrix, type(None)] = None,
+        initial_values: Union[Matrix, None] = None,
     ):  # noqa: F811
         from ramanujantools import Limit
 
@@ -550,7 +550,7 @@ class Matrix(sp.Matrix):
         trajectory: Dict,
         iterations: int,
         start: Dict,
-        initial_values: Union[Matrix, type(None)] = None,
+        initial_values: Union[Matrix, None] = None,
     ):
         return self.limit(trajectory, [iterations], start, initial_values)[0]
 
