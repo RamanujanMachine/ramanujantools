@@ -112,6 +112,11 @@ def test_coboundary_inverse():
     assert m == m.coboundary(U).coboundary(U.inverse())
 
 
+def test_companion_form():
+    expected = Matrix([[0, 0, n], [1, 0, 17], [0, 1, n**2]])
+    assert expected == Matrix.companion_form([n, 17, n**2])
+
+
 def test_is_companion():
     assert not Matrix.eye(3).is_companion()
     m = Matrix([[0, 0, n**3 - 1], [1, 0, n**2 + 3], [0, 1, 2 * n]])

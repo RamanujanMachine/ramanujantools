@@ -215,6 +215,15 @@ class Matrix(sp.Matrix):
             vectors.append(self * vectors[i - 1].subs({symbol: symbol + 1}))
         return Matrix.hstack(*vectors).inverse().simplify()
 
+    @staticmethod
+    def companion_form(values: List[sp.Expr]) -> Matrix:
+        N = len(values)
+        columns = []
+        for i in range(N - 1):
+            columns.append(Matrix.e(N, i + 1))
+        columns.append(Matrix(list(values)))
+        return Matrix.hstack(*columns)
+
     def is_companion(self) -> bool:
         r"""
         Returns True iff the matrix is a companion matrix.
