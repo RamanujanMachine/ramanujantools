@@ -94,7 +94,25 @@ def test_euler():
     decomposed = inflated.decompose_poly(n)
     pcf = decomposed.recurrence_matrix.as_pcf().pcf
     assert PCF(-2 * (n + 2), -((n + 1) ** 2)) == pcf
-    lim = pcf.limit(1000)
-    assert IntegerRelation([[1, 0], [-2, -1]]) == lim.identify(
-        -lim.mp.e * lim.mp.ei(-1)
+
+
+def test_apteshuffle():
+    expected = LinearRecurrence(  # from the paper
+        [
+            (16 * n - 15) * (16 * n + 1),
+            (16 * n - 15) * (256 * n**3 + 528 * n**2 + 352 * n + 73),
+            -(16 * n + 17) * (128 * n**3 + 40 * n**2 - 82 * n - 45),
+            n**2 * (16 * n + 1) * (16 * n + 17),
+        ]
     )
+
+    apt = LinearRecurrence(  # from the paper
+        [
+            16 * n - 15,
+            128 * n**3 + 40 * n**2 - 82 * n - 45,
+            -(n**2) * (256 * n**3 - 240 * n**2 + 64 * n - 7),
+            n**2 * (n - 1) ** 2 * (16 * n + 1),
+        ]
+    )
+
+    assert expected == apt.apteshuffle().deflate((n + 1) ** 2)

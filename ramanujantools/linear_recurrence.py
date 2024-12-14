@@ -268,3 +268,9 @@ class LinearRecurrence:
         """
         recurrence = self.inflate(1 / c)
         return recurrence.simplify()
+
+    def apteshuffle(self) -> LinearRecurrence:
+        if self.depth() != 3:
+            raise ValueError("apteshuffle is only supported for depth 3 recursions for now")
+        c, b, a = self.recurrence_matrix.col(-1)
+        return LinearRecurrence([1, -b, -c * a.subs({n: n-1}), c * c.subs({n: n-1})]).reduce().subs({n: n+1})
