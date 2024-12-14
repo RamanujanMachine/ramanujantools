@@ -303,8 +303,8 @@ class CMF:
         trajectory: dict,
         iterations: List[int],
         start: dict,
-        p_vectors: Union[List[Matrix], type(None)] = None,
-        q_vectors: Union[List[Matrix], type(None)] = None,
+        p_vectors: Union[List[Matrix], None] = None,
+        q_vectors: Union[List[Matrix], None] = None,
     ) -> List[Limit]:
         r"""
         Returns a list of limits of trajectorial walk multiplication matrices in the desired depths.
@@ -332,8 +332,8 @@ class CMF:
         trajectory: dict,
         iterations: int,
         start: dict,
-        p_vectors: Union[List[Matrix], type(None)] = None,
-        q_vectors: Union[List[Matrix], type(None)] = None,
+        p_vectors: Union[List[Matrix], None] = None,
+        q_vectors: Union[List[Matrix], None] = None,
     ) -> Limit:
         return self.limit(trajectory, [iterations], start, p_vectors, q_vectors)[0]
 
@@ -343,8 +343,8 @@ class CMF:
         depth: int,
         start: dict,
         limit: float = None,
-        p_vectors: Union[List[Matrix], type(None)] = None,
-        q_vectors: Union[List[Matrix], type(None)] = None,
+        p_vectors: Union[List[Matrix], None] = None,
+        q_vectors: Union[List[Matrix], None] = None,
     ):
         r"""
         Calculates the irrationality measure $\delta$ defined, as:
@@ -381,8 +381,8 @@ class CMF:
         depth: int,
         start: dict,
         limit: float = None,
-        p_vectors: Union[List[Matrix], type(None)] = None,
-        q_vectors: Union[List[Matrix], type(None)] = None,
+        p_vectors: Union[List[Matrix], None] = None,
+        q_vectors: Union[List[Matrix], None] = None,
     ):
         r"""
         Calculates delta values sequentially up to `depth`.
