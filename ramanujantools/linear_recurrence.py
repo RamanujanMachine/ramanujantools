@@ -5,8 +5,9 @@ import copy
 import itertools
 
 from tqdm import tqdm
+import mpmath as mp
 import sympy as sp
-from sympy.abc import n
+from sympy.abc import n, w
 
 from ramanujantools import Matrix, Limit, GenericPolynomial
 
@@ -56,6 +57,18 @@ class LinearRecurrence:
         """
         return self.relation == other.relation
 
+    def __mul__(self, scalar: int) -> LinearRecurrence:
+        return LinearRecurrence([p * scalar for p in self.relation])
+
+    def __rmul__(self, scalar: int) -> LinearRecurrence:
+        return self * scalar
+
+    def __truediv__(self, scalar: int) -> LinearRecurrence:
+        return LinearRecurrence([p / scalar for p in self.relation])
+
+    def __floordiv__(self, scalar: int) -> LinearRecurrence:
+        return LinearRecurrence([p / scalar for p in self.relation])
+
     def __repr__(self) -> str:
         return f"LinearRecurrence({self.relation})"
 
@@ -72,7 +85,7 @@ class LinearRecurrence:
         """
         Returns the GCD of all recurrence coefficients
         """
-        return sp.gcd(self.relation)
+        return sp.gcd([r.as_numer_denom()[0] for r in self.relation])
 
     @cached_property
     def denominator_lcm(self) -> sp.Expr:
@@ -117,9 +130,9 @@ class LinearRecurrence:
         """
         return self.free_symbols() - self.axes()
 
-    def reduce(self) -> LinearRecurrence:
+    def normalize(self) -> LinearRecurrence:
         """
-        Removes gcd from the recurrence
+        Normalizes the recurrence
         """
         relation = [p * self.denominator_lcm / self.gcd for p in self.relation]
         return LinearRecurrence(relation).simplify()
@@ -128,7 +141,8 @@ class LinearRecurrence:
         """
         Simplifies the coefficients of the recurrence
         """
-        return LinearRecurrence([sp.factor(p.simplify()) for p in self.relation])
+        relation = [p * self.denominator_lcm / self.gcd for p in self.relation]
+        return LinearRecurrence([sp.factor(p.simplify()) for p in relation])
 
     def limit(self, iterations: int, start=1) -> Limit:
         r"""
@@ -256,8 +270,6 @@ class LinearRecurrence:
         for i in range(1, len(self.relation)):
             relation[i] *= current
             current *= c.subs({n: n - i})
-        lcm = sp.lcm([r.as_numer_denom()[1] for r in relation])
-        relation = [r * lcm for r in relation]
         return LinearRecurrence(relation)
 
     def deflate(self, c: sp.Expr) -> LinearRecurrence:
@@ -267,10 +279,50 @@ class LinearRecurrence:
         Equivalent to `self.inflate(1 / c)`.
         """
         recurrence = self.inflate(1 / c)
-        return recurrence.simplify()
+        return recurrence
 
     def apteshuffle(self) -> LinearRecurrence:
         if self.depth() != 3:
-            raise ValueError("apteshuffle is only supported for depth 3 recursions for now")
+            raise ValueError(
+                "apteshuffle is only supported for depth 3 recursions for now"
+            )
         c, b, a = self.recurrence_matrix.col(-1)
-        return LinearRecurrence([1, -b, -c * a.subs({n: n-1}), c * c.subs({n: n-1})]).reduce().subs({n: n+1})
+        return (
+            LinearRecurrence([1, -b, -c * a.subs({n: n - 1}), c * c.subs({n: n - 1})])
+            .simplify()
+            .subs({n: n + 1})
+        )
+
+    def as_poincare(self) -> LinearRecurrence:
+        relation = self.simplify()
+        relation /= relation.relation[0]
+        deflation_degree = 0
+        for i in range(1, len(relation.relation)):
+            numer, denom = relation.relation[i].as_numer_denom()
+            current_degree = sp.Poly(numer).degree() - sp.Poly(denom).degree()
+            if (deflation_degree * i) < current_degree:
+                deflation_degree = -(current_degree // -i)  # ceil div trick
+        return relation.deflate(n**deflation_degree)
+
+    def characteristic_polynomial(self) -> sp.Poly:
+        coeffs = [sp.limit(p, n, "oo") for p in self.as_poincare().relation]
+        coeffs[0] *= -1
+        return sp.Poly(coeffs, w)
+
+    def lambdas(self) -> List[sp.Expr]:
+        roots = sp.roots(self.characteristic_polynomial(), w)
+        lambdas = []
+        for root, multiplicity in roots.items():
+            lambdas += [sp.re(sp.Abs(root).evalf())] * multiplicity
+        return sorted(
+            lambdas,
+            key=lambda solution: sp.Abs(solution),  # lambda lambda: abs(lambda)
+            reverse=True,
+        )
+
+    def kamidelta(self) -> List[mp.mpf]:
+        lambdas = self.lambdas()
+        deltas = []
+        for i in range(1, len(lambdas)):
+            deltas.append(-(sp.log(abs(lambdas[i]).evalf(), abs(lambdas[0]).evalf())))
+        return deltas
