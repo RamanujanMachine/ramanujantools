@@ -175,6 +175,59 @@ class CMF:
             }
         )
 
+    @staticmethod
+    def decompose_trajectory(original_traj):
+        iterations = []
+        current_traj = original_traj.copy()
+
+        while any(abs(value) > 0 for value in current_traj.values()):
+            # Find the smallest positive integer value
+            d = min(abs(value) for value in current_traj.values() if value > 0)
+
+            # Create first_traj with non-zero values set to d
+            first_traj = {
+                key: int(sp.sign(value)) for key, value in current_traj.items()
+            }
+
+            # Create first_res with values subtracted by d
+            first_res = {
+                key: value - d * sp.sign(value) for key, value in current_traj.items()
+            }
+
+            # Store the result of this iteration
+            iterations.append((d, first_traj, first_res))
+
+            # Update current_traj for the next iteration
+            current_traj = first_res
+        return iterations
+
+    def d_times_t_eval(self, eval_dict, traj_dict, d):
+        from sympy.abc import m
+
+        product = sp.eye(self.N())
+        start = {
+            axis: eval_dict[axis] + m * traj_dict[axis] for axis in eval_dict.keys()
+        }
+        A_m = self.walk(traj_dict, 1, start)
+        # Iterate through eval_dicts, ensuring consistency with cmf.walk
+        product = A_m.walk({m: 1}, int(d), {m: 0})
+        return product
+
+    def amazingTraj(self, start, traj):
+        # do the usual amazing trajectory trick and get a stard point
+        # frist brake traj T = d_1T_1+d_2T_2+d_3T_3+...
+        decomposed_traj = CMF.decompose_trajectory(traj)
+        # here is a list of (d,the_d_traj, left over traj)
+        product = sp.eye(self.N())
+
+        for d, T, left_over in decomposed_traj:
+            product = product * CMF.d_times_t_eval(self, start, T, d).applyfunc(
+                sp.factor
+            )
+            start = {axis: start[axis] + d * T[axis] for axis in start.keys()}
+
+        return product.applyfunc(sp.factor)
+
     def trajectory_matrix(self, trajectory: dict, start: dict = None) -> Matrix:
         """
         Returns a corresponding matrix for walking in a trajectory, up to a constant.
@@ -201,6 +254,7 @@ class CMF:
             start = {axis: axis for axis in self.axes()}
         else:
             start = CMF.variable_reduction_substitution(trajectory, start)
+            return self.amazingTraj(start, trajectory)
         return self.walk(trajectory, 1, start).applyfunc(sp.factor)
 
     @staticmethod

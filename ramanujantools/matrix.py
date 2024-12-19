@@ -17,12 +17,7 @@ class Matrix(sp.Matrix):
     """
 
     def __new__(cls, *args, **kwargs):
-        from ramanujantools import PolyMatrix
-
-        if len(args) == 1 and len(kwargs) == 0 and isinstance(args[0], PolyMatrix):
-            return args[0].to_Matrix()
-        else:
-            return super().__new__(cls, *args, **kwargs)
+        return super().__new__(cls, *args, **kwargs)
 
     @staticmethod
     def e(N: int, index: int, column=True) -> Matrix:
@@ -444,8 +439,6 @@ class Matrix(sp.Matrix):
                         if `start` and `trajectory` have different keys,
                         if `iterations` contains duplicate values
         """
-        from ramanujantools import PolyMatrix
-
         if not self.is_square():
             raise ValueError(
                 f"Matrix.walk is only supported for square matrices, got a {self.rows}x{self.cols} matrix"
@@ -469,20 +462,18 @@ class Matrix(sp.Matrix):
                 f"iterations must contain only non-negative values, got {iterations}"
             )
 
-        matrix = initial_values or Matrix.eye(self.rows)
-        free_symbols = self.free_symbols_after_walk(trajectory, iterations, start)
-        if len(free_symbols) > 0:
-            matrix = PolyMatrix(matrix, *free_symbols)
-
         results = []
-        position = start
+        position = start.copy()
+        factored = self.applyfunc(sp.factor)
+        matrix = initial_values or Matrix.eye(self.rows)
         for depth in range(0, iterations[-1]):
             if depth in iterations:
                 results.append(matrix)
-            matrix *= self(position)
-            position = {key: trajectory[key] + value for key, value in position.items()}
+            matrix *= factored(position)
+            for key in position.keys():
+                position[key] += trajectory[key]
         results.append(matrix)  # Last matrix, for iterations[-1]
-        return [Matrix(matrix) for matrix in results]  # in case we have PolyMatrix
+        return results
 
     @multimethod
     def walk(  # noqa: F811
