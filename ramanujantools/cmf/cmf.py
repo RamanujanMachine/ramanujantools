@@ -175,6 +175,32 @@ class CMF:
             }
         )
 
+    def _calculate_diagonal_matrix(self, trajectory: dict, start: dict) -> Matrix:
+        """
+        The manual calculation of trajectory matrix in the stopping condition.
+        You should probably use `trajectory_matrix` instead.
+
+        Assumes trajectory is a simple diagonal - all abs values are at most 1
+        Args:
+            trajectory: a dict containing the amount of steps in each direction.
+            start: a dict representing the starting point of the multiplication.
+        Returns:
+            A matrix that represents a single step in the desired trajectory
+        """
+        if max([abs(value) for value in trajectory.values()], default=0) < 1:
+            raise ValueError(
+                f"Called _calculate_diagonal_matrix with a trajectory that is not a simple diagonal: {trajectory}"
+            )
+        result = Matrix.eye(self.N())
+        position = start.copy()
+        for axis in self.axes_sorter(self.axes(), trajectory, start):
+            if trajectory[axis] == 0:
+                continue
+            sign = trajectory[axis] >= 0
+            result *= self.M(axis, sign).walk(self.axis_vector(axis, sign), 1, position)
+            position[axis] += trajectory[axis]
+        return result
+
     def trajectory_matrix(
         self, trajectory: dict, start: dict = None, symbol=n
     ) -> Matrix:
@@ -199,25 +225,17 @@ class CMF:
                 f"Start axes {start.keys()} do not match CMF axes {self.axes()}"
             )
 
-        if start is None:
-            position = {axis: axis for axis in self.axes()}
-        else:
-            position = CMF.variable_reduction_substitution(trajectory, start, symbol)
-
-        result = Matrix.eye(self.N())
+        position = (
+            CMF.variable_reduction_substitution(trajectory, start, symbol)
+            if start is not None
+            else {axis: axis for axis in self.axes()}
+        )
 
         # Stopping condition: l-infinity norm of trajectory is less than 1
         if max([abs(value) for value in trajectory.values()]) <= 1:
-            for axis in self.axes_sorter(self.axes(), trajectory, start):
-                if trajectory[axis] == 0:
-                    continue
-                sign = trajectory[axis] >= 1
-                result *= self.M(axis, sign).walk(
-                    self.axis_vector(axis, sign), 1, position
-                )
-                position[axis] += trajectory[axis]
-            return result
+            return self._calculate_diagonal_matrix(trajectory, position)
 
+        result = Matrix.eye(self.N())
         depth = min(
             [abs(value) for value in trajectory.values() if value != 0], default=0
         )
