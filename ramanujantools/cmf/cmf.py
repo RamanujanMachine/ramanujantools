@@ -204,31 +204,12 @@ class CMF:
     def d_times_t_eval(self, eval_dict, traj_dict, d):
         from sympy.abc import m
 
-        product = sp.eye(self.N())
-        start = {
-            axis: eval_dict[axis] + m * traj_dict[axis] for axis in eval_dict.keys()
-        }
-        A_m = self.walk(traj_dict, 1, start)
-        # Iterate through eval_dicts, ensuring consistency with cmf.walk
-        product = A_m.walk({m: 1}, int(d), {m: 0})
-        return product
+        A_m = self.trajectory_matrix(traj_dict, eval_dict, symbol=m)
+        return A_m.walk({m: 1}, int(d), {m: 1})
 
-    def amazingTraj(self, start, traj):
-        # do the usual amazing trajectory trick and get a stard point
-        # frist brake traj T = d_1T_1+d_2T_2+d_3T_3+...
-        decomposed_traj = CMF.decompose_trajectory(traj)
-        # here is a list of (d,the_d_traj, left over traj)
-        product = sp.eye(self.N())
-
-        for d, T, left_over in decomposed_traj:
-            product = product * CMF.d_times_t_eval(self, start, T, d).applyfunc(
-                sp.factor
-            )
-            start = {axis: start[axis] + d * T[axis] for axis in start.keys()}
-
-        return product.applyfunc(sp.factor)
-
-    def trajectory_matrix(self, trajectory: dict, start: dict = None) -> Matrix:
+    def trajectory_matrix(
+        self, trajectory: dict, start: dict = None, symbol=n
+    ) -> Matrix:
         """
         Returns a corresponding matrix for walking in a trajectory, up to a constant.
         If `start` is given, the new matrix will be reduced to a single variable `n`.
@@ -253,36 +234,69 @@ class CMF:
         if start is None:
             start = {axis: axis for axis in self.axes()}
         else:
-            start = CMF.variable_reduction_substitution(trajectory, start)
-            return self.amazingTraj(start, trajectory)
+            start = CMF.variable_reduction_substitution(trajectory, start, symbol)
+
+        position = start.copy()
+        result = Matrix.eye(self.N())
+
+        if max([abs(value) for value in trajectory.values()]) <= 1:
+            for axis in self.axes_sorter(self.axes(), trajectory, start):
+                if trajectory[axis] == 0:
+                    continue
+                sign = trajectory[axis] >= 1
+                result *= self.M(axis, sign).walk(
+                    self.axis_vector(axis, sign), 1, position
+                )
+                position[axis] += trajectory[axis]
+            return result
+
+        depth = min(
+            [abs(value) for value in trajectory.values() if value != 0], default=0
+        )
+        while depth > 0:
+            diagonal = {key: int(sp.sign(value)) for key, value in trajectory.items()}
+            result *= CMF.d_times_t_eval(self, position, diagonal, depth)
+            position = {
+                axis: position[axis] + depth * diagonal[axis]
+                for axis in position.keys()
+            }
+            trajectory = {
+                key: value - depth * diagonal[key] for key, value in trajectory.items()
+            }
+            depth = min(
+                [abs(value) for value in trajectory.values() if value != 0], default=0
+            )
+        return result
+
         return self.walk(trajectory, 1, start).applyfunc(sp.factor)
 
     @staticmethod
-    def variable_reduction_substitution(trajectory: dict, start: dict) -> Matrix:
+    def variable_reduction_substitution(
+        trajectory: dict, start: dict, symbol: sp.Symbol
+    ) -> Matrix:
         """
-        Returns the substitution that reduces all CMF variables into one variable `n`.
+        Returns the substitution that reduces all CMF variables into one variable.
 
         This transformation is possible only when the starting point is known.
-        Each incrementation of the variable `n` represents a full step in `trajectory`.
+        Each incrementation of the variable `symbol` represents a full step in `trajectory`.
 
         Args:
-            trajectory_matrix: The matrix to reduce.
             trajectory: The trajectory that was used to create the trajectory matrix.
             start: The starting point from which the walk operation is to be calculated.
+            symbol: The new symbol of the reduced trajectory matrix.
         Returns:
             A dict representing the above variable reduction substitution
         Raises:
             ValueError: if trajectory keys and start keys do not match
         """
-        from sympy.abc import n
-
         if start.keys() != trajectory.keys():
             raise ValueError(
                 f"Trajectory axes {trajectory.keys()} do not match start axes {start.keys()}"
             )
 
         return {
-            axis: start[axis] + (n - 1) * trajectory[axis] for axis in trajectory.keys()
+            axis: start[axis] + (symbol - 1) * trajectory[axis]
+            for axis in trajectory.keys()
         }
 
     @multimethod
