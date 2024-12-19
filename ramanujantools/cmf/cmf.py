@@ -175,38 +175,6 @@ class CMF:
             }
         )
 
-    @staticmethod
-    def decompose_trajectory(original_traj):
-        iterations = []
-        current_traj = original_traj.copy()
-
-        while any(abs(value) > 0 for value in current_traj.values()):
-            # Find the smallest positive integer value
-            d = min(abs(value) for value in current_traj.values() if value > 0)
-
-            # Create first_traj with non-zero values set to d
-            first_traj = {
-                key: int(sp.sign(value)) for key, value in current_traj.items()
-            }
-
-            # Create first_res with values subtracted by d
-            first_res = {
-                key: value - d * sp.sign(value) for key, value in current_traj.items()
-            }
-
-            # Store the result of this iteration
-            iterations.append((d, first_traj, first_res))
-
-            # Update current_traj for the next iteration
-            current_traj = first_res
-        return iterations
-
-    def d_times_t_eval(self, eval_dict, traj_dict, d):
-        from sympy.abc import m
-
-        A_m = self.trajectory_matrix(traj_dict, eval_dict, symbol=m)
-        return A_m.walk({m: 1}, int(d), {m: 1})
-
     def trajectory_matrix(
         self, trajectory: dict, start: dict = None, symbol=n
     ) -> Matrix:
@@ -232,13 +200,13 @@ class CMF:
             )
 
         if start is None:
-            start = {axis: axis for axis in self.axes()}
+            position = {axis: axis for axis in self.axes()}
         else:
-            start = CMF.variable_reduction_substitution(trajectory, start, symbol)
+            position = CMF.variable_reduction_substitution(trajectory, start, symbol)
 
-        position = start.copy()
         result = Matrix.eye(self.N())
 
+        # Stopping condition: l-infinity norm of trajectory is less than 1
         if max([abs(value) for value in trajectory.values()]) <= 1:
             for axis in self.axes_sorter(self.axes(), trajectory, start):
                 if trajectory[axis] == 0:
@@ -255,7 +223,7 @@ class CMF:
         )
         while depth > 0:
             diagonal = {key: int(sp.sign(value)) for key, value in trajectory.items()}
-            result *= CMF.d_times_t_eval(self, position, diagonal, depth)
+            result *= self.walk(diagonal, depth, position)
             position = {
                 axis: position[axis] + depth * diagonal[axis]
                 for axis in position.keys()
@@ -267,8 +235,6 @@ class CMF:
                 [abs(value) for value in trajectory.values() if value != 0], default=0
             )
         return result
-
-        return self.walk(trajectory, 1, start).applyfunc(sp.factor)
 
     @staticmethod
     def variable_reduction_substitution(
@@ -332,20 +298,11 @@ class CMF:
                 f"iterations must contain only non-negative values, got {iterations}"
             )
 
-        results = []
-        position = start
-        matrix = Matrix.eye(self.N())
-        previous_depth = 0
-        for depth in iterations:
-            effective_depth = depth - previous_depth
-            matrix *= self.walk(trajectory, effective_depth, position)
-            position = {
-                key: position[key] + value * effective_depth
-                for key, value in trajectory.items()
-            }
-            previous_depth = depth
-            results.append(matrix)
-        return results
+        walk_symbol = sp.Symbol("walk")
+        trajectory_matrix = self.trajectory_matrix(
+            trajectory, start, symbol=walk_symbol
+        )
+        return trajectory_matrix.walk({walk_symbol: 1}, iterations, {walk_symbol: 1})
 
     @multimethod
     def walk(  # noqa: F811
@@ -354,16 +311,7 @@ class CMF:
         iterations: int,
         start: dict,
     ) -> Matrix:
-        position = dict(start)
-        matrix = Matrix.eye(self.N())
-        for axis in self.axes_sorter(self.axes(), trajectory, position):
-            depth = trajectory[axis] * iterations
-            sign = depth >= 0
-            matrix *= self.M(axis, sign).walk(
-                self.axis_vector(axis, sign), abs(depth), position
-            )
-            position[axis] += depth
-        return matrix
+        return self.walk(trajectory, [iterations], start)[0]
 
     @multimethod
     def limit(
