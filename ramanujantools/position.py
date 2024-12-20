@@ -5,6 +5,22 @@ import sympy as sp
 
 
 class Position(dict):
+    r"""
+    Represents a Position (or a trajectory).
+
+    Inherits from dict and adds algebraic utilities.
+
+    Example:
+        >>> p = Position({x: 1, y: 2, z: 3})
+        >>> p
+        Position({x: 1, y: 2, z: 3})
+        >>> 2 * p
+        Position({x: 2, y: 4, z: 6})
+        >>> trajectory = Position({x: 3, y: -1, z: 2})
+        >>> p += 4 * trajectory
+        Position({x: 13, y: -2, z: 11})
+    """
+
     def __repr__(self):
         return f"Position({super().__repr__()})"
 
