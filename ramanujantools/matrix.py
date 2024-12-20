@@ -7,6 +7,8 @@ from multimethod import multimethod
 import sympy as sp
 from sympy.abc import n
 
+from ramanujantools import Position
+
 
 class Matrix(sp.Matrix):
     """
@@ -463,15 +465,14 @@ class Matrix(sp.Matrix):
             )
 
         results = []
-        position = start.copy()
+        position = Position(start)
         factored = self.applyfunc(sp.factor)
         matrix = initial_values or Matrix.eye(self.rows)
         for depth in range(0, iterations[-1]):
             if depth in iterations:
                 results.append(matrix)
             matrix *= factored(position)
-            for key in position.keys():
-                position[key] += trajectory[key]
+            position += trajectory
         results.append(matrix)  # Last matrix, for iterations[-1]
         return results
 

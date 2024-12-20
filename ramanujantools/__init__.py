@@ -1,3 +1,4 @@
+from .position import Position
 from .integer_relation import IntegerRelation
 from .matrix import Matrix
 from .limit import Limit
@@ -10,6 +11,7 @@ from . import cmf
 
 __all__ = [
     "IntegerRelation",
+    "Position",
     "Matrix",
     "Limit",
     "GenericPolynomial",

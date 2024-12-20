@@ -6,7 +6,7 @@ from typing import Dict, List, Set, Union
 import sympy as sp
 from sympy.abc import n
 
-from ramanujantools import Matrix, Limit, simplify
+from ramanujantools import Position, Matrix, Limit, simplify
 
 
 class CMF:
@@ -175,7 +175,9 @@ class CMF:
             }
         )
 
-    def _calculate_diagonal_matrix(self, trajectory: dict, start: dict) -> Matrix:
+    def _calculate_diagonal_matrix(
+        self, trajectory: Position, start: Position
+    ) -> Matrix:
         """
         The manual calculation of trajectory matrix in the stopping condition.
         You should probably use `trajectory_matrix` instead.
@@ -202,7 +204,7 @@ class CMF:
         return result
 
     def trajectory_matrix(
-        self, trajectory: dict, start: dict = None, symbol=n
+        self, trajectory: Dict, start: Dict = None, symbol=n
     ) -> Matrix:
         """
         Returns a corresponding matrix for walking in a trajectory, up to a constant.
@@ -225,38 +227,30 @@ class CMF:
                 f"Start axes {start.keys()} do not match CMF axes {self.axes()}"
             )
 
-        position = (
+        trajectory = Position(trajectory)
+        position = Position(
             CMF.variable_reduction_substitution(trajectory, start, symbol)
             if start is not None
             else {axis: axis for axis in self.axes()}
         )
 
         # Stopping condition: l-infinity norm of trajectory is less than 1
-        if max([abs(value) for value in trajectory.values()]) <= 1:
+        if trajectory.longest() <= 1:
             return self._calculate_diagonal_matrix(trajectory, position)
 
         result = Matrix.eye(self.N())
-        depth = min(
-            [abs(value) for value in trajectory.values() if value != 0], default=0
-        )
+        depth = trajectory.shortest()
         while depth > 0:
-            diagonal = {key: int(sp.sign(value)) for key, value in trajectory.items()}
+            diagonal = trajectory.signs()
             result *= self.walk(diagonal, depth, position)
-            position = {
-                axis: position[axis] + depth * diagonal[axis]
-                for axis in position.keys()
-            }
-            trajectory = {
-                key: value - depth * diagonal[key] for key, value in trajectory.items()
-            }
-            depth = min(
-                [abs(value) for value in trajectory.values() if value != 0], default=0
-            )
+            position += depth * diagonal
+            trajectory -= depth * diagonal
+            depth = trajectory.shortest()
         return result
 
     @staticmethod
     def variable_reduction_substitution(
-        trajectory: dict, start: dict, symbol: sp.Symbol
+        trajectory: Dict, start: Dict, symbol: sp.Symbol
     ) -> Matrix:
         """
         Returns the substitution that reduces all CMF variables into one variable.
@@ -286,9 +280,9 @@ class CMF:
     @multimethod
     def walk(  # noqa: F811
         self,
-        trajectory: dict,
+        trajectory: Dict,
         iterations: List[int],
-        start: dict,
+        start: Dict,
     ) -> List[Matrix]:
         r"""
         Returns a list of trajectorial walk multiplication matrices in the desired depths.
@@ -325,18 +319,18 @@ class CMF:
     @multimethod
     def walk(  # noqa: F811
         self,
-        trajectory: dict,
+        trajectory: Dict,
         iterations: int,
-        start: dict,
+        start: Dict,
     ) -> Matrix:
         return self.walk(trajectory, [iterations], start)[0]
 
     @multimethod
     def limit(
         self,
-        trajectory: dict,
+        trajectory: Dict,
         iterations: List[int],
-        start: dict,
+        start: Dict,
         p_vectors: Union[List[Matrix], None] = None,
         q_vectors: Union[List[Matrix], None] = None,
     ) -> List[Limit]:
@@ -363,9 +357,9 @@ class CMF:
     @multimethod
     def limit(  # noqa: F811
         self,
-        trajectory: dict,
+        trajectory: Dict,
         iterations: int,
-        start: dict,
+        start: Dict,
         p_vectors: Union[List[Matrix], None] = None,
         q_vectors: Union[List[Matrix], None] = None,
     ) -> Limit:
@@ -373,9 +367,9 @@ class CMF:
 
     def delta(
         self,
-        trajectory: dict,
+        trajectory: Dict,
         depth: int,
-        start: dict,
+        start: Dict,
         limit: float = None,
         p_vectors: Union[List[Matrix], None] = None,
         q_vectors: Union[List[Matrix], None] = None,
@@ -411,9 +405,9 @@ class CMF:
 
     def delta_sequence(
         self,
-        trajectory: dict,
+        trajectory: Dict,
         depth: int,
-        start: dict,
+        start: Dict,
         limit: float = None,
         p_vectors: Union[List[Matrix], None] = None,
         q_vectors: Union[List[Matrix], None] = None,
