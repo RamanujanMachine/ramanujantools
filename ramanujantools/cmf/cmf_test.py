@@ -75,7 +75,7 @@ def test_trajectory_matrix_variable_reduction():
     trajectory = {x: -2, y: 3}
     start = {x: 5, y: -7}
     assert cmf.trajectory_matrix(trajectory).subs(
-        CMF.variable_reduction_substitution(trajectory, start)
+        CMF.variable_reduction_substitution(trajectory, start, n)
     ) == cmf.trajectory_matrix(trajectory, start)
 
 
@@ -132,15 +132,15 @@ def test_variable_reduction_substitution_axis():
     cmf = known_cmfs.e()
     x_axis = cmf.axis_vector(x)
     y_axis = cmf.axis_vector(y)
-    assert {x: n, y: 0} == CMF.variable_reduction_substitution(x_axis, x_axis)
-    assert {x: 0, y: n} == CMF.variable_reduction_substitution(y_axis, y_axis)
+    assert {x: n, y: 0} == CMF.variable_reduction_substitution(x_axis, x_axis, n)
+    assert {x: 0, y: n} == CMF.variable_reduction_substitution(y_axis, y_axis, n)
 
 
 def test_variable_reduction_substitution_diagonal():
     trajectory = {x: 1, y: 2}
     start = {x: 3, y: 5}
     assert {x: n + 2, y: 2 * n + 3} == CMF.variable_reduction_substitution(
-        trajectory, start
+        trajectory, start, n
     )
 
 
