@@ -116,15 +116,6 @@ class CMF:
         """
         return set(self.matrices.keys())
 
-    def axis_vector(self, axis: sp.Symbol, sign: bool = True) -> Dict[sp.Symbol, int]:
-        """
-        Given a CMF axis symbol `axis`,
-        Returns the vector which is a single step in that axis and 0 in all other axes.
-        The step is 1 with the sign of `sign`
-        """
-        step = 1 if sign else -1
-        return {i: step if i == axis else 0 for i in self.axes()}
-
     def parameters(self) -> Set[sp.Symbol]:
         """
         Returns all (non-axis) symbolic parameters of the CMF.
@@ -189,7 +180,7 @@ class CMF:
         Returns:
             A matrix that represents a single step in the desired trajectory
         """
-        if max([abs(value) for value in trajectory.values()], default=0) < 1:
+        if trajectory.longest() > 1:
             raise ValueError(
                 f"Called _calculate_diagonal_matrix with a trajectory that is not a simple diagonal: {trajectory}"
             )
@@ -199,7 +190,7 @@ class CMF:
             if trajectory[axis] == 0:
                 continue
             sign = trajectory[axis] >= 0
-            result *= self.M(axis, sign).walk(self.axis_vector(axis, sign), 1, position)
+            result *= self.M(axis, sign).subs(position)
             position[axis] += trajectory[axis]
         return result
 

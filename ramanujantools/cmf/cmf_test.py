@@ -129,9 +129,8 @@ def test_walk_list():
 
 
 def test_variable_reduction_substitution_axis():
-    cmf = known_cmfs.e()
-    x_axis = cmf.axis_vector(x)
-    y_axis = cmf.axis_vector(y)
+    x_axis = {x: 1, y: 0}
+    y_axis = {x: 0, y: 1}
     assert {x: n, y: 0} == CMF.variable_reduction_substitution(x_axis, x_axis, n)
     assert {x: 0, y: n} == CMF.variable_reduction_substitution(y_axis, y_axis, n)
 
