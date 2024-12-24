@@ -471,7 +471,7 @@ class Matrix(sp.Matrix):
         for depth in range(0, iterations[-1]):
             if depth in iterations:
                 results.append(matrix)
-            matrix *= factored(position)
+            matrix = (matrix * factored(position)).applyfunc(sp.factor)
             position += trajectory
         results.append(matrix)  # Last matrix, for iterations[-1]
         return results
