@@ -467,11 +467,16 @@ class Matrix(sp.Matrix):
         results = []
         position = Position(start)
         factored = self.applyfunc(sp.factor)
+        should_factor = (
+            len(self.free_symbols_after_walk(trajectory, iterations, start)) > 0
+        )
         matrix = initial_values or Matrix.eye(self.rows)
         for depth in range(0, iterations[-1]):
             if depth in iterations:
                 results.append(matrix)
-            matrix = (matrix * factored(position)).applyfunc(sp.factor)
+            matrix *= factored(position)
+            if should_factor:
+                matrix = matrix.applyfunc(sp.factor)
             position += trajectory
         results.append(matrix)  # Last matrix, for iterations[-1]
         return results
