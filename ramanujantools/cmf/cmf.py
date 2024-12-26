@@ -190,9 +190,9 @@ class CMF:
             if trajectory[axis] == 0:
                 continue
             sign = trajectory[axis] >= 0
-            result = (result * self.M(axis, sign).subs(position)).applyfunc(sp.factor)
+            result = (result * self.M(axis, sign).subs(position)).factor()
             position[axis] += trajectory[axis]
-        return result.simplify()
+        return result
 
     def trajectory_matrix(
         self, trajectory: Dict, start: Dict = None, symbol=n
@@ -233,11 +233,11 @@ class CMF:
         depth = trajectory.shortest()
         while depth > 0:
             diagonal = trajectory.signs()
-            result = result * self.walk(diagonal, depth, position)
+            result *= self.walk(diagonal, depth, position)
             position += depth * diagonal
             trajectory -= depth * diagonal
             depth = trajectory.shortest()
-        return result.simplify()
+        return result.factor()
 
     @staticmethod
     def variable_reduction_substitution(

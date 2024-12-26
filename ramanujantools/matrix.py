@@ -175,6 +175,9 @@ class Matrix(sp.Matrix):
         """
         return Matrix(sp.simplify(self))
 
+    def factor(self) -> Matrix:
+        return Matrix(self.rows, self.cols, [sp.factor(cell) for cell in self])
+
     def singular_points(self) -> List[Dict]:
         r"""
         Calculates the singular points of the matrix,
@@ -466,7 +469,7 @@ class Matrix(sp.Matrix):
 
         results = []
         position = Position(start)
-        factored = self.applyfunc(sp.factor)
+        factored = self.factor()
         should_factor = (
             len(self.free_symbols_after_walk(trajectory, iterations, start)) > 0
         )
@@ -476,7 +479,7 @@ class Matrix(sp.Matrix):
                 results.append(matrix)
             matrix *= factored(position)
             if should_factor:
-                matrix = matrix.applyfunc(sp.factor)
+                matrix = matrix.factor()
             position += trajectory
         results.append(matrix)  # Last matrix, for iterations[-1]
         return results
