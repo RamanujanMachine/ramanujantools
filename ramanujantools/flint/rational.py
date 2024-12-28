@@ -6,6 +6,11 @@ import sympy as sp
 
 
 class FlintRational:
+    """
+    Represents a rational function.
+    Implemented as a numerator and denominator, reduces by gcd every step
+    """
+
     def __init__(
         self, numerator: flint.fmpz_mpoly, denominator: flint.fmpz_mpoly
     ) -> FlintRational:
@@ -15,10 +20,16 @@ class FlintRational:
 
     @staticmethod
     def fmpz_from_sympy(poly: sp.Expr, ctx) -> flint.fmpz_mpoly:
+        r"""
+        Converts a sympy expression to fmpz_mpoly.
+        """
         return flint.fmpz_mpoly(str(poly).replace("**", "^"), ctx)
 
     @staticmethod
     def from_sympy(rational: sp.Expr, symbols: List = None) -> FlintRational:
+        r"""
+        Converts a rational function given as a sympy expression to a FlintRational.
+        """
         symbols = symbols or list(sorted(rational.free_symbols, key=str))
         symbols = [str(symbol) for symbol in symbols]
         ctx = flint.fmpz_mpoly_ctx.get(symbols, "lex")
@@ -32,6 +43,9 @@ class FlintRational:
         )
 
     def inv(self) -> FlintRational:
+        """
+        Returns 1 / self.
+        """
         return FlintRational(self.denominator, self.numerator)
 
     def __neg__(self):
@@ -69,7 +83,7 @@ class FlintRational:
         return FlintRational(self.numerator, self.denominator * other)
 
     def __rtruediv__(self, other) -> FlintRational:
-        return FlintRational(other) / self
+        return other * self.inv()
 
     def __repr__(self) -> str:
         return f"FlintRational({self.numerator}, {self.denominator})"
@@ -80,6 +94,9 @@ class FlintRational:
         )
 
     def subs(self, substitutions: Dict) -> FlintRational:
+        """
+        Substitutes symbols in this.
+        """
         substitutions = {str(key): value for key, value in substitutions.items()}
         ctx = self.numerator.context()
         composition = []
@@ -95,6 +112,9 @@ class FlintRational:
 
     @staticmethod
     def factor_poly(poly) -> sp.Expr:
+        """
+        Factors a polynomial of type fmpz_mpoly and returns it as a sp.Expr
+        """
         gens = poly.context().gens()
         for gen in gens:
             exec(f"{gen} = sp.Symbol('{gen}')")
@@ -106,6 +126,9 @@ class FlintRational:
         return p
 
     def factor(self) -> sp.Expr:
+        """
+        Factors this and returns it as a sp.Expr
+        """
         return FlintRational.factor_poly(self.numerator) / FlintRational.factor_poly(
             self.denominator
         )
