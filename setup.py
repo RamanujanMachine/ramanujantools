@@ -11,6 +11,7 @@ setup(
         "ramanujantools.cmf",
         "ramanujantools.cmf.ffbar",
         "ramanujantools.cmf.known_cmfs",
+        "ramanujantools.flint_core",
     ],
     install_requires=[
         "mpmath>=1.3.0",
