@@ -215,26 +215,13 @@ def test_walk_1():
     assert m.walk({x: 1, y: 0}, 1, {x: x, y: y}) == m
 
 
-def test_walk_0_initial_values():
-    m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
-    iv = Matrix([[1, 2], [3, 4]])
-    assert m.walk({x: 0, y: 1}, 0, {x: x, y: y}, iv) == iv
-
-
-def test_walk_1_initial_values():
-    m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
-    iv = Matrix([[1, 2], [3, 4]])
-    assert m.walk({x: 0, y: 1}, 1, {x: x, y: y}, iv) == iv * m
-
-
 def test_walk_list():
     trajectory = {x: 2, y: 3}
     start = {x: 5, y: 7}
     iterations = [1, 2, 3, 17, 29, 53, 99]
-    iv = Matrix([[2, 3], [5, 7]])
     m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
-    assert m.walk(trajectory, iterations, start, iv) == [
-        m.walk(trajectory, i, start, iv) for i in iterations
+    assert m.walk(trajectory, iterations, start) == [
+        m.walk(trajectory, i, start) for i in iterations
     ]
 
 

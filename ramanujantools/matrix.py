@@ -430,7 +430,6 @@ class Matrix(sp.Matrix):
         trajectory: Dict,
         iterations: List[int],
         start: Dict,
-        initial_values: Union[Matrix, None] = None,
     ) -> List[Matrix]:
         r"""
         Returns the multiplication result of walking in a certain trajectory.
@@ -482,7 +481,7 @@ class Matrix(sp.Matrix):
         should_factor = (
             len(self.free_symbols_after_walk(trajectory, iterations, start)) > 0
         )
-        matrix = initial_values or Matrix.eye(self.rows)
+        matrix = Matrix.eye(self.rows)
         for depth in range(0, iterations[-1]):
             if depth in iterations:
                 results.append(matrix)
@@ -499,16 +498,14 @@ class Matrix(sp.Matrix):
         trajectory: Dict,
         iterations: int,
         start: Dict,
-        initial_values: Union[Matrix, None] = None,
     ) -> Matrix:
-        return self.walk(trajectory, [iterations], start, initial_values)[0]
+        return self.walk(trajectory, [iterations], start)[0]
 
     def free_symbols_after_walk(
         self,
         trajectory: Dict,
         iterations: Union[List, int],
         start: Dict,
-        initial_values: Union[Matrix, None] = None,
     ) -> Set:
         """
         Returns the expected free_symbols of the expression `self.walk(trajectory, iterations, start)`
@@ -520,9 +517,7 @@ class Matrix(sp.Matrix):
                 free_symbols = free_symbols.union(set(sp.simplify(value).free_symbols))
             return free_symbols
 
-        initial_values_symbols = (
-            initial_values.free_symbols if initial_values else set()
-        )
+        initial_values_symbols = set()
         subbed_in = position_free_symbols(start)
         using_trajectory = (isinstance(iterations, int) and iterations > 1) or (
             isinstance(iterations, list) and any(depth > 1 for depth in iterations)
@@ -544,12 +539,11 @@ class Matrix(sp.Matrix):
         trajectory: Dict,
         iterations: List[int],
         start: Dict,
-        initial_values: Union[Matrix, None] = None,
     ):  # noqa: F811
         from ramanujantools import Limit
 
         def walk_function(iterations):
-            return self.walk(trajectory, iterations, start, initial_values)
+            return self.walk(trajectory, iterations, start)
 
         return Limit.walk_to_limit(iterations, walk_function)
 
@@ -559,9 +553,8 @@ class Matrix(sp.Matrix):
         trajectory: Dict,
         iterations: int,
         start: Dict,
-        initial_values: Union[Matrix, None] = None,
     ):
-        return self.limit(trajectory, [iterations], start, initial_values)[0]
+        return self.limit(trajectory, [iterations], start)[0]
 
     def as_pcf(self, deflate_all=True):
         """
