@@ -8,6 +8,7 @@ from .simplify_object import simplify
 
 from . import pcf
 from . import cmf
+from . import flint
 
 __all__ = [
     "IntegerRelation",
@@ -19,4 +20,5 @@ __all__ = [
     "simplify",
     "pcf",
     "cmf",
+    "flint",
 ]

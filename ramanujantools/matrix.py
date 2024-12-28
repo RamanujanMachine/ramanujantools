@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Dict, List, Set, Callable, Union
+from typing import Dict, List, Set, Callable
 from functools import lru_cache, cached_property
 
 from multimethod import multimethod
@@ -74,17 +74,19 @@ class Matrix(sp.Matrix):
             return self.numerical_subs(substitutions)
         return self.xreplace(substitutions)
 
+    def _is_numeric(self, substitutions: Dict) -> bool:
+        """
+        Returns true iff all substitutions are numerical
+        """
+        return len(substitutions) == len(self.free_symbols) and not (
+            any(isinstance(element, sp.Expr) for element in substitutions.values())
+        )
+
     def _can_call_numerical_subs(self, substitutions: Dict) -> bool:
         """
         Returns true iff the all substitutions are numerical and we can can call `numerical_subs` instead of `xreplace`.
         """
-        return (
-            self.is_polynomial()
-            and len(substitutions) == len(self.free_symbols)
-            and not (
-                any(isinstance(element, sp.Expr) for element in substitutions.values())
-            )
-        )
+        return self.is_polynomial() and self._is_numeric(substitutions)
 
     def numerical_subs(self, substitutions: Dict) -> Matrix:
         """
@@ -174,6 +176,11 @@ class Matrix(sp.Matrix):
         Returns a simplified version of matrix
         """
         return Matrix(sp.simplify(self))
+
+    def factor(self) -> Matrix:
+        from ramanujantools.flint import FlintMatrix
+
+        return FlintMatrix.from_sympy(self, self.free_symbols).factor()
 
     def singular_points(self) -> List[Dict]:
         r"""
@@ -418,7 +425,6 @@ class Matrix(sp.Matrix):
         trajectory: Dict,
         iterations: List[int],
         start: Dict,
-        initial_values: Union[Matrix, None] = None,
     ) -> List[Matrix]:
         r"""
         Returns the multiplication result of walking in a certain trajectory.
@@ -441,6 +447,8 @@ class Matrix(sp.Matrix):
                         if `start` and `trajectory` have different keys,
                         if `iterations` contains duplicate values
         """
+        from ramanujantools.flint import FlintMatrix
+
         if not self.is_square():
             raise ValueError(
                 f"Matrix.walk is only supported for square matrices, got a {self.rows}x{self.cols} matrix"
@@ -464,17 +472,24 @@ class Matrix(sp.Matrix):
                 f"iterations must contain only non-negative values, got {iterations}"
             )
 
-        results = []
         position = Position(start)
-        factored = self.applyfunc(sp.factor)
-        matrix = initial_values or Matrix.eye(self.rows)
-        for depth in range(0, iterations[-1]):
-            if depth in iterations:
-                results.append(matrix)
-            matrix *= factored(position)
-            position += trajectory
-        results.append(matrix)  # Last matrix, for iterations[-1]
-        return results
+        trajectory = Position(trajectory)
+
+        if self._is_numeric(position + trajectory):
+            results = []
+            matrix = Matrix.eye(self.rows)
+            for depth in range(0, iterations[-1]):
+                if depth in iterations:
+                    results.append(matrix)
+                matrix *= self(position)
+                position += trajectory
+            results.append(matrix)  # Last matrix, for iterations[-1]
+            return results
+        else:
+            symbols = self.walk_free_symbols(start)
+            as_flint = FlintMatrix.from_sympy(self, symbols)
+            results = as_flint.walk(trajectory, iterations, start)
+            return [result.factor() for result in results]
 
     @multimethod
     def walk(  # noqa: F811
@@ -482,44 +497,20 @@ class Matrix(sp.Matrix):
         trajectory: Dict,
         iterations: int,
         start: Dict,
-        initial_values: Union[Matrix, None] = None,
     ) -> Matrix:
-        return self.walk(trajectory, [iterations], start, initial_values)[0]
+        return self.walk(trajectory, [iterations], start)[0]
 
-    def free_symbols_after_walk(
-        self,
-        trajectory: Dict,
-        iterations: Union[List, int],
-        start: Dict,
-        initial_values: Union[Matrix, None] = None,
-    ) -> Set:
+    def walk_free_symbols(self, start: Dict) -> Set:
         """
         Returns the expected free_symbols of the expression `self.walk(trajectory, iterations, start)`
         """
 
-        def position_free_symbols(position: Dict) -> Set:
-            free_symbols = set()
-            for value in position.values():
-                free_symbols = free_symbols.union(set(sp.simplify(value).free_symbols))
-            return free_symbols
-
-        initial_values_symbols = (
-            initial_values.free_symbols if initial_values else set()
-        )
-        subbed_in = position_free_symbols(start)
-        using_trajectory = (isinstance(iterations, int) and iterations > 1) or (
-            isinstance(iterations, list) and any(depth > 1 for depth in iterations)
-        )
-        if using_trajectory:
-            subbed_in = subbed_in.union(position_free_symbols(trajectory))
-
-        subbed_out = set(start.keys()).union(set(trajectory.keys()))
-
-        return (
-            (self.free_symbols - subbed_out)
-            .union(subbed_in)
-            .union(initial_values_symbols)
-        )
+        free_symbols = self.free_symbols.copy()
+        for key in start.keys():
+            free_symbols = free_symbols.union(set(sp.simplify(key).free_symbols))
+        for value in start.values():
+            free_symbols = free_symbols.union(set(sp.simplify(value).free_symbols))
+        return free_symbols
 
     @multimethod
     def limit(
@@ -527,12 +518,11 @@ class Matrix(sp.Matrix):
         trajectory: Dict,
         iterations: List[int],
         start: Dict,
-        initial_values: Union[Matrix, None] = None,
     ):  # noqa: F811
         from ramanujantools import Limit
 
         def walk_function(iterations):
-            return self.walk(trajectory, iterations, start, initial_values)
+            return self.walk(trajectory, iterations, start)
 
         return Limit.walk_to_limit(iterations, walk_function)
 
@@ -542,9 +532,8 @@ class Matrix(sp.Matrix):
         trajectory: Dict,
         iterations: int,
         start: Dict,
-        initial_values: Union[Matrix, None] = None,
     ):
-        return self.limit(trajectory, [iterations], start, initial_values)[0]
+        return self.limit(trajectory, [iterations], start)[0]
 
     def as_pcf(self, deflate_all=True):
         """

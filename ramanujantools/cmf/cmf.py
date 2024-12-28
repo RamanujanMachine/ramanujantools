@@ -180,19 +180,26 @@ class CMF:
         Returns:
             A matrix that represents a single step in the desired trajectory
         """
+        from ramanujantools.flint import FlintMatrix
+
         if trajectory.longest() > 1:
             raise ValueError(
                 f"Called _calculate_diagonal_matrix with a trajectory that is not a simple diagonal: {trajectory}"
             )
-        result = Matrix.eye(self.N())
+        free_symbols = self.free_symbols()
+        for value in start.values():
+            free_symbols = free_symbols.union(set(sp.simplify(value).free_symbols))
+
+        result = FlintMatrix.eye(self.N(), free_symbols)
         position = start.copy()
         for axis in self.axes_sorter(self.axes(), trajectory, start):
             if trajectory[axis] == 0:
                 continue
             sign = trajectory[axis] >= 0
-            result *= self.M(axis, sign).subs(position)
+            current = self.M(axis, sign)
+            result *= FlintMatrix.from_sympy(current, free_symbols).subs(position)
             position[axis] += trajectory[axis]
-        return result
+        return result.factor()
 
     def trajectory_matrix(
         self, trajectory: Dict, start: Dict = None, symbol=n
@@ -208,6 +215,7 @@ class CMF:
         Raises:
             ValueError: if trajectory, start and matrix keys do not match.
         """
+
         if self.axes() != trajectory.keys():
             raise ValueError(
                 f"Trajectory axes {trajectory.keys()} do not match CMF axes {self.axes()}"
@@ -237,7 +245,7 @@ class CMF:
             position += depth * diagonal
             trajectory -= depth * diagonal
             depth = trajectory.shortest()
-        return result
+        return result.factor()
 
     @staticmethod
     def variable_reduction_substitution(
