@@ -1,11 +1,13 @@
 from __future__ import annotations
-from typing import Dict, List, Set, Callable
+from typing import Dict, List, Set, Callable, Union
 from functools import lru_cache, cached_property
 
 from multimethod import multimethod
 
 import sympy as sp
 from sympy.abc import n
+
+from ramanujantools import Position
 
 
 class Matrix(sp.Matrix):
@@ -72,17 +74,19 @@ class Matrix(sp.Matrix):
             return self.numerical_subs(substitutions)
         return self.xreplace(substitutions)
 
+    def _is_numeric(self, substitutions: Dict) -> bool:
+        """
+        Returns true iff all substitutions are numerical
+        """
+        return len(substitutions) == len(self.free_symbols) and not (
+            any(isinstance(element, sp.Expr) for element in substitutions.values())
+        )
+
     def _can_call_numerical_subs(self, substitutions: Dict) -> bool:
         """
         Returns true iff the all substitutions are numerical and we can can call `numerical_subs` instead of `xreplace`.
         """
-        return (
-            self.is_polynomial()
-            and len(substitutions) == len(self.free_symbols)
-            and not (
-                any(isinstance(element, sp.Expr) for element in substitutions.values())
-            )
-        )
+        return self.is_polynomial() and self._is_numeric(substitutions)
 
     def numerical_subs(self, substitutions: Dict) -> Matrix:
         """
@@ -176,7 +180,7 @@ class Matrix(sp.Matrix):
     def factor(self) -> Matrix:
         from ramanujantools.flint import FlintMatrix
 
-        return FlintMatrix.from_sympy(self).factor()
+        return FlintMatrix.from_sympy(self, self.free_symbols).factor()
 
     def singular_points(self) -> List[Dict]:
         r"""
@@ -468,10 +472,24 @@ class Matrix(sp.Matrix):
                 f"iterations must contain only non-negative values, got {iterations}"
             )
 
-        symbols = self.walk_free_symbols(start)
-        as_flint = FlintMatrix.from_sympy(self, symbols)
-        results = as_flint.walk(trajectory, iterations, start)
-        return [result.factor() for result in results]
+        position = Position(start)
+        trajectory = Position(trajectory)
+
+        if self._is_numeric(position + trajectory):
+            results = []
+            matrix = Matrix.eye(self.rows)
+            for depth in range(0, iterations[-1]):
+                if depth in iterations:
+                    results.append(matrix)
+                matrix *= self(position)
+                position += trajectory
+            results.append(matrix)  # Last matrix, for iterations[-1]
+            return results
+        else:
+            symbols = self.walk_free_symbols(start)
+            as_flint = FlintMatrix.from_sympy(self, symbols)
+            results = as_flint.walk(trajectory, iterations, start)
+            return [result.factor() for result in results]
 
     @multimethod
     def walk(  # noqa: F811
@@ -488,6 +506,8 @@ class Matrix(sp.Matrix):
         """
 
         free_symbols = self.free_symbols.copy()
+        for key in start.keys():
+            free_symbols = free_symbols.union(set(sp.simplify(key).free_symbols))
         for value in start.values():
             free_symbols = free_symbols.union(set(sp.simplify(value).free_symbols))
         return free_symbols
