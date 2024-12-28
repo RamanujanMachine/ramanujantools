@@ -1,13 +1,11 @@
 from __future__ import annotations
-from typing import Dict, List, Set, Callable, Union
+from typing import Dict, List, Set, Callable
 from functools import lru_cache, cached_property
 
 from multimethod import multimethod
 
 import sympy as sp
 from sympy.abc import n
-
-from ramanujantools import Position
 
 
 class Matrix(sp.Matrix):
@@ -176,16 +174,9 @@ class Matrix(sp.Matrix):
         return Matrix(sp.simplify(self))
 
     def factor(self) -> Matrix:
-        from ramanujantools.flint import FlintRational
+        from ramanujantools.flint import FlintMatrix
 
-        return Matrix(
-            self.rows,
-            self.cols,
-            [
-                FlintRational.from_sympy(cell).factor() if cell != sp.nan else sp.nan
-                for cell in self
-            ],
-        )
+        return FlintMatrix.from_sympy(self).factor()
 
     def singular_points(self) -> List[Dict]:
         r"""

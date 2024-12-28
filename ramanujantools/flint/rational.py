@@ -95,7 +95,7 @@ class FlintRational:
 
     def subs(self, substitutions: Dict) -> FlintRational:
         """
-        Substitutes symbols in this.
+        Substitutes symbols in self.
         """
         substitutions = {str(key): value for key, value in substitutions.items()}
         ctx = self.numerator.context()
@@ -127,7 +127,7 @@ class FlintRational:
 
     def factor(self) -> sp.Expr:
         """
-        Factors this and returns it as a sp.Expr
+        Factors self and returns it as a sp.Expr
         """
         return FlintRational.factor_poly(self.numerator) / FlintRational.factor_poly(
             self.denominator

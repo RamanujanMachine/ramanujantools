@@ -10,6 +10,12 @@ from ramanujantools.flint import FlintRational
 
 
 class FlintMatrix:
+    """
+    Represents a Matrix of FlintRationals.
+
+    It's logic is limited compared to the main Matrix, as it's designed for bottlenecks.
+    """
+
     def __init__(
         self, rows: int, cols: int, values: List[FlintMatrix], symbols
     ) -> FlintMatrix:
@@ -20,12 +26,22 @@ class FlintMatrix:
 
     @staticmethod
     def from_sympy(matrix: Matrix, symbols=None) -> FlintMatrix:
+        """
+        Converts a Matrix to FlintMatrix.
+        """
         symbols = [str(symbol) for symbol in symbols or matrix.free_symbols]
         values = [FlintRational.from_sympy(cell, symbols) for cell in matrix]
         return FlintMatrix(matrix.rows, matrix.cols, values, symbols)
 
     @staticmethod
     def eye(N: int, symbols) -> FlintMatrix:
+        """
+        Creates an identity matrix of size N.
+
+        Args:
+            N: The squared matrix dimension
+            symbols: The symbols this matrix supports
+        """
         values = [FlintRational.from_sympy(sp.simplify(0), symbols)] * N**2
         current = 0
         while current < N**2:
@@ -34,6 +50,10 @@ class FlintMatrix:
         return FlintMatrix(N, N, values, symbols)
 
     def __getitem__(self, key):
+        """
+        Returns an element of the matrix.
+        Supports both matrix[row, col] and matrix[index] syntax
+        """
         if isinstance(key, tuple):
             row = key[0]
             col = key[1]
@@ -42,6 +62,10 @@ class FlintMatrix:
             return self.values[key]
 
     def __setitem__(self, key, value):
+        """
+        Returns an element of the matrix.
+        Supports both matrix[row, col] and matrix[index] syntax
+        """
         if isinstance(key, tuple):
             row = key[0]
             col = key[1]
@@ -53,6 +77,9 @@ class FlintMatrix:
         return self.values == other.values
 
     def free_symbols(self):
+        """
+        Returns the free symbols this matrix supports
+        """
         return self.symbols
 
     def rows(self):
@@ -89,6 +116,9 @@ class FlintMatrix:
         return f"FlintMatrix({self.data()})"
 
     def __mul__(self, other: Union[FlintMatrix, int]) -> FlintMatrix:
+        """
+        Multiplies self by another FlintMatrix or a scalar.
+        """
         if isinstance(other, FlintMatrix):
             if self.cols() != other.rows():
                 raise ValueError("Attempting to multiply")
@@ -110,11 +140,17 @@ class FlintMatrix:
             )
 
     def __rmul__(self, other: Union[FlintMatrix, int]) -> FlintMatrix:
+        """
+        Multiplies a FlintMatrix or a scalar by self.
+        """
         if isinstance(other, int):
             return self * other
         return other * self
 
     def __truediv__(self, other: int) -> FlintMatrix:
+        """
+        Divides self by a scalar
+        """
         if isinstance(other, FlintMatrix):
             raise ValueError("Attempted to divide by matrix!")
         return FlintMatrix(
@@ -125,6 +161,9 @@ class FlintMatrix:
         )
 
     def subs(self, substitutions: Dict) -> FlintMatrix:
+        """
+        Substitutes symbols in the matrix.
+        """
         return FlintMatrix(
             self.rows(),
             self.cols(),
@@ -133,11 +172,35 @@ class FlintMatrix:
         )
 
     def factor(self) -> Matrix:
+        """
+        Factors all elements in the matrix.
+        """
         values = [value.factor() for value in self.values]
         return Matrix(self.rows(), self.cols(), values)
 
     @multimethod
     def walk(self, trajectory: Dict, iterations: List[int], start: Dict) -> FlintMatrix:
+        r"""
+        Returns the multiplication result of walking in a certain trajectory.
+
+        The `walk` operation is defined as $\prod_{i=0}^{n-1}M(s_0 + i \cdot t_0, ..., s_k + i \cdot t_k)$,
+        where `M=self`, `(t_0, ..., t_k)=trajectory`, `n=iterations` and `(s_0, ..., s_k)=start`.
+
+        This is a generalization of the basic (and most common) case $\prod_{i=0}^{n-1}M(s+i)$,
+        where M=self, n=iterations and s=start.
+
+        Args:
+            trajectory: the trajectory of a single step in the walk, as defined above.
+            iterations: The amount of multiplications to perform. Can be an integer value or a list of values.
+            start: the starting point of the matrix multiplication
+        Returns:
+            The walk multiplication matrix as defined above.
+            If iterations is list, returns a list of matrices.
+        Raises:
+            ValueError: If `self` is not a square matrix,
+                        if `start` and `trajectory` have different keys,
+                        if `iterations` contains duplicate values
+        """
         position = Position(start)
         trajectory = Position(trajectory)
         results = []
