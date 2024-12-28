@@ -452,6 +452,8 @@ class Matrix(sp.Matrix):
                         if `start` and `trajectory` have different keys,
                         if `iterations` contains duplicate values
         """
+        from ramanujantools.flint import FlintMatrix
+
         if not self.is_square():
             raise ValueError(
                 f"Matrix.walk is only supported for square matrices, got a {self.rows}x{self.cols} matrix"
@@ -475,22 +477,10 @@ class Matrix(sp.Matrix):
                 f"iterations must contain only non-negative values, got {iterations}"
             )
 
-        results = []
-        position = Position(start)
-        factored = self.factor()
-        should_factor = (
-            len(self.free_symbols_after_walk(trajectory, iterations, start)) > 0
-        )
-        matrix = Matrix.eye(self.rows)
-        for depth in range(0, iterations[-1]):
-            if depth in iterations:
-                results.append(matrix)
-            matrix *= factored(position)
-            if should_factor:
-                matrix = matrix.factor()
-            position += trajectory
-        results.append(matrix)  # Last matrix, for iterations[-1]
-        return results
+        symbols = self.walk_free_symbols(start)
+        as_flint = FlintMatrix.from_sympy(self, symbols)
+        results = as_flint.walk(trajectory, iterations, start)
+        return [result.factor() for result in results]
 
     @multimethod
     def walk(  # noqa: F811
@@ -501,37 +491,15 @@ class Matrix(sp.Matrix):
     ) -> Matrix:
         return self.walk(trajectory, [iterations], start)[0]
 
-    def free_symbols_after_walk(
-        self,
-        trajectory: Dict,
-        iterations: Union[List, int],
-        start: Dict,
-    ) -> Set:
+    def walk_free_symbols(self, start: Dict) -> Set:
         """
         Returns the expected free_symbols of the expression `self.walk(trajectory, iterations, start)`
         """
 
-        def position_free_symbols(position: Dict) -> Set:
-            free_symbols = set()
-            for value in position.values():
-                free_symbols = free_symbols.union(set(sp.simplify(value).free_symbols))
-            return free_symbols
-
-        initial_values_symbols = set()
-        subbed_in = position_free_symbols(start)
-        using_trajectory = (isinstance(iterations, int) and iterations > 1) or (
-            isinstance(iterations, list) and any(depth > 1 for depth in iterations)
-        )
-        if using_trajectory:
-            subbed_in = subbed_in.union(position_free_symbols(trajectory))
-
-        subbed_out = set(start.keys()).union(set(trajectory.keys()))
-
-        return (
-            (self.free_symbols - subbed_out)
-            .union(subbed_in)
-            .union(initial_values_symbols)
-        )
+        free_symbols = self.free_symbols.copy()
+        for value in start.values():
+            free_symbols = free_symbols.union(set(sp.simplify(value).free_symbols))
+        return free_symbols
 
     @multimethod
     def limit(

@@ -61,7 +61,7 @@ class FlintRational:
             return FlintRational(self.numerator * other, self.denominator)
 
     def __rmul__(self, other) -> FlintRational:
-        return FlintRational(other) * self
+        return self * other
 
     def __truediv__(self, other) -> FlintRational:
         if isinstance(other, FlintRational):
@@ -73,6 +73,11 @@ class FlintRational:
 
     def __repr__(self) -> str:
         return f"FlintRational({self.numerator}, {self.denominator})"
+
+    def __eq__(self, other: FlintRational) -> bool:
+        return (
+            self.numerator == other.numerator and self.denominator == other.denominator
+        )
 
     def subs(self, substitutions: Dict) -> FlintRational:
         substitutions = {str(key): value for key, value in substitutions.items()}

@@ -2,7 +2,10 @@ from __future__ import annotations
 
 from typing import Dict, List, Union
 
-from ramanujantools import Matrix
+import sympy as sp
+from multimethod import multimethod
+
+from ramanujantools import Matrix, Position
 from ramanujantools.flint import FlintRational
 
 
@@ -23,10 +26,10 @@ class FlintMatrix:
 
     @staticmethod
     def eye(N: int, symbols) -> FlintMatrix:
-        values = [0] * N**2
+        values = [FlintRational.from_sympy(sp.simplify(0), symbols)] * N**2
         current = 0
         while current < N**2:
-            values[current] = 1
+            values[current] += 1
             current += N + 1
         return FlintMatrix(N, N, values, symbols)
 
@@ -45,6 +48,9 @@ class FlintMatrix:
             self.values[row * self.cols() + col] = value
         else:
             self.values[key] = value
+
+    def __eq__(self, other: FlintRational):
+        return self.values == other.values
 
     def free_symbols(self):
         return self.symbols
@@ -125,3 +131,30 @@ class FlintMatrix:
             [value.subs(substitutions) for value in self.values],
             self.free_symbols(),
         )
+
+    def factor(self) -> Matrix:
+        values = [value.factor() for value in self.values]
+        return Matrix(self.rows(), self.cols(), values)
+
+    @multimethod
+    def walk(self, trajectory: Dict, iterations: List[int], start: Dict) -> FlintMatrix:
+        position = Position(start)
+        trajectory = Position(trajectory)
+        results = []
+        matrix = FlintMatrix.eye(self.rows(), self.free_symbols())
+        for depth in range(0, iterations[-1]):
+            if depth in iterations:
+                results.append(matrix)
+            matrix *= self.subs(position)
+            position += trajectory
+        results.append(matrix)  # Last matrix, for iterations[-1]
+        return results
+
+    @multimethod
+    def walk(  # noqa: F811
+        self,
+        trajectory: Dict,
+        iterations: int,
+        start: Dict,
+    ) -> Matrix:
+        return self.walk(trajectory, [iterations], start)[0]
