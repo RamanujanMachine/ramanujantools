@@ -2,7 +2,7 @@ import sympy as sp
 from sympy.abc import n
 
 from ramanujantools import Matrix
-from ramanujantools.flint import FlintMatrix
+from ramanujantools.flint_core import FlintMatrix
 
 
 def flintify(matrix: Matrix) -> FlintMatrix:

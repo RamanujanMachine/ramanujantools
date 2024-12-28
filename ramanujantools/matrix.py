@@ -178,7 +178,7 @@ class Matrix(sp.Matrix):
         return Matrix(sp.simplify(self))
 
     def factor(self) -> Matrix:
-        from ramanujantools.flint import FlintMatrix
+        from ramanujantools.flint_core import FlintMatrix
 
         return FlintMatrix.from_sympy(self, self.free_symbols).factor()
 
@@ -447,7 +447,7 @@ class Matrix(sp.Matrix):
                         if `start` and `trajectory` have different keys,
                         if `iterations` contains duplicate values
         """
-        from ramanujantools.flint import FlintMatrix
+        from ramanujantools.flint_core import FlintMatrix
 
         if not self.is_square():
             raise ValueError(

@@ -2,7 +2,7 @@ import flint
 import sympy as sp
 from sympy.abc import x, y
 
-from ramanujantools.flint import FlintRational
+from ramanujantools.flint_core import FlintRational
 
 
 def flintify(expr: sp.Expr) -> FlintRational:

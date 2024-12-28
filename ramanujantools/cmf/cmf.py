@@ -180,7 +180,7 @@ class CMF:
         Returns:
             A matrix that represents a single step in the desired trajectory
         """
-        from ramanujantools.flint import FlintMatrix
+        from ramanujantools.flint_core import FlintMatrix
 
         if trajectory.longest() > 1:
             raise ValueError(

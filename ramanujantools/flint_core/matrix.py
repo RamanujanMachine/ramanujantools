@@ -6,7 +6,7 @@ import sympy as sp
 from multimethod import multimethod
 
 from ramanujantools import Matrix, Position
-from ramanujantools.flint import FlintRational
+from ramanujantools.flint_core import FlintRational
 
 
 class FlintMatrix:
