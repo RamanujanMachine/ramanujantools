@@ -48,4 +48,3 @@ def test_walk():
     expected = (matrix * matrix.subs({n: n + 1}) * matrix.subs({n: n + 2})).factor()
 
     assert expected == flintify(matrix).walk({n: 1}, 3, {n: n}).factor()
-
