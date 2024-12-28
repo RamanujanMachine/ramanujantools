@@ -14,6 +14,10 @@ class FlintRational:
         self.denominator = denominator / gcd
 
     @staticmethod
+    def fmpz_from_sympy(poly: sp.Expr, ctx) -> flint.fmpz_mpoly:
+        return flint.fmpz_mpoly(str(poly).replace("**", "^"), ctx)
+
+    @staticmethod
     def from_sympy(rational: sp.Expr, symbols: List = None) -> FlintRational:
         symbols = symbols or list(sorted(rational.free_symbols, key=str))
         symbols = [str(symbol) for symbol in symbols]
@@ -23,8 +27,8 @@ class FlintRational:
             exec(f"{symbols[i]} = ctx.gens()[i]")
         numerator, denominator = rational.as_numer_denom()
         return FlintRational(
-            flint.fmpz_mpoly(str(numerator).replace("**", "^"), ctx),
-            flint.fmpz_mpoly(str(denominator).replace("**", "^"), ctx),
+            FlintRational.fmpz_from_sympy(numerator, ctx),
+            FlintRational.fmpz_from_sympy(denominator, ctx),
         )
 
     def inv(self) -> FlintRational:
@@ -39,8 +43,8 @@ class FlintRational:
             self.denominator * other.denominator,
         )
 
-    def __radd__(self, other) -> FlintRational:
-        return other + self
+    def __radd__(self, other: FlintRational) -> FlintRational:
+        return self + other
 
     def __sub__(self, other) -> FlintRational:
         return self + (-other)
@@ -49,15 +53,20 @@ class FlintRational:
         return -self + other
 
     def __mul__(self, other) -> FlintRational:
-        numerator = self.numerator * other.numerator
-        denominator = self.denominator * other.denominator
-        return FlintRational(numerator, denominator)
+        if isinstance(other, FlintRational):
+            numerator = self.numerator * other.numerator
+            denominator = self.denominator * other.denominator
+            return FlintRational(numerator, denominator)
+        else:
+            return FlintRational(self.numerator * other, self.denominator)
 
     def __rmul__(self, other) -> FlintRational:
         return FlintRational(other) * self
 
     def __truediv__(self, other) -> FlintRational:
-        return self * other.inv()
+        if isinstance(other, FlintRational):
+            return self * other.inv()
+        return FlintRational(self.numerator, self.denominator * other)
 
     def __rtruediv__(self, other) -> FlintRational:
         return FlintRational(other) / self
@@ -67,8 +76,16 @@ class FlintRational:
 
     def subs(self, substitutions: Dict) -> FlintRational:
         substitutions = {str(key): value for key, value in substitutions.items()}
+        ctx = self.numerator.context()
+        composition = []
+        for gen in ctx.gens():
+            if str(gen) in substitutions:
+                value = FlintRational.fmpz_from_sympy(substitutions[str(gen)], ctx)
+            else:
+                value = gen
+            composition.append(value)
         return FlintRational(
-            self.numerator.subs(substitutions), self.denominator.subs(substitutions)
+            self.numerator.compose(*composition), self.denominator.compose(*composition)
         )
 
     @staticmethod

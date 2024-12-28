@@ -1,3 +1,4 @@
 from .rational import FlintRational
+from .matrix import FlintMatrix
 
-__all__ = ["FlintRational"]
+__all__ = ["FlintRational", "FlintMatrix"]
