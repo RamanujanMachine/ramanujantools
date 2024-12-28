@@ -1,4 +1,3 @@
-from .flint_factor import factor_rational
 from .position import Position
 from .integer_relation import IntegerRelation
 from .matrix import Matrix
@@ -9,6 +8,7 @@ from .simplify_object import simplify
 
 from . import pcf
 from . import cmf
+from . import flint
 
 __all__ = [
     "IntegerRelation",
@@ -20,5 +20,5 @@ __all__ = [
     "simplify",
     "pcf",
     "cmf",
-    "factor_rational",
+    "flint",
 ]

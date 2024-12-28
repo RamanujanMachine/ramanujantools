@@ -7,7 +7,7 @@ from multimethod import multimethod
 import sympy as sp
 from sympy.abc import n
 
-from ramanujantools import Position, factor_rational
+from ramanujantools import Position
 
 
 class Matrix(sp.Matrix):
@@ -176,7 +176,16 @@ class Matrix(sp.Matrix):
         return Matrix(sp.simplify(self))
 
     def factor(self) -> Matrix:
-        return Matrix(self.rows, self.cols, [factor_rational(cell) for cell in self])
+        from ramanujantools.flint import FlintRational
+
+        return Matrix(
+            self.rows,
+            self.cols,
+            [
+                FlintRational.from_sympy(cell).factor() if cell != sp.nan else sp.nan
+                for cell in self
+            ],
+        )
 
     def singular_points(self) -> List[Dict]:
         r"""
