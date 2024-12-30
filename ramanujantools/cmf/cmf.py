@@ -234,10 +234,10 @@ class CMF:
             )
 
         trajectory = Position(trajectory)
-        position = Position(
+        position = (
             CMF.variable_reduction_substitution(trajectory, start, symbol)
             if start is not None
-            else {axis: axis for axis in self.axes()}
+            else Position({axis: axis for axis in self.axes()})
         )
 
         # Stopping condition: l-infinity norm of trajectory is less than 1
@@ -256,8 +256,8 @@ class CMF:
 
     @staticmethod
     def variable_reduction_substitution(
-        trajectory: Dict, start: Dict, symbol: sp.Symbol
-    ) -> Matrix:
+        trajectory: Position, start: Position, symbol: sp.Symbol
+    ) -> Position:
         """
         Returns the substitution that reduces all CMF variables into one variable.
 
@@ -278,10 +278,7 @@ class CMF:
                 f"Trajectory axes {trajectory.keys()} do not match start axes {start.keys()}"
             )
 
-        return {
-            axis: start[axis] + (symbol - 1) * trajectory[axis]
-            for axis in trajectory.keys()
-        }
+        return Position(start) + (symbol - 1) * Position(trajectory)
 
     @multimethod
     def walk(  # noqa: F811
