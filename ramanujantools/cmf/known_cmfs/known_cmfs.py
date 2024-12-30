@@ -144,7 +144,7 @@ def hypergeometric_derived_3F2() -> CMF:
         [
             [0, 0, Px / ((1 - z) * z)],
             [z, 1, ((Tx + Sx + 1) * z - Ty) / ((1 - z) * z)],
-            [0, z, ((Sx + 1) * z + Sy + 1) / ((1 - z))],
+            [0, z, ((Sx + 1) * z + Sy + 1) / (1 - z)],
         ],
     )
     I3 = sp.eye(3)

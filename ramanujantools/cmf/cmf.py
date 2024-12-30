@@ -190,14 +190,21 @@ class CMF:
         for value in start.values():
             free_symbols = free_symbols.union(set(sp.simplify(value).free_symbols))
 
-        result = FlintMatrix.eye(self.N(), free_symbols)
+        flint = start.is_polynomial() and trajectory.is_polynomial()
+        result = (
+            FlintMatrix.eye(self.N(), free_symbols) if flint else Matrix.eye(self.N())
+        )
         position = start.copy()
         for axis in self.axes_sorter(self.axes(), trajectory, start):
             if trajectory[axis] == 0:
                 continue
             sign = trajectory[axis] >= 0
             current = self.M(axis, sign)
-            result *= FlintMatrix.from_sympy(current, free_symbols).subs(position)
+            result *= (
+                FlintMatrix.from_sympy(current, free_symbols).subs(position)
+                if flint
+                else current.subs(position)
+            )
             position[axis] += trajectory[axis]
         return result.factor()
 
@@ -227,10 +234,10 @@ class CMF:
             )
 
         trajectory = Position(trajectory)
-        position = Position(
+        position = (
             CMF.variable_reduction_substitution(trajectory, start, symbol)
             if start is not None
-            else {axis: axis for axis in self.axes()}
+            else Position({axis: axis for axis in self.axes()})
         )
 
         # Stopping condition: l-infinity norm of trajectory is less than 1
@@ -249,8 +256,8 @@ class CMF:
 
     @staticmethod
     def variable_reduction_substitution(
-        trajectory: Dict, start: Dict, symbol: sp.Symbol
-    ) -> Matrix:
+        trajectory: Position, start: Position, symbol: sp.Symbol
+    ) -> Position:
         """
         Returns the substitution that reduces all CMF variables into one variable.
 
@@ -271,10 +278,7 @@ class CMF:
                 f"Trajectory axes {trajectory.keys()} do not match start axes {start.keys()}"
             )
 
-        return {
-            axis: start[axis] + (symbol - 1) * trajectory[axis]
-            for axis in trajectory.keys()
-        }
+        return Position(start) + (symbol - 1) * Position(trajectory)
 
     @multimethod
     def walk(  # noqa: F811

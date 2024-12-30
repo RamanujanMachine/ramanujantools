@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Dict
+from typing import Dict, Set
 
 import sympy as sp
 
@@ -73,3 +73,29 @@ class Position(dict):
         Returns the sign in each direction of this
         """
         return Position({key: int(sp.sign(value)) for key, value in self.items()})
+
+    def is_polynomial(self) -> bool:
+        """
+        Returns true iff all position elements are numerical
+        """
+        for element in self.values():
+            if not all(
+                [
+                    c.is_Integer
+                    for c in sp.simplify(element).as_coefficients_dict().values()
+                ]
+            ):
+                return False
+        return True
+
+    def is_integer(self) -> bool:
+        """
+        Returns true iff all position elements are numerical
+        """
+        return all(sp.simplify(element).is_Integer for element in self.values())
+
+    def free_symbols(self) -> Set:
+        symbols = set()
+        for value in self.values():
+            symbols = symbols.union((sp.simplify(0) + value).free_symbols)
+        return symbols

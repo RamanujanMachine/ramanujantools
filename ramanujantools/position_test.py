@@ -1,3 +1,4 @@
+import sympy as sp
 from sympy.abc import x, y, z
 
 from ramanujantools import Position
@@ -66,3 +67,21 @@ def test_signs():
 
 def test_signs_empty():
     assert Position() == Position().signs()
+
+
+def test_is_integer():
+    assert Position({x: 1, y: 7}).is_integer()
+    assert not Position({x: 1, y: x**2 + 3 * x + 1}).is_integer()
+    assert not Position({x: x / 2, y: x**2 + 3 * x + 1}).is_integer()
+    assert not Position({x: sp.Rational(1, 2), y: 1}).is_integer()
+
+
+def test_is_polynomial():
+    assert Position({x: 1, y: 7}).is_polynomial()
+    assert Position({x: 1, y: x**2 + 3 * x + 1}).is_polynomial()
+    assert not Position({x: x / 2, y: x**2 + 3 * x + 1}).is_polynomial()
+    assert not Position({x: sp.Rational(1, 2), y: 1}).is_polynomial()
+
+
+def test_free_symbols():
+    assert {x, z} == Position({x: 1, y: z, z: x}).free_symbols()
