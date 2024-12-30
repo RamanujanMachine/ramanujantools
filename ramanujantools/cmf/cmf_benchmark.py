@@ -22,15 +22,6 @@ def test_trajectory_matrix_2f2_euler(benchmark):
     benchmark(CMF.trajectory_matrix, cmf, trajectory, start)
 
 
-def test_trajectory_matrix_2f2_deep(benchmark):
-    x0, x1 = sp.symbols("x:2")
-    y0, y1 = sp.symbols("y:2")
-    cmf = pFq(2, 2, -1)
-    start = {x0: 1, x1: 1, y0: -1, y1: 1}
-    trajectory = {x0: 12, x1: 13, y0: -14, y1: 20}
-    benchmark(CMF.trajectory_matrix, cmf, trajectory, start)
-
-
 def test_trajectory_matrix_3f2(benchmark):
     x0, x1, x2 = sp.symbols("x:3")
     y0, y1 = sp.symbols("y:2")
@@ -55,4 +46,13 @@ def test_trajectory_matrix_4f3(benchmark):
     cmf = pFq(4, 3, 1)
     start = {x0: 1, x1: 1, x2: 2, x3: 2, y0: 3, y1: 3, y2: 4}
     trajectory = {x0: 1, x1: 1, x2: 2, x3: 2, y0: 3, y1: 3, y2: 4}
+    benchmark(CMF.trajectory_matrix, cmf, trajectory, start)
+
+
+def test_trajectory_matrix_2f2_deep(benchmark):
+    x0, x1 = sp.symbols("x:2")
+    y0, y1 = sp.symbols("y:2")
+    cmf = pFq(2, 2, -1)
+    start = {x0: 1, x1: 1, y0: -1, y1: 1}
+    trajectory = {x0: 12, x1: 13, y0: -14, y1: 20}
     benchmark(CMF.trajectory_matrix, cmf, trajectory, start)

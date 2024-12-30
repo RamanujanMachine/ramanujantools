@@ -190,14 +190,21 @@ class CMF:
         for value in start.values():
             free_symbols = free_symbols.union(set(sp.simplify(value).free_symbols))
 
-        result = FlintMatrix.eye(self.N(), free_symbols)
+        flint = start.is_polynomial() and trajectory.is_polynomial()
+        result = (
+            FlintMatrix.eye(self.N(), free_symbols) if flint else Matrix.eye(self.N())
+        )
         position = start.copy()
         for axis in self.axes_sorter(self.axes(), trajectory, start):
             if trajectory[axis] == 0:
                 continue
             sign = trajectory[axis] >= 0
             current = self.M(axis, sign)
-            result *= FlintMatrix.from_sympy(current, free_symbols).subs(position)
+            result *= (
+                FlintMatrix.from_sympy(current, free_symbols).subs(position)
+                if flint
+                else current.subs(position)
+            )
             position[axis] += trajectory[axis]
         return result.factor()
 

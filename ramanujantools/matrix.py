@@ -74,19 +74,30 @@ class Matrix(sp.Matrix):
             return self.numerical_subs(substitutions)
         return self.xreplace(substitutions)
 
-    def _is_numeric(self, substitutions: Dict) -> bool:
+    def _can_call_flint_walk(self, trajectory: Dict, start: Dict) -> bool:
+        return (
+            self.free_symbols - set(start.keys()).union(trajectory.keys()) != set()
+            and trajectory.is_polynomial()
+            and start.is_polynomial()
+        )
+
+    def _can_call_numerical_walk(self, substitutions: Dict) -> bool:
         """
         Returns true iff all substitutions are numerical
         """
-        return len(substitutions) == len(self.free_symbols) and not (
-            any(isinstance(element, sp.Expr) for element in substitutions.values())
-        )
+        substitutions = Position(substitutions)
+        return substitutions.keys() == self.free_symbols and substitutions.is_numeric()
 
     def _can_call_numerical_subs(self, substitutions: Dict) -> bool:
         """
         Returns true iff the all substitutions are numerical and we can can call `numerical_subs` instead of `xreplace`.
         """
-        return self.is_polynomial() and self._is_numeric(substitutions)
+        substitutions = Position(substitutions)
+        return (
+            substitutions.keys() == self.free_symbols
+            and self.is_polynomial()
+            and substitutions.is_integer()
+        )
 
     def numerical_subs(self, substitutions: Dict) -> Matrix:
         """
@@ -475,7 +486,13 @@ class Matrix(sp.Matrix):
         position = Position(start)
         trajectory = Position(trajectory)
 
-        if self._is_numeric(position + trajectory):
+        if self._can_call_flint_walk(trajectory, position):
+            symbols = self.walk_free_symbols(start)
+            as_flint = FlintMatrix.from_sympy(self, symbols)
+            results = as_flint.walk(trajectory, iterations, start)
+            results = [result.factor() for result in results]
+            return results
+        else:
             results = []
             matrix = Matrix.eye(self.rows)
             for depth in range(0, iterations[-1]):
@@ -485,11 +502,6 @@ class Matrix(sp.Matrix):
                 position += trajectory
             results.append(matrix)  # Last matrix, for iterations[-1]
             return results
-        else:
-            symbols = self.walk_free_symbols(start)
-            as_flint = FlintMatrix.from_sympy(self, symbols)
-            results = as_flint.walk(trajectory, iterations, start)
-            return [result.factor() for result in results]
 
     @multimethod
     def walk(  # noqa: F811
