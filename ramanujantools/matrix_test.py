@@ -43,6 +43,25 @@ def test_can_call_numerical_subs():
     assert m._can_call_numerical_subs({x: 17, y: 31})
 
 
+def test_can_call_flint_walk():
+    m = Matrix([[x, 1], [y, 2]])
+
+    # flint is slow for numerical walk (both integer and rational)
+    assert not m._can_call_flint_walk({x: 1, y: 1}, {x: 1, y: 1})
+    assert not m._can_call_flint_walk(
+        {x: 1, y: 1}, {x: sp.Rational(1, 2), y: sp.Rational(1, 2)}
+    )
+
+    # x remains a symbol
+    assert m._can_call_flint_walk({x: 1, y: 1}, {x: x, y: 1})
+
+    # currently not supporting rational coefficients of symbolic polynomials
+    assert not m._can_call_flint_walk({x: 1, y: 1}, {x: x / 2, y: 1})
+
+    # substituting a different symbol causes symbolic flint calculation
+    assert m._can_call_flint_walk({x: 1, y: 1}, {x: n - 1, y: n**2})
+
+
 def test_subs_degenerated():
     m = Matrix([[x, 1], [y, 2]])
     assert m == m.subs({x: x})

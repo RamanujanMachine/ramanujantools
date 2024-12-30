@@ -90,7 +90,6 @@ def test_trajectory_matrix_rational():
         cmf.M(x).subs(symbolic_start) * cmf.M(y).subs(symbolic_start + Position({x: 1}))
     ).factor()
     actual = cmf.trajectory_matrix({x: 1, y: 1}, start)
-    print(expected, actual)
     assert expected == actual
 
 

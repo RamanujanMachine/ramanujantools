@@ -75,8 +75,14 @@ class Matrix(sp.Matrix):
         return self.xreplace(substitutions)
 
     def _can_call_flint_walk(self, trajectory: Dict, start: Dict) -> bool:
+        trajectory = Position(trajectory)
+        start = Position(start)
+
+        subbed_in = trajectory.free_symbols().union(start.free_symbols())
+        subbed_out = set(trajectory.keys()).union(set(start.keys()))
+
         return (
-            self.free_symbols - set(start.keys()).union(trajectory.keys()) != set()
+            (self.free_symbols - subbed_out).union(subbed_in) != set()
             and trajectory.is_polynomial()
             and start.is_polynomial()
         )
