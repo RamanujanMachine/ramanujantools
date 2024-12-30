@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Dict
+from typing import Dict, Set
 
 import sympy as sp
 
@@ -93,3 +93,9 @@ class Position(dict):
         Returns true iff all position elements are numerical
         """
         return all(sp.simplify(element).is_Integer for element in self.values())
+
+    def free_symbols(self) -> Set:
+        symbols = set()
+        for value in self.values():
+            symbols = symbols.union((sp.simplify(0) + value).free_symbols)
+        return symbols
