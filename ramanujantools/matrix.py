@@ -87,13 +87,6 @@ class Matrix(sp.Matrix):
             and start.is_polynomial()
         )
 
-    def _can_call_numerical_walk(self, substitutions: Dict) -> bool:
-        """
-        Returns true iff all substitutions are numerical
-        """
-        substitutions = Position(substitutions)
-        return substitutions.keys() == self.free_symbols and substitutions.is_numeric()
-
     def _can_call_numerical_subs(self, substitutions: Dict) -> bool:
         """
         Returns true iff the all substitutions are numerical and we can can call `numerical_subs` instead of `xreplace`.
