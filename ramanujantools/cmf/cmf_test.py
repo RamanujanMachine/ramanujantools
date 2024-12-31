@@ -1,7 +1,9 @@
 from pytest import raises
+
+import sympy as sp
 from sympy.abc import a, b, c, x, y, n
 
-from ramanujantools import Matrix, simplify
+from ramanujantools import Position, Matrix, simplify
 from ramanujantools.cmf import CMF, known_cmfs
 
 
@@ -77,6 +79,18 @@ def test_trajectory_matrix_variable_reduction():
     assert cmf.trajectory_matrix(trajectory).subs(
         CMF.variable_reduction_substitution(trajectory, start, n)
     ) == cmf.trajectory_matrix(trajectory, start)
+
+
+def test_trajectory_matrix_rational():
+    cmf = known_cmfs.e()
+    start = Position({x: sp.Rational(2, 3), y: sp.Rational(1, 4)})
+    trajectory = {x: 1, y: 1}
+    symbolic_start = CMF.variable_reduction_substitution(trajectory, start, n)
+    expected = (
+        cmf.M(x).subs(symbolic_start) * cmf.M(y).subs(symbolic_start + Position({x: 1}))
+    ).factor()
+    actual = cmf.trajectory_matrix({x: 1, y: 1}, start)
+    assert expected == actual
 
 
 def test_walk_axis():
