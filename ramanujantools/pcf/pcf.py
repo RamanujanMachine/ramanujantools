@@ -166,7 +166,8 @@ class PCF:
                 iterations = iterations[1:]
                 walk_results.append(Matrix.eye(2))
             actual_iterations = sorted([depth - 1 for depth in iterations])
-            walk_results += self.M().walk({n: 1}, actual_iterations, {n: 1}, self.A())
+            current_results = self.M().walk({n: 1}, actual_iterations, {n: 1})
+            walk_results += [self.A() * result for result in current_results]
         else:
             walk_results += self.M().walk({n: 1}, iterations, {n: start})
         return walk_results

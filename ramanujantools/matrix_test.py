@@ -43,6 +43,25 @@ def test_can_call_numerical_subs():
     assert m._can_call_numerical_subs({x: 17, y: 31})
 
 
+def test_can_call_flint_walk():
+    m = Matrix([[x, 1], [y, 2]])
+
+    # flint is slow for numerical walk (both integer and rational)
+    assert not m._can_call_flint_walk({x: 1, y: 1}, {x: 1, y: 1})
+    assert not m._can_call_flint_walk(
+        {x: 1, y: 1}, {x: sp.Rational(1, 2), y: sp.Rational(1, 2)}
+    )
+
+    # x remains a symbol
+    assert m._can_call_flint_walk({x: 1, y: 1}, {x: x, y: 1})
+
+    # currently not supporting rational coefficients of symbolic polynomials
+    assert not m._can_call_flint_walk({x: 1, y: 1}, {x: x / 2, y: 1})
+
+    # substituting a different symbol causes symbolic flint calculation
+    assert m._can_call_flint_walk({x: 1, y: 1}, {x: n - 1, y: n**2})
+
+
 def test_subs_degenerated():
     m = Matrix([[x, 1], [y, 2]])
     assert m == m.subs({x: x})
@@ -215,26 +234,13 @@ def test_walk_1():
     assert m.walk({x: 1, y: 0}, 1, {x: x, y: y}) == m
 
 
-def test_walk_0_initial_values():
-    m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
-    iv = Matrix([[1, 2], [3, 4]])
-    assert m.walk({x: 0, y: 1}, 0, {x: x, y: y}, iv) == iv
-
-
-def test_walk_1_initial_values():
-    m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
-    iv = Matrix([[1, 2], [3, 4]])
-    assert m.walk({x: 0, y: 1}, 1, {x: x, y: y}, iv) == iv * m
-
-
 def test_walk_list():
     trajectory = {x: 2, y: 3}
     start = {x: 5, y: 7}
     iterations = [1, 2, 3, 17, 29, 53, 99]
-    iv = Matrix([[2, 3], [5, 7]])
     m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
-    assert m.walk(trajectory, iterations, start, iv) == [
-        m.walk(trajectory, i, start, iv) for i in iterations
+    assert m.walk(trajectory, iterations, start) == [
+        m.walk(trajectory, i, start) for i in iterations
     ]
 
 
@@ -317,53 +323,3 @@ def test_limit_list():
         assert limits[depth_index] == m.limit(
             trajectory, iterations[depth_index], start
         )
-
-
-def test_free_symbols_after_walk_numeric():
-    trajectory = {x: 2, y: 3}
-    start = {x: 5, y: 7}
-    iterations = 1
-    m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
-    expected = set()
-    assert expected == m.free_symbols_after_walk(trajectory, iterations, start)
-    assert expected == m.walk(trajectory, iterations, start).free_symbols
-
-
-def test_free_symbols_after_walk_not_all_subbed():
-    trajectory = {x: 2}
-    start = {x: 5}
-    iterations = 1
-    m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
-    expected = {y}
-    assert expected == m.free_symbols_after_walk(trajectory, iterations, start)
-    assert expected == m.walk(trajectory, iterations, start).free_symbols
-
-
-def test_free_symbols_after_walk_symbols_start_subbed():
-    trajectory = {x: 2, y: 3}
-    start = {x: 5, y: x**2 + 1}
-    iterations = 1
-    m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
-    expected = {x}
-    assert expected == m.free_symbols_after_walk(trajectory, iterations, start)
-    assert expected == m.walk(trajectory, iterations, start).free_symbols
-
-
-def test_free_symbols_after_walk_symbols_trajectory_subbed_in():
-    trajectory = {x: 2, y: n}
-    start = {x: 5, y: 7}
-    iterations = 2
-    m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
-    expected = {n}
-    assert expected == m.free_symbols_after_walk(trajectory, iterations, start)
-    assert expected == m.walk(trajectory, iterations, start).free_symbols
-
-
-def test_free_symbols_after_walk_symbols_trajectory_not_subbed_in():
-    trajectory = {x: 2, y: n}
-    start = {x: 5, y: 7}
-    iterations = 1
-    m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
-    expected = set()
-    assert expected == m.free_symbols_after_walk(trajectory, iterations, start)
-    assert expected == m.walk(trajectory, iterations, start).free_symbols

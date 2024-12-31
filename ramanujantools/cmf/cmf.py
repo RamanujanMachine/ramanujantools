@@ -6,7 +6,7 @@ from typing import Dict, List, Set, Union
 import sympy as sp
 from sympy.abc import n
 
-from ramanujantools import Matrix, Limit, simplify
+from ramanujantools import Position, Matrix, Limit, simplify
 
 
 class CMF:
@@ -116,15 +116,6 @@ class CMF:
         """
         return set(self.matrices.keys())
 
-    def axis_vector(self, axis: sp.Symbol, sign: bool = True) -> Dict[sp.Symbol, int]:
-        """
-        Given a CMF axis symbol `axis`,
-        Returns the vector which is a single step in that axis and 0 in all other axes.
-        The step is 1 with the sign of `sign`
-        """
-        step = 1 if sign else -1
-        return {i: step if i == axis else 0 for i in self.axes()}
-
     def parameters(self) -> Set[sp.Symbol]:
         """
         Returns all (non-axis) symbolic parameters of the CMF.
@@ -175,7 +166,51 @@ class CMF:
             }
         )
 
-    def trajectory_matrix(self, trajectory: dict, start: dict = None) -> Matrix:
+    def _calculate_diagonal_matrix(
+        self, trajectory: Position, start: Position
+    ) -> Matrix:
+        """
+        The manual calculation of trajectory matrix in the stopping condition.
+        You should probably use `trajectory_matrix` instead.
+
+        Assumes trajectory is a simple diagonal - all abs values are at most 1
+        Args:
+            trajectory: a dict containing the amount of steps in each direction.
+            start: a dict representing the starting point of the multiplication.
+        Returns:
+            A matrix that represents a single step in the desired trajectory
+        """
+        from ramanujantools.flint_core import FlintMatrix
+
+        if trajectory.longest() > 1:
+            raise ValueError(
+                f"Called _calculate_diagonal_matrix with a trajectory that is not a simple diagonal: {trajectory}"
+            )
+        free_symbols = self.free_symbols()
+        for value in start.values():
+            free_symbols = free_symbols.union(set(sp.simplify(value).free_symbols))
+
+        flint = start.is_polynomial() and trajectory.is_polynomial()
+        result = (
+            FlintMatrix.eye(self.N(), free_symbols) if flint else Matrix.eye(self.N())
+        )
+        position = start.copy()
+        for axis in self.axes_sorter(self.axes(), trajectory, start):
+            if trajectory[axis] == 0:
+                continue
+            sign = trajectory[axis] >= 0
+            current = self.M(axis, sign)
+            result *= (
+                FlintMatrix.from_sympy(current, free_symbols).subs(position)
+                if flint
+                else current.subs(position)
+            )
+            position[axis] += trajectory[axis]
+        return result.factor()
+
+    def trajectory_matrix(
+        self, trajectory: Dict, start: Dict = None, symbol=n
+    ) -> Matrix:
         """
         Returns a corresponding matrix for walking in a trajectory, up to a constant.
         If `start` is given, the new matrix will be reduced to a single variable `n`.
@@ -187,6 +222,7 @@ class CMF:
         Raises:
             ValueError: if trajectory, start and matrix keys do not match.
         """
+
         if self.axes() != trajectory.keys():
             raise ValueError(
                 f"Trajectory axes {trajectory.keys()} do not match CMF axes {self.axes()}"
@@ -197,46 +233,59 @@ class CMF:
                 f"Start axes {start.keys()} do not match CMF axes {self.axes()}"
             )
 
-        if start is None:
-            start = {axis: axis for axis in self.axes()}
-        else:
-            start = CMF.variable_reduction_substitution(trajectory, start)
-        return self.walk(trajectory, 1, start).applyfunc(sp.factor)
+        trajectory = Position(trajectory)
+        position = (
+            CMF.variable_reduction_substitution(trajectory, start, symbol)
+            if start is not None
+            else Position({axis: axis for axis in self.axes()})
+        )
+
+        # Stopping condition: l-infinity norm of trajectory is less than 1
+        if trajectory.longest() <= 1:
+            return self._calculate_diagonal_matrix(trajectory, position)
+
+        result = Matrix.eye(self.N())
+        depth = trajectory.shortest()
+        while depth > 0:
+            diagonal = trajectory.signs()
+            result *= self.walk(diagonal, depth, position)
+            position += depth * diagonal
+            trajectory -= depth * diagonal
+            depth = trajectory.shortest()
+        return result.factor()
 
     @staticmethod
-    def variable_reduction_substitution(trajectory: dict, start: dict) -> Matrix:
+    def variable_reduction_substitution(
+        trajectory: Position, start: Position, symbol: sp.Symbol
+    ) -> Position:
         """
-        Returns the substitution that reduces all CMF variables into one variable `n`.
+        Returns the substitution that reduces all CMF variables into one variable.
 
         This transformation is possible only when the starting point is known.
-        Each incrementation of the variable `n` represents a full step in `trajectory`.
+        Each incrementation of the variable `symbol` represents a full step in `trajectory`.
 
         Args:
-            trajectory_matrix: The matrix to reduce.
             trajectory: The trajectory that was used to create the trajectory matrix.
             start: The starting point from which the walk operation is to be calculated.
+            symbol: The new symbol of the reduced trajectory matrix.
         Returns:
             A dict representing the above variable reduction substitution
         Raises:
             ValueError: if trajectory keys and start keys do not match
         """
-        from sympy.abc import n
-
         if start.keys() != trajectory.keys():
             raise ValueError(
                 f"Trajectory axes {trajectory.keys()} do not match start axes {start.keys()}"
             )
 
-        return {
-            axis: start[axis] + (n - 1) * trajectory[axis] for axis in trajectory.keys()
-        }
+        return Position(start) + (symbol - 1) * Position(trajectory)
 
     @multimethod
     def walk(  # noqa: F811
         self,
-        trajectory: dict,
+        trajectory: Dict,
         iterations: List[int],
-        start: dict,
+        start: Dict,
     ) -> List[Matrix]:
         r"""
         Returns a list of trajectorial walk multiplication matrices in the desired depths.
@@ -264,45 +313,27 @@ class CMF:
                 f"iterations must contain only non-negative values, got {iterations}"
             )
 
-        results = []
-        position = start
-        matrix = Matrix.eye(self.N())
-        previous_depth = 0
-        for depth in iterations:
-            effective_depth = depth - previous_depth
-            matrix *= self.walk(trajectory, effective_depth, position)
-            position = {
-                key: position[key] + value * effective_depth
-                for key, value in trajectory.items()
-            }
-            previous_depth = depth
-            results.append(matrix)
-        return results
+        walk_symbol = sp.Symbol("walk")
+        trajectory_matrix = self.trajectory_matrix(
+            trajectory, start, symbol=walk_symbol
+        )
+        return trajectory_matrix.walk({walk_symbol: 1}, iterations, {walk_symbol: 1})
 
     @multimethod
     def walk(  # noqa: F811
         self,
-        trajectory: dict,
+        trajectory: Dict,
         iterations: int,
-        start: dict,
+        start: Dict,
     ) -> Matrix:
-        position = dict(start)
-        matrix = Matrix.eye(self.N())
-        for axis in self.axes_sorter(self.axes(), trajectory, position):
-            depth = trajectory[axis] * iterations
-            sign = depth >= 0
-            matrix *= self.M(axis, sign).walk(
-                self.axis_vector(axis, sign), abs(depth), position
-            )
-            position[axis] += depth
-        return matrix
+        return self.walk(trajectory, [iterations], start)[0]
 
     @multimethod
     def limit(
         self,
-        trajectory: dict,
+        trajectory: Dict,
         iterations: List[int],
-        start: dict,
+        start: Dict,
         p_vectors: Union[List[Matrix], None] = None,
         q_vectors: Union[List[Matrix], None] = None,
     ) -> List[Limit]:
@@ -329,9 +360,9 @@ class CMF:
     @multimethod
     def limit(  # noqa: F811
         self,
-        trajectory: dict,
+        trajectory: Dict,
         iterations: int,
-        start: dict,
+        start: Dict,
         p_vectors: Union[List[Matrix], None] = None,
         q_vectors: Union[List[Matrix], None] = None,
     ) -> Limit:
@@ -339,9 +370,9 @@ class CMF:
 
     def delta(
         self,
-        trajectory: dict,
+        trajectory: Dict,
         depth: int,
-        start: dict,
+        start: Dict,
         limit: float = None,
         p_vectors: Union[List[Matrix], None] = None,
         q_vectors: Union[List[Matrix], None] = None,
@@ -377,9 +408,9 @@ class CMF:
 
     def delta_sequence(
         self,
-        trajectory: dict,
+        trajectory: Dict,
         depth: int,
-        start: dict,
+        start: Dict,
         limit: float = None,
         p_vectors: Union[List[Matrix], None] = None,
         q_vectors: Union[List[Matrix], None] = None,
