@@ -100,6 +100,16 @@ def test_walk_axis():
     assert cmf.walk({x: 0, y: 1}, 17, start) == cmf.M(y).walk({x: 0, y: 1}, 17, start)
 
 
+def test_walk_axis_multiplicity():
+    cmf = known_cmfs.e()
+    start = {x: 1, y: 1}
+    trajectory = Position({x: 1, y: 0})
+    depth = 4
+    assert cmf.walk(depth * trajectory, 1, start) == cmf.M(x).walk(
+        trajectory, depth, start
+    )
+
+
 def test_walk_diagonal():
     cmf = known_cmfs.e()
     trajectory = {x: 1, y: 1}
