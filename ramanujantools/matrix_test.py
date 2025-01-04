@@ -390,12 +390,24 @@ def test_gcd_slope():
     assert m.gcd_slope(100) == approx(1.5895449981095848)
 
 
-def test_kamidelta():
+def test_kamidelta_2f1():
     x0, x1 = sp.symbols("x:2")
     (y0,) = sp.symbols("y:1")
     trajectory = {x0: 1, x1: 2, y0: 3}
     start = trajectory
     m = pFq(2, 1, -1).trajectory_matrix(trajectory, start)
+    actual = m.kamidelta()[0]
+    l1, l2 = m.limit({n: 1}, [100, 200], {n: 1})
+    expected = l1.delta(l2.as_float())
+    assert actual == approx(expected, abs=1e-1)  # at most 0.1 error
+
+
+def test_kamidelta_2f2():
+    x0, x1 = sp.symbols("x:2")
+    y0, y1 = sp.symbols("y:1")
+    trajectory = {x0: 1, x1: 1, y0: 0, y1: -1}
+    start = {x0: 1, x1: 1, y0: -1, y1: -1}
+    m = pFq(2, 2, -1).trajectory_matrix(trajectory, start)
     actual = m.kamidelta()[0]
     l1, l2 = m.limit({n: 1}, [100, 200], {n: 1})
     expected = l1.delta(l2.as_float())

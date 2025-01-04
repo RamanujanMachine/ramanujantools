@@ -1,3 +1,4 @@
+import mpmath as mp
 import sympy as sp
 from sympy.abc import n
 
@@ -265,3 +266,6 @@ class PCF:
             deltas.append(Limit(m, prev).delta(limit))
 
         return deltas
+
+    def kamidelta(self, depth: int = 20) -> mp.mpf:
+        return self.M().kamidelta(depth)[0]
