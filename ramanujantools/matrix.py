@@ -4,6 +4,8 @@ from functools import lru_cache, cached_property
 
 from multimethod import multimethod
 
+import numpy as np
+import mpmath as mp
 import sympy as sp
 from sympy.abc import n
 
@@ -417,7 +419,7 @@ class Matrix(sp.Matrix):
             assert m.companion_equivalent(original)
         return m.simplify()
 
-    def as_companion(self, inflate_all=True) -> Matrix:
+    def as_companion(self, inflate_all=False) -> Matrix:
         r"""
         Converts the matrix to companion form.
 
@@ -559,3 +561,63 @@ class Matrix(sp.Matrix):
         from ramanujantools.pcf import PCFFromMatrix
 
         return PCFFromMatrix(self.as_polynomial(), deflate_all)
+
+    @staticmethod
+    def poincare_poly(poly: sp.PurePoly) -> sp.PurePoly:
+        min_deflate = 0
+        charpoly_coeffs = poly.coeffs()
+        for i in range(len(charpoly_coeffs)):
+            coeff = charpoly_coeffs[i]
+            numerator, denominator = coeff.as_numer_denom()
+            degree = sp.Poly(numerator, n).degree() - sp.Poly(denominator, n).degree()
+            if (degree * i) > min_deflate:
+                min_deflate = -(degree // -i)  # ceil div trick
+        coeffs = [
+            (charpoly_coeffs[i] / (n ** (min_deflate * i))).limit(n, "oo")
+            for i in range(len(charpoly_coeffs))
+        ]
+        return sp.PurePoly(coeffs, poly.gen)
+
+    def charpoly(self, poincare=False) -> sp.PurePoly:
+        poly = super().charpoly()
+        if poincare:
+            poly = Matrix.poincare_poly(poly)
+        return poly
+
+    def eigenvals(self, poincare=False) -> Dict:
+        charpoly = self.charpoly(poincare)
+        return sp.roots(charpoly)
+
+    def sorted_eigenvals(self) -> List:
+        unsorted = self.eigenvals(poincare=True)
+        retval = []
+        for key, value in unsorted.items():
+            retval += [key] * value
+        return sorted(
+            retval, key=lambda value: abs(value).evalf(chop=True), reverse=True
+        )
+
+    def errors(self) -> List:
+        lambdas = [e.evalf(chop=True) for e in self.sorted_eigenvals()]
+        deltas = []
+        for i in range(1, len(lambdas)):
+            deltas.append(sp.log(abs(lambdas[0]) / abs(lambdas[i])))
+        return deltas
+
+    def gcd_slope(self, depth=20) -> mp.mpf:
+        depths = list(range(1, depth))
+        q_reduced_list = []
+        limits = self.limit({n: 1}, depths, {n: 1})
+        for limit in limits:
+            p, q = limit.as_rational()
+            gcd = sp.gcd(p, q)
+            q_reduced_list.append(sp.log(abs(q // gcd).evalf(30)))
+        fit = np.polyfit(
+            np.array(depths), np.array(q_reduced_list, dtype=np.float64), 1
+        )
+        return mp.mpf(fit[0])
+
+    def kamidelta(self, depth=20):
+        errors = self.errors()
+        slope = self.gcd_slope(depth)
+        return [-1 + error / slope for error in errors]

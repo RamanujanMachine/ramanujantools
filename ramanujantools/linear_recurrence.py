@@ -3,11 +3,11 @@ from typing import Union, List, Dict, Set, Tuple
 from functools import cached_property
 import copy
 import itertools
-
 from tqdm import tqdm
+
 import mpmath as mp
 import sympy as sp
-from sympy.abc import n, w
+from sympy.abc import n
 
 from ramanujantools import Matrix, Limit, GenericPolynomial
 
@@ -38,7 +38,7 @@ class LinearRecurrence:
             1. A list of the coefficients of the recurrence [a_0(n), ..., a_N(n)]
             2. A matrix which is companionized and used as the recurrence sequence
         """
-        if type(recurrence) is Matrix:
+        if isinstance(recurrence, Matrix):
             recurrence_matrix = recurrence.as_companion(inflate_all=False)
             col = recurrence_matrix.col(-1)
             lead = col.denominator_lcm
@@ -144,7 +144,7 @@ class LinearRecurrence:
         relation = [p * self.denominator_lcm / self.gcd for p in self.relation]
         return LinearRecurrence([sp.factor(p.simplify()) for p in relation])
 
-    def limit(self, iterations: int, start=1) -> Limit:
+    def limit(self, iterations: Union[int, List[int]], start=1) -> Limit:
         r"""
         Returns the Limit matrix of the recursion up to a certain depth
         """
@@ -293,36 +293,14 @@ class LinearRecurrence:
             .subs({n: n + 1})
         )
 
-    def as_poincare(self) -> LinearRecurrence:
-        relation = self.simplify()
-        relation /= relation.relation[0]
-        deflation_degree = 0
-        for i in range(1, len(relation.relation)):
-            numer, denom = relation.relation[i].as_numer_denom()
-            current_degree = sp.Poly(numer).degree() - sp.Poly(denom).degree()
-            if (deflation_degree * i) < current_degree:
-                deflation_degree = -(current_degree // -i)  # ceil div trick
-        return relation.deflate(n**deflation_degree)
+    def eigenvals(self):
+        return self.recurrence_matrix.eigenvals(poincare=True)
 
-    def characteristic_polynomial(self) -> sp.Poly:
-        coeffs = [sp.limit(p, n, "oo") for p in self.as_poincare().relation]
-        coeffs[0] *= -1
-        return sp.Poly(coeffs, w)
+    def errors(self):
+        return self.recurrence_matrix.errors()
 
-    def lambdas(self) -> List[sp.Expr]:
-        roots = sp.roots(self.characteristic_polynomial(), w)
-        lambdas = []
-        for root, multiplicity in roots.items():
-            lambdas += [sp.re(sp.Abs(root).evalf())] * multiplicity
-        return sorted(
-            lambdas,
-            key=lambda solution: sp.Abs(solution),  # lambda lambda: abs(lambda)
-            reverse=True,
-        )
+    def gcd_slope(self, depth=20):
+        return self.recurrence_matrix.gcd_slope(depth)
 
-    def kamidelta(self) -> List[mp.mpf]:
-        lambdas = self.lambdas()
-        deltas = []
-        for i in range(1, len(lambdas)):
-            deltas.append(-(sp.log(abs(lambdas[i]).evalf(), abs(lambdas[0]).evalf())))
-        return deltas
+    def kamidelta(self, depth=20):
+        return self.recurrence_matrix.kamidelta(depth)
