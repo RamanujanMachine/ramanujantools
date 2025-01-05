@@ -3,8 +3,9 @@ from typing import List, Dict, Set, Tuple
 from functools import cached_property
 import copy
 import itertools
-
 from tqdm import tqdm
+
+import mpmath as mp
 import sympy as sp
 from sympy.abc import n
 
@@ -37,7 +38,7 @@ class LinearRecurrence:
             1. A list of the coefficients of the recurrence [a_0(n), ..., a_N(n)]
             2. A matrix which is companionized and used as the recurrence sequence
         """
-        if type(recurrence) is Matrix:
+        if isinstance(recurrence, Matrix):
             recurrence_matrix = recurrence.as_companion(inflate_all=False)
             col = recurrence_matrix.col(-1)
             lead = col.denominator_lcm
@@ -56,6 +57,18 @@ class LinearRecurrence:
         """
         return self.relation == other.relation
 
+    def __mul__(self, scalar: int) -> LinearRecurrence:
+        return LinearRecurrence([p * scalar for p in self.relation])
+
+    def __rmul__(self, scalar: int) -> LinearRecurrence:
+        return self * scalar
+
+    def __truediv__(self, scalar: int) -> LinearRecurrence:
+        return LinearRecurrence([p / scalar for p in self.relation])
+
+    def __floordiv__(self, scalar: int) -> LinearRecurrence:
+        return LinearRecurrence([p / scalar for p in self.relation])
+
     def __repr__(self) -> str:
         return f"LinearRecurrence({self.relation})"
 
@@ -72,7 +85,7 @@ class LinearRecurrence:
         """
         Returns the GCD of all recurrence coefficients
         """
-        return sp.gcd(self.relation)
+        return sp.gcd([r.as_numer_denom()[0] for r in self.relation])
 
     @cached_property
     def denominator_lcm(self) -> sp.Expr:
@@ -117,9 +130,9 @@ class LinearRecurrence:
         """
         return self.free_symbols() - self.axes()
 
-    def reduce(self) -> LinearRecurrence:
+    def normalize(self) -> LinearRecurrence:
         """
-        Removes gcd from the recurrence
+        Normalizes the recurrence
         """
         relation = [p * self.denominator_lcm / self.gcd for p in self.relation]
         return LinearRecurrence(relation).simplify()
@@ -128,9 +141,10 @@ class LinearRecurrence:
         """
         Simplifies the coefficients of the recurrence
         """
-        return LinearRecurrence([sp.factor(p.simplify()) for p in self.relation])
+        relation = [p * self.denominator_lcm / self.gcd for p in self.relation]
+        return LinearRecurrence([sp.factor(p.simplify()) for p in relation])
 
-    def limit(self, iterations: int, start=1) -> Limit:
+    def limit(self, iterations: Union[int, List[int]], start=1) -> Limit:
         r"""
         Returns the Limit matrix of the recursion up to a certain depth
         """
@@ -256,8 +270,6 @@ class LinearRecurrence:
         for i in range(1, len(self.relation)):
             relation[i] *= current
             current *= c.subs({n: n - i})
-        lcm = sp.lcm([r.as_numer_denom()[1] for r in relation])
-        relation = [r * lcm for r in relation]
         return LinearRecurrence(relation)
 
     def deflate(self, c: sp.Expr) -> LinearRecurrence:
@@ -267,7 +279,7 @@ class LinearRecurrence:
         Equivalent to `self.inflate(1 / c)`.
         """
         recurrence = self.inflate(1 / c)
-        return recurrence.simplify()
+        return recurrence
 
     def apteshuffle(self) -> LinearRecurrence:
         if self.depth() != 3:
@@ -277,6 +289,18 @@ class LinearRecurrence:
         c, b, a = self.recurrence_matrix.col(-1)
         return (
             LinearRecurrence([1, -b, -c * a.subs({n: n - 1}), c * c.subs({n: n - 1})])
-            .reduce()
+            .simplify()
             .subs({n: n + 1})
         )
+
+    def eigenvals(self):
+        return self.recurrence_matrix.eigenvals(poincare=True)
+
+    def errors(self):
+        return self.recurrence_matrix.errors()
+
+    def gcd_slope(self, depth=20):
+        return self.recurrence_matrix.gcd_slope(depth)
+
+    def kamidelta(self, depth=20):
+        return self.recurrence_matrix.kamidelta(depth)

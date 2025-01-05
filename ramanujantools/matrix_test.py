@@ -1,7 +1,10 @@
+from pytest import approx
+
 import sympy as sp
 from sympy.abc import x, y, n
 
 from ramanujantools import Matrix, Limit, simplify
+from ramanujantools.cmf.known_cmfs import pFq
 
 
 def test_is_square():
@@ -184,6 +187,23 @@ def test_as_companion():
 
     companion = m.as_companion()
     assert companion.is_companion()
+
+
+def test_as_companion_inflate_all():
+    m = Matrix(
+        [
+            [1, -1, -n * (1 - 1 / n) - n - 1],
+            [2 / n, 1 - 2 / n, -2 + (-2 * n - 1) / n + (-n - 1) / n + 2 / n],
+            [
+                n ** (-2),
+                (1 - 1 / n) / n + 1 / n,
+                (1 - 1 / n) ** 2 + (-2 * n - 1) / n**2,
+            ],
+        ]
+    )
+
+    companion = m.as_companion(inflate_all=True)
+    assert companion.is_companion()
     assert companion.is_polynomial()
 
 
@@ -323,3 +343,72 @@ def test_limit_list():
         assert limits[depth_index] == m.limit(
             trajectory, iterations[depth_index], start
         )
+
+
+def test_charpoly():
+    m = Matrix([[0, -(n**2)], [1, (3 * n + 1)]])
+    assert sp.Matrix(m).charpoly() == m.charpoly(poincare=False)
+
+
+def test_poincare_poly():
+    poly = sp.PurePoly(2 * x**3 + x**2 + x * (4 * n**2 + 2) + (n**3), x)
+    expected = sp.PurePoly(2 * x**3 + 4 * x + 1, x)
+    assert expected == Matrix.poincare_poly(poly)
+
+
+def test_poincare_poly_degenerated():
+    poly = sp.PurePoly(2 * x**3 + x**2 + x * (4 * n**2 + 2) + (n**4), x)
+    expected = sp.PurePoly(2 * x**3, x)
+    assert expected == Matrix.poincare_poly(poly)
+
+
+def test_poincare_poly_constant():
+    poly = sp.PurePoly(5 * x**3 + 2 * x**2 + x - 7, x)
+    assert poly == Matrix.poincare_poly(poly)
+
+
+def test_errors():
+    x0, x1 = sp.symbols("x:2")
+    (y0,) = sp.symbols("y:1")
+    trajectory = {x0: 1, x1: 1, y0: 1}
+    start = trajectory
+    m = pFq(2, 1, -1).trajectory_matrix(trajectory, start)
+    lambdas = m.sorted_eigenvals()
+    assert sp.log(abs(lambdas[0]).evalf() / abs(lambdas[1]).evalf()) == approx(
+        m.errors()[0]
+    )
+
+
+def test_gcd_slope():
+    x0, x1 = sp.symbols("x:2")
+    (y0,) = sp.symbols("y:1")
+    trajectory = {x0: 1, x1: 1, y0: 1}
+    start = trajectory
+    m = pFq(2, 1, -1).trajectory_matrix(trajectory, start)
+    assert m.gcd_slope(20) == approx(1.3962425331281643)
+    assert m.gcd_slope(40) == approx(1.5535146470266243)
+    assert m.gcd_slope(100) == approx(1.5895449981095848)
+
+
+def test_kamidelta_2f1():
+    x0, x1 = sp.symbols("x:2")
+    (y0,) = sp.symbols("y:1")
+    trajectory = {x0: 1, x1: 2, y0: 3}
+    start = trajectory
+    m = pFq(2, 1, -1).trajectory_matrix(trajectory, start)
+    actual = m.kamidelta()[0]
+    l1, l2 = m.limit({n: 1}, [100, 200], {n: 1})
+    expected = l1.delta(l2.as_float())
+    assert actual == approx(expected, abs=1e-1)  # at most 0.1 error
+
+
+def test_kamidelta_2f2():
+    x0, x1 = sp.symbols("x:2")
+    y0, y1 = sp.symbols("y:2")
+    trajectory = {x0: 1, x1: 1, y0: 0, y1: -1}
+    start = {x0: 1, x1: 1, y0: -1, y1: -1}
+    m = pFq(2, 2, -1).trajectory_matrix(trajectory, start)
+    actual = m.kamidelta()[0]
+    l1, l2 = m.limit({n: 1}, [100, 200], {n: 1})
+    expected = l1.delta(l2.as_float())
+    assert actual == approx(expected, abs=1e-1)  # at most 0.1 error

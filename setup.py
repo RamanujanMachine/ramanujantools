@@ -14,12 +14,13 @@ setup(
         "ramanujantools.flint_core",
     ],
     install_requires=[
-        "mpmath>=1.3.0",
+        "tqdm>=4.65.0",
         "multimethod>=1.10",
         "pytest>=8.2.0",
+        "numpy>=2.0.0",
+        "mpmath>=1.3.0",
         "sympy>=1.11.1",
         "gmpy2>=2.1.5",
-        "tqdm>=4.65.0",
         "python-flint>=0.7.0a5",
     ],
 )
