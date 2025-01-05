@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Dict, List, Union
+from typing import Dict, List
 
 import sympy as sp
 from multimethod import multimethod
@@ -115,7 +115,7 @@ class FlintMatrix:
     def __str__(self) -> str:
         return f"FlintMatrix({self.data()})"
 
-    def __mul__(self, other: Union[FlintMatrix, int]) -> FlintMatrix:
+    def __mul__(self, other: FlintMatrix | int) -> FlintMatrix:
         """
         Multiplies self by another FlintMatrix or a scalar.
         """
@@ -139,7 +139,7 @@ class FlintMatrix:
                 self.free_symbols(),
             )
 
-    def __rmul__(self, other: Union[FlintMatrix, int]) -> FlintMatrix:
+    def __rmul__(self, other: FlintMatrix | int) -> FlintMatrix:
         """
         Multiplies a FlintMatrix or a scalar by self.
         """
