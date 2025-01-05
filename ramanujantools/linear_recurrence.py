@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Union, List, Dict, Set, Tuple
+from typing import List, Dict, Set, Tuple
 from functools import cached_property
 import copy
 import itertools
@@ -29,7 +29,7 @@ class LinearRecurrence:
     for all integers $s$.
     """
 
-    def __init__(self, recurrence: Union[Matrix, List[sp.Expr]]):
+    def __init__(self, recurrence: Matrix | List[sp.Expr]):
         r"""
         Construct the recurrence.
 
@@ -143,7 +143,7 @@ class LinearRecurrence:
         relation = [p * self.denominator_lcm / self.gcd for p in self.relation]
         return LinearRecurrence([sp.factor(p.simplify()) for p in relation])
 
-    def limit(self, iterations: Union[int, List[int]], start=1) -> Limit:
+    def limit(self, iterations: int | List[int], start=1) -> Limit:
         r"""
         Returns the Limit matrix of the recursion up to a certain depth
         """

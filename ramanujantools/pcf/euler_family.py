@@ -3,7 +3,7 @@ import math
 import sympy
 from sympy import Poly
 from sympy.abc import x
-from typing import Dict, List, Union
+from typing import Dict, List, Optional
 
 from ramanujantools.generic_polynomial import GenericPolynomial
 
@@ -155,7 +155,7 @@ class EulerSolver:
                 $b(x)=-h_1(x)h_2(x)$,
                 $f(x)a(x) = f(x-1)h_1(x) + f(x+1)h_2(x+1)$
         works under the assumption that $a(x),b(x)$ are integeral, and so are $h_1(x),h_2(x)$ in the solutions.
-        :return: A list of all possible solutions.
+        Returns a list of all possible solutions.
         """
         # Make sure that the parameters are actually polynomials
         a = Poly(a, x)
@@ -163,9 +163,7 @@ class EulerSolver:
 
         roots = b.all_roots()
         if len(roots) < b.degree():
-            # TODO: consider adding an exception
-            print(f"Could not find all the roots for {b.expr}")
-            return []
+            raise ValueError(f"Could not find all the roots for {b.expr}")
 
         # count multiplicity of roots
         roots_dict = {}
@@ -349,11 +347,11 @@ class EulerSolver:
     @staticmethod
     def solve_for_decomposition_with_degree(
         a: Poly, h_1: Poly, h_2: Poly, d_f: int
-    ) -> Union[EulerSolution, bool]:
+    ) -> Optional[EulerSolution]:
         """
         Tries to find a polynomial f of degree d_f solving the equation
                 f(x)a(x) = f(x-1)h_1(x) + f(x+1)h_2(x+1)
-        If there is such a polynomial returns the solution, and otherwise return false.
+        If there is such a polynomial returns the solution, otherwise returns None.
         """
 
         b = -h_1 * h_2
@@ -364,7 +362,7 @@ class EulerSolver:
                 return EulerSolution(
                     h_1=Poly(h_1, x), h_2=Poly(h_2, x), a=a, b=b, f=Poly(1, x)
                 )
-            return False
+            return None
 
         # Create the polynomial f, and the recursion it needs to solve, namely
         #    f(x)a(x) = f(x-1)h_1(x) + f(x+1)h_2(x+1)
@@ -383,7 +381,7 @@ class EulerSolver:
 
         assignment = sympy.solve(p.all_coeffs(), f_)
         if len(assignment) == 0:
-            return False
+            return None
 
         # TODO: If there is a solution, does it have to be unique?
         f_solved = f.subs(assignment)

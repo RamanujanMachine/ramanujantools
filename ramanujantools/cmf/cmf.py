@@ -1,7 +1,7 @@
 from __future__ import annotations
 import itertools
 from multimethod import multimethod
-from typing import Dict, List, Set, Union
+from typing import Dict, List, Optional, Set
 
 import sympy as sp
 from sympy.abc import n
@@ -334,8 +334,8 @@ class CMF:
         trajectory: Dict,
         iterations: List[int],
         start: Dict,
-        p_vectors: Union[List[Matrix], None] = None,
-        q_vectors: Union[List[Matrix], None] = None,
+        p_vectors: Optional[List[Matrix]] = None,
+        q_vectors: Optional[List[Matrix]] = None,
     ) -> List[Limit]:
         r"""
         Returns a list of limits of trajectorial walk multiplication matrices in the desired depths.
@@ -363,8 +363,8 @@ class CMF:
         trajectory: Dict,
         iterations: int,
         start: Dict,
-        p_vectors: Union[List[Matrix], None] = None,
-        q_vectors: Union[List[Matrix], None] = None,
+        p_vectors: Optional[List[Matrix]] = None,
+        q_vectors: Optional[List[Matrix]] = None,
     ) -> Limit:
         return self.limit(trajectory, [iterations], start, p_vectors, q_vectors)[0]
 
@@ -374,8 +374,8 @@ class CMF:
         depth: int,
         start: Dict,
         limit: float = None,
-        p_vectors: Union[List[Matrix], None] = None,
-        q_vectors: Union[List[Matrix], None] = None,
+        p_vectors: Optional[List[Matrix]] = None,
+        q_vectors: Optional[List[Matrix]] = None,
     ):
         r"""
         Calculates the irrationality measure $\delta$ defined, as:
@@ -412,8 +412,8 @@ class CMF:
         depth: int,
         start: Dict,
         limit: float = None,
-        p_vectors: Union[List[Matrix], None] = None,
-        q_vectors: Union[List[Matrix], None] = None,
+        p_vectors: Optional[List[Matrix]] = None,
+        q_vectors: Optional[List[Matrix]] = None,
     ):
         r"""
         Calculates delta values sequentially up to `depth`.
