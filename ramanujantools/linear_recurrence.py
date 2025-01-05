@@ -5,7 +5,6 @@ import copy
 import itertools
 from tqdm import tqdm
 
-import mpmath as mp
 import sympy as sp
 from sympy.abc import n
 
@@ -144,7 +143,7 @@ class LinearRecurrence:
         relation = [p * self.denominator_lcm / self.gcd for p in self.relation]
         return LinearRecurrence([sp.factor(p.simplify()) for p in relation])
 
-    def limit(self, iterations: Union[int, List[int]], start=1) -> Limit:
+    def limit(self, iterations: int | List[int], start=1) -> Limit:
         r"""
         Returns the Limit matrix of the recursion up to a certain depth
         """

@@ -375,7 +375,7 @@ class CMF:
         start: Dict,
         limit: float = None,
         p_vectors: Optional[List[Matrix]] = None,
-        q_vectors: Optinoal[List[Matrix]] = None,
+        q_vectors: Optional[List[Matrix]] = None,
     ):
         r"""
         Calculates the irrationality measure $\delta$ defined, as:
