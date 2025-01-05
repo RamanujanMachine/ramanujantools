@@ -5,7 +5,6 @@ import copy
 import itertools
 from tqdm import tqdm
 
-import mpmath as mp
 import sympy as sp
 from sympy.abc import n
 
@@ -39,7 +38,7 @@ class LinearRecurrence:
             2. A matrix which is companionized and used as the recurrence sequence
         """
         if isinstance(recurrence, Matrix):
-            recurrence_matrix = recurrence.as_companion(inflate_all=False)
+            recurrence_matrix = recurrence.as_companion()
             col = recurrence_matrix.col(-1)
             lead = col.denominator_lcm
             coeffs = [sp.simplify(p * lead) for p in reversed(col)]
