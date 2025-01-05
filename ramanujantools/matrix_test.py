@@ -372,7 +372,7 @@ def test_errors():
     (y0,) = sp.symbols("y:1")
     trajectory = {x0: 1, x1: 1, y0: 1}
     start = trajectory
-    m = pFq(2, 2, -1).trajectory_matrix(trajectory, start)
+    m = pFq(2, 1, -1).trajectory_matrix(trajectory, start)
     lambdas = m.sorted_eigenvals()
     assert sp.log(abs(lambdas[0]).evalf() / abs(lambdas[1]).evalf()) == approx(
         m.errors()[0]
@@ -384,7 +384,7 @@ def test_gcd_slope():
     (y0,) = sp.symbols("y:1")
     trajectory = {x0: 1, x1: 1, y0: 1}
     start = trajectory
-    m = pFq(2, 2, -1).trajectory_matrix(trajectory, start)
+    m = pFq(2, 1, -1).trajectory_matrix(trajectory, start)
     assert m.gcd_slope(20) == approx(1.3962425331281643)
     assert m.gcd_slope(40) == approx(1.5535146470266243)
     assert m.gcd_slope(100) == approx(1.5895449981095848)
@@ -404,7 +404,7 @@ def test_kamidelta_2f1():
 
 def test_kamidelta_2f2():
     x0, x1 = sp.symbols("x:2")
-    y0, y1 = sp.symbols("y:1")
+    y0, y1 = sp.symbols("y:2")
     trajectory = {x0: 1, x1: 1, y0: 0, y1: -1}
     start = {x0: 1, x1: 1, y0: -1, y1: -1}
     m = pFq(2, 2, -1).trajectory_matrix(trajectory, start)
