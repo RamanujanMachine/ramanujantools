@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Union, List, Dict, Set, Tuple
+from typing import List, Dict, Set, Tuple
 from functools import cached_property
 import copy
 import itertools
@@ -29,7 +29,7 @@ class LinearRecurrence:
     for all integers $s$.
     """
 
-    def __init__(self, recurrence: Union[Matrix, List[sp.Expr]]):
+    def __init__(self, recurrence: Matrix | List[sp.Expr]):
         r"""
         Construct the recurrence.
 
@@ -271,6 +271,12 @@ class LinearRecurrence:
 
     def apteshuffle(self) -> LinearRecurrence:
         if self.depth() != 3:
-            raise ValueError("apteshuffle is only supported for depth 3 recursions for now")
+            raise ValueError(
+                "apteshuffle is only supported for depth 3 recursions for now"
+            )
         c, b, a = self.recurrence_matrix.col(-1)
-        return LinearRecurrence([1, -b, -c * a.subs({n: n-1}), c * c.subs({n: n-1})]).reduce().subs({n: n+1})
+        return (
+            LinearRecurrence([1, -b, -c * a.subs({n: n - 1}), c * c.subs({n: n - 1})])
+            .reduce()
+            .subs({n: n + 1})
+        )

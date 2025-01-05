@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import List, Callable, Union
+from typing import List, Callable, Optional
 
 import sympy as sp
 import mpmath as mp
@@ -41,8 +41,8 @@ class Limit:
         self,
         current: Matrix,
         previous: Matrix,
-        p_vectors: Union[List[Matrix], None] = None,
-        q_vectors: Union[List[Matrix], None] = None,
+        p_vectors: Optional[List[Matrix]] = None,
+        q_vectors: Optional[List[Matrix]] = None,
     ):
         self.current = current
         self.previous = previous
@@ -83,8 +83,8 @@ class Limit:
     def walk_to_limit(
         iterations: List[int],
         walk_function: Callable[List[int], List[Limit]],
-        p_vectors: Union[List[Matrix], None] = None,
-        q_vectors: Union[List[Matrix], None] = None,
+        p_vectors: Optional[List[Matrix]] = None,
+        q_vectors: Optional[List[Matrix]] = None,
     ) -> List[Limit]:
         previous_values = [depth - 1 for depth in iterations]
         walk_iterations = sorted(list(set(iterations + previous_values)))
@@ -184,7 +184,7 @@ class Limit:
 
     def identify_rational(
         self, column_index=-1, maxcoeff=1000
-    ) -> Union[IntegerRelation, None]:
+    ) -> Optional[IntegerRelation]:
         r"""
         Searches for constants $a_0, \dots, a_{N-1}
         such that $0 \approx \prod_{i=0}^{N-1}a_i * p_i$,
@@ -207,7 +207,7 @@ class Limit:
 
     def identify(
         self, L: mp.mpf, column_index=-1, maxcoeff=1000
-    ) -> Union[IntegerRelation, None]:
+    ) -> Optional[IntegerRelation]:
         r"""
         Given a constant $L$, searches for constants $a_0, \dots, a_{N-1}, b_0, \dots, b_{N-1}$
         such that $0 \approx \prod_{i=0}^{N-1}a_i * p_i - L * \prod_{i=0}^{N-1}b_i * p_i$,
