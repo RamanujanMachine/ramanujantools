@@ -247,8 +247,9 @@ class CMF:
         result = Matrix.eye(self.N())
         depth = trajectory.shortest()
         while depth > 0:
+            inner_symbol = sp.Symbol(f"{symbol}{depth}")
             diagonal = trajectory.signs()
-            result *= self.walk(diagonal, depth, position)
+            result *= self.walk(diagonal, depth, position, inner_symbol)
             position += depth * diagonal
             trajectory -= depth * diagonal
             depth = trajectory.shortest()
@@ -286,6 +287,7 @@ class CMF:
         trajectory: Dict,
         iterations: List[int],
         start: Dict,
+        symbol=sp.Symbol("walk"),
     ) -> List[Matrix]:
         r"""
         Returns a list of trajectorial walk multiplication matrices in the desired depths.
@@ -313,11 +315,8 @@ class CMF:
                 f"iterations must contain only non-negative values, got {iterations}"
             )
 
-        walk_symbol = sp.Symbol("walk")
-        trajectory_matrix = self.trajectory_matrix(
-            trajectory, start, symbol=walk_symbol
-        )
-        return trajectory_matrix.walk({walk_symbol: 1}, iterations, {walk_symbol: 1})
+        trajectory_matrix = self.trajectory_matrix(trajectory, start, symbol=symbol)
+        return trajectory_matrix.walk({symbol: 1}, iterations, {symbol: 1})
 
     @multimethod
     def walk(  # noqa: F811
@@ -325,8 +324,9 @@ class CMF:
         trajectory: Dict,
         iterations: int,
         start: Dict,
+        symbol=sp.Symbol("walk"),
     ) -> Matrix:
-        return self.walk(trajectory, [iterations], start)[0]
+        return self.walk(trajectory, [iterations], start, symbol)[0]
 
     @multimethod
     def limit(

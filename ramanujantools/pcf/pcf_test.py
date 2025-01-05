@@ -4,6 +4,7 @@ import mpmath as mp
 
 from ramanujantools import Matrix
 from ramanujantools.pcf import PCF
+from ramanujantools.pcf.pcf import is_deflatable
 
 
 def test_repr():
@@ -83,12 +84,36 @@ def test_deflate_poly():
     assert PCF(a_n, b_n) == pcf.deflate(c_n)
 
 
+def test_is_deflatable():
+    a_factors = {n**2 + 1: 1}
+    b_factors = {n**2 - 2 * n + 2: 1, n**2 + 1: 1}
+    assert is_deflatable(a_factors, b_factors, n**2 + 1)
+
+
 def test_deflate_all():
     c_n = c**2 * (7 * n - 13 * c) * (2 * n - 5) ** 4 * (3 * n + 11)
     a_n = n + c
     b_n = n**2 - c * n
-    pcf = PCF(c_n * a_n, c_n.subs({n: n - 1}) * c_n * b_n)
-    assert PCF(a_n, b_n) == pcf.deflate_all()
+    pcf1 = PCF(c_n * a_n, c_n.subs({n: n - 1}) * c_n * b_n)
+    pcf2 = PCF(n**2 + 1, n**4 - 2 * n**3 + 3 * n**2 - 2 * n + 2)
+    pcf3 = PCF(
+        9 * n**4 + 72 * n**3 + 201 * n**2 + 228 * n + 85,
+        -18 * n**8
+        - 225 * n**7
+        - 1131 * n**6
+        - 2904 * n**5
+        - 3932 * n**4
+        - 2400 * n**3
+        + 66 * n**2
+        + 769 * n
+        + 255,
+    )
+    assert PCF(a_n, b_n) == pcf1.deflate_all()
+    assert PCF(1, 1) == pcf2.deflate_all()
+    assert (
+        PCF(3 * n**2 + 9 * n + 5, -2 * n**4 - 9 * n**3 - 9 * n**2 + n + 3)
+        == pcf3.deflate_all()
+    )
 
 
 def test_blind_delta():

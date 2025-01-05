@@ -13,7 +13,7 @@ def is_deflatable(a_factors, b_factors, factor):
         return (
             a_factors.get(factor, 0) > 0
             and b_factors.get(factor, 0) > 0
-            and b_factors.get(factor.subs({n: n - 1}), 0) > 0
+            and b_factors.get(factor.subs({n: n - 1}).expand(), 0) > 0
         )
     else:
         return a_factors.get(factor, 0) > 0 and b_factors.get(factor, 0) > 1
@@ -22,7 +22,7 @@ def is_deflatable(a_factors, b_factors, factor):
 def remove_factor(a_factors, b_factors, factor):
     a_factors[factor] -= 1
     b_factors[factor] -= 1
-    b_factors[factor.subs({n: n - 1})] -= 1
+    b_factors[factor.subs({n: n - 1}).expand()] -= 1
 
 
 def deflate_constant(a_constant, b_constant):
@@ -39,7 +39,8 @@ def content(a, b, variables):
 
     def factor_list(poly, variables):
         content, factors = sp.factor_list(poly, *variables)
-        return content, dict(factors)
+        return content, {factor.expand(): power
+                         for factor, power in dict(factors).items()}
 
     (a_content, a_factors), (b_content, b_factors) = map(
         lambda p: factor_list(p, variables), [a, b]
