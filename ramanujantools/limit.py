@@ -163,7 +163,7 @@ class Limit:
     def delta(self, L: mp.mpf) -> mp.mpf:
         r"""
         Calculates the irrationality measure $\delta$ defined, as:
-        $|\frac{p_n}{q_n} - L| = \frac{1}{q_n}^{1+\delta}$
+        $|\frac{p_n}{q_n} - L| = \frac{1}{{q_n}^{1+\delta}}$
         Args:
             L: $L$
         Returns:

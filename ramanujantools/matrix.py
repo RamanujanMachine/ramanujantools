@@ -421,6 +421,10 @@ class Matrix(sp.Matrix):
 
     @staticmethod
     def poincare_poly(poly: sp.PurePoly) -> sp.PurePoly:
+        """
+        Deflates a polynomial such that all coefficients approach a finite number.
+        Assumes polynomial only contain n as a free symbol.
+        """
         min_deflate = 0
         charpoly_coeffs = poly.coeffs()
         for i in range(len(charpoly_coeffs)):
@@ -435,17 +439,36 @@ class Matrix(sp.Matrix):
         ]
         return sp.PurePoly(coeffs, poly.gen)
 
-    def charpoly(self, poincare=False) -> sp.PurePoly:
-        poly = super().charpoly()
+    def charpoly(self, poincare=False, *args, **kwargs) -> sp.PurePoly:
+        """
+        Returns the characteristic polynomial of the matrix.
+
+        Calls the underyling sympy.Matrix.charpoly and supports its arguments:
+        https://docs.sympy.org/latest/modules/matrices/matrices.html#sympy.matrices.matrixbase.MatrixBase.charpoly
+
+        Args:
+            poincare: if True, converts the polynomial to Poincare form. False by default.
+        """
+        poly = super().charpoly(*args, **kwargs)
         if poincare:
             poly = Matrix.poincare_poly(poly)
         return poly
 
     def eigenvals(self, poincare=False) -> Dict:
+        """
+        Returns the eigenvalues of the matrix, which are the roots of the characteristic polynomials.
+
+        Args:
+            poincare: if True, returns the eigenvalues of the Poincare characteristic polynomial instead.
+            False by default.
+        """
         charpoly = self.charpoly(poincare)
         return sp.roots(charpoly)
 
     def sorted_eigenvals(self) -> List:
+        """
+        Returns the eigenvalues of the matrix in Poincare form, sorted by absolute value in descending order.
+        """
         unsorted = self.eigenvals(poincare=True)
         retval = []
         for key, value in unsorted.items():
@@ -455,6 +478,9 @@ class Matrix(sp.Matrix):
         )
 
     def errors(self) -> List:
+        """
+        Approximate the possible errors of integer recurrence approximations using this Matrix.
+        """
         lambdas = [e.evalf(chop=True) for e in self.sorted_eigenvals()]
         deltas = []
         for i in range(1, len(lambdas)):
@@ -462,6 +488,14 @@ class Matrix(sp.Matrix):
         return deltas
 
     def gcd_slope(self, depth=20) -> mp.mpf:
+        r"""
+        Attempts to perform a linear fit of $\bar{q} = \frac{q_n}{gcd(p_n, q_n)}$ as a function of $n$.
+
+        Args:
+            depth: The maximal value of $n$
+        Returns:
+            The slope of the lienar fit of $\bar{q}$.
+        """
         depths = list(range(1, depth))
         q_reduced_list = []
         limits = self.limit({n: 1}, depths, {n: 1})
@@ -475,6 +509,21 @@ class Matrix(sp.Matrix):
         return mp.mpf(fit[0])
 
     def kamidelta(self, depth=20):
+        r"""
+        Predicts the possible delta values of the integer sequence approximation that the matrix generates.
+
+        The irrationality measure $\delta$ is defined as $|\frac{p_n}{q_n} - L| = \frac{1}{\bar{q_n}^{1+\delta}}$.
+        As one can tell, the delta is determined by two values:
+        The approximation error $L-\frac{p_n}{q_n}$,
+        and the gcd of both sequences $gcd(p_n,q_n)$.
+
+        This algorithm approximates both values in order to predict possible delta values.
+
+        Args:
+            depth: The maximal depth for the gcd slope fit.
+        Returns:
+            A list (of size N - 1) containing all predicted delta possibilities.
+        """
         errors = self.errors()
         slope = self.gcd_slope(depth)
         return [-1 + error / slope for error in errors]
