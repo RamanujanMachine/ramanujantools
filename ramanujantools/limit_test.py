@@ -53,6 +53,14 @@ def test_precision_floor():
     assert desired_error - 1 == limit.precision()
 
 
+def test_rounding_in_range():
+    for num in [0.49, 0.4999999, 0.5, 0.500001, 0.51]:
+        err = 5 * 1e-2
+        rounded = eval(most_round_in_range(num, err))
+
+        assert abs(num - rounded) < err
+
+
 def test_rounding_whole_number():
     num = 0.9999999
     err = 5 * 1e-5
