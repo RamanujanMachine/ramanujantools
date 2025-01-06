@@ -18,15 +18,15 @@ def first_unmatch(a: str, b: str) -> int:
     return size
 
 
-def round_attempt(original: mp.mpf, with_error: mp.mpf) -> str:
-    original = str(original)
-    with_error = str(with_error)
-    up_to = first_unmatch(original, with_error) + 1
-    return with_error[0:up_to]
+def round_attempt(lower_bound: mp.mpf, upper_bound: mp.mpf) -> str:
+    lower = str(lower_bound)
+    upper = str(upper_bound)
+    up_to = first_unmatch(lower, upper) + 1
+    return upper[0:up_to]
 
 
 def most_round_in_range(num: mp.mpf, err: mp.mpf) -> str:
-    return min(round_attempt(num, num + err), round_attempt(num, num - err), key=len)
+    return min(round_attempt(num, num + err), round_attempt(num - err, num), key=len)
 
 
 class Limit:
@@ -163,7 +163,7 @@ class Limit:
     def delta(self, L: mp.mpf) -> mp.mpf:
         r"""
         Calculates the irrationality measure $\delta$ defined, as:
-        $|\frac{p_n}{q_n} - L| = \frac{1}{q_n}^{1+\delta}$
+        $|\frac{p_n}{q_n} - L| = \frac{1}{q_n^{1+\delta}}$
         Args:
             L: $L$
         Returns:
