@@ -342,3 +342,15 @@ def test_kamidelta_2f2():
     l1, l2 = m.limit({n: 1}, [100, 200], {n: 1})
     expected = l1.delta(l2.as_float())
     assert actual == approx(expected, abs=1e-1)  # at most 0.1 error
+
+
+def test_kamidelta_3f2():
+    x0, x1, x2 = sp.symbols("x:3")
+    y0, y1 = sp.symbols("y:2")
+    trajectory = {x0: -1, x1: 1, x2: -2, y0: 2, y1: -3}
+    start = trajectory
+    m = pFq(3, 2, -1).trajectory_matrix(trajectory, start)
+    actual = m.kamidelta(depth=100)[0]
+    l1, l2 = m.limit({n: 1}, [100, 200], {n: 1})
+    expected = l1.delta(l2.as_float())
+    assert actual == approx(expected, abs=1e-1)  # at most 0.1 error
