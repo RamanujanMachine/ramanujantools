@@ -70,7 +70,7 @@ def test_rounding_whole_number():
 def test_rounding_small_change():
     num = mp.mpf(0.9999999)
     err = mp.mpf(5 * 1e-15)
-    assert "0.9999998" == most_round_in_range(num, err)
+    assert "0.9999999" == most_round_in_range(num, err)
 
 
 def test_repr():
