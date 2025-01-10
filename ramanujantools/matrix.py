@@ -425,16 +425,16 @@ class Matrix(sp.Matrix):
         Deflates a polynomial such that all coefficients approach a finite number.
         Assumes polynomial only contain n as a free symbol.
         """
-        min_deflate = 0
+        current_degree = 0
         charpoly_coeffs = poly.coeffs()
         for i in range(len(charpoly_coeffs)):
             coeff = charpoly_coeffs[i]
             numerator, denominator = coeff.as_numer_denom()
             degree = sp.Poly(numerator, n).degree() - sp.Poly(denominator, n).degree()
-            if (degree * i) > min_deflate:
-                min_deflate = -(degree // -i)  # ceil div trick
+            if (current_degree * i) < degree:
+                current_degree = -(degree // -i)  # ceil div trick
         coeffs = [
-            (charpoly_coeffs[i] / (n ** (min_deflate * i))).limit(n, "oo")
+            (charpoly_coeffs[i] / (n ** (current_degree * i))).limit(n, "oo")
             for i in range(len(charpoly_coeffs))
         ]
         return sp.PurePoly(coeffs, poly.gen)

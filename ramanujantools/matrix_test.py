@@ -292,6 +292,20 @@ def test_poincare_poly_degenerated():
     assert expected == Matrix.poincare_poly(poly)
 
 
+def test_poincare_poly_aptekarev():
+    poly = sp.PurePoly(
+        x**3
+        + (-256 * n**3 - 528 * n**2 - 352 * n - 73) / (16 * n + 1) * x**2
+        + (2048 * n**4 + 2816 * n**3 - 632 * n**2 - 2114 * n - 765)
+        / (256 * n**2 - 224 * n - 15)
+        * x
+        + (-16 * n**3 - 17 * n**2) / (16 * n - 15),
+        x,
+    )
+    expected = sp.PurePoly(x**3 - 16 * x**2, x)
+    assert expected == Matrix.poincare_poly(poly)
+
+
 def test_poincare_poly_constant():
     poly = sp.PurePoly(5 * x**3 + 2 * x**2 + x - 7, x)
     assert poly == Matrix.poincare_poly(poly)
