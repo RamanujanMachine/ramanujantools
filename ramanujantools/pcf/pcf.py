@@ -39,8 +39,9 @@ def content(a, b, variables):
 
     def factor_list(poly, variables):
         content, factors = sp.factor_list(poly, *variables)
-        return content, {factor.expand(): power
-                         for factor, power in dict(factors).items()}
+        return content, {
+            factor.expand(): power for factor, power in dict(factors).items()
+        }
 
     (a_content, a_factors), (b_content, b_factors) = map(
         lambda p: factor_list(p, variables), [a, b]
@@ -269,4 +270,10 @@ class PCF:
         return deltas
 
     def kamidelta(self, depth: int = 20) -> mp.mpf:
+        r"""
+        Uses the Kamidelta alogrithm to predict the delta value of the PCF.
+        Effectively calls kamidelta on `M`, the recurrence matrix.
+
+        For more details, see `Matrix.kamidelta`
+        """
         return self.M().kamidelta(depth)[0]

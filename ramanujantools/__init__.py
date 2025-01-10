@@ -6,6 +6,9 @@ from .generic_polynomial import GenericPolynomial
 from .linear_recurrence import LinearRecurrence
 from .simplify_object import simplify
 
+from . import pcf
+from . import cmf
+
 __all__ = [
     "IntegerRelation",
     "Position",
@@ -14,4 +17,6 @@ __all__ = [
     "GenericPolynomial",
     "LinearRecurrence",
     "simplify",
+    "pcf",
+    "cmf",
 ]

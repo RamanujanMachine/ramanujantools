@@ -292,14 +292,11 @@ class LinearRecurrence:
             .subs({n: n + 1})
         )
 
-    def eigenvals(self):
-        return self.recurrence_matrix.eigenvals(poincare=True)
-
-    def errors(self):
-        return self.recurrence_matrix.errors()
-
-    def gcd_slope(self, depth=20):
-        return self.recurrence_matrix.gcd_slope(depth)
-
     def kamidelta(self, depth=20):
+        r"""
+        Uses the Kamidelta alogrithm to predict possible delta values of the recurrence.
+        Effectively calls kamidelta on `recurrence_matrix`.
+
+        For more details, see `Matrix.kamidelta`
+        """
         return self.recurrence_matrix.kamidelta(depth)
