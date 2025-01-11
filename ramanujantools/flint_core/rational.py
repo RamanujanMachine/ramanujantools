@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import List, Dict
 
+import math
 import flint
 import sympy as sp
 
@@ -24,11 +25,9 @@ class FlintRational:
 
     @staticmethod
     def content_gcd(poly1, poly2):
-        # Currently fmpq_mpoly.gcd does not account for content (gcd of the rational coefficients)
-        # As a patch - we're using sympy which is absolutely CRAZY.
-        # https://github.com/flintlib/python-flint/issues/249
         coeffs = poly1.coeffs() + poly2.coeffs()
-        return int(sp.gcd(coeffs))
+        coeffs = [c.numerator for c in coeffs]
+        return math.gcd(*coeffs)
 
     @staticmethod
     def fmpq_from_sympy(poly: sp.Expr, ctx) -> flint.fmpq_mpoly:
