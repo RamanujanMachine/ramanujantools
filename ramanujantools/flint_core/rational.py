@@ -4,6 +4,8 @@ from typing import List, Dict
 import flint
 import sympy as sp
 
+from ramanujantools import Position
+
 
 class FlintRational:
     """
@@ -12,18 +14,28 @@ class FlintRational:
     """
 
     def __init__(
-        self, numerator: flint.fmpz_mpoly, denominator: flint.fmpz_mpoly
+        self, numerator: flint.fmpq_mpoly, denominator: flint.fmpq_mpoly
     ) -> FlintRational:
-        gcd = numerator.gcd(denominator)
+        gcd = numerator.gcd(denominator) * FlintRational.content_gcd(
+            numerator, denominator
+        )
         self.numerator = numerator / gcd
         self.denominator = denominator / gcd
 
     @staticmethod
-    def fmpz_from_sympy(poly: sp.Expr, ctx) -> flint.fmpz_mpoly:
+    def content_gcd(poly1, poly2):
+        # Currently fmpq_mpoly.gcd does not account for content (gcd of the rational coefficients)
+        # As a patch - we're using sympy which is absolutely CRAZY.
+        # https://github.com/flintlib/python-flint/issues/249
+        coeffs = poly1.coeffs() + poly2.coeffs()
+        return int(sp.gcd(coeffs))
+
+    @staticmethod
+    def fmpq_from_sympy(poly: sp.Expr, ctx) -> flint.fmpq_mpoly:
         r"""
-        Converts a sympy expression to fmpz_mpoly.
+        Converts a sympy expression to fmpq_mpoly.
         """
-        return flint.fmpz_mpoly(str(poly).replace("**", "^"), ctx)
+        return flint.fmpq_mpoly(str(poly).replace("**", "^"), ctx)
 
     @staticmethod
     def from_sympy(rational: sp.Expr, symbols: List = None) -> FlintRational:
@@ -32,14 +44,12 @@ class FlintRational:
         """
         symbols = symbols or list(sorted(rational.free_symbols, key=str))
         symbols = [str(symbol) for symbol in symbols]
-        ctx = flint.fmpz_mpoly_ctx.get(symbols, "lex")
+        ctx = flint.fmpq_mpoly_ctx.get(symbols, "lex")
         assert len(ctx.gens()) == len(symbols)
-        for i in range(len(symbols)):
-            exec(f"{symbols[i]} = ctx.gens()[i]")
         numerator, denominator = rational.as_numer_denom()
         return FlintRational(
-            FlintRational.fmpz_from_sympy(numerator, ctx),
-            FlintRational.fmpz_from_sympy(denominator, ctx),
+            FlintRational.fmpq_from_sympy(numerator, ctx),
+            FlintRational.fmpq_from_sympy(denominator, ctx),
         )
 
     def inv(self) -> FlintRational:
@@ -93,27 +103,34 @@ class FlintRational:
             self.numerator == other.numerator and self.denominator == other.denominator
         )
 
+    def degrees(self) -> List[int]:
+        return [max(poly.degrees()) for poly in [self.numerator, self.denominator]]
+
     def subs(self, substitutions: Dict) -> FlintRational:
         """
         Substitutes symbols in self.
         """
-        substitutions = {str(key): value for key, value in substitutions.items()}
+        substitutions = Position(
+            {str(key): value for key, value in substitutions.items()}
+        )
         ctx = self.numerator.context()
         composition = []
+        content = substitutions.denominator_lcm() ** max(self.degrees())
         for gen in ctx.gens():
             if str(gen) in substitutions:
-                value = FlintRational.fmpz_from_sympy(substitutions[str(gen)], ctx)
+                value = FlintRational.fmpq_from_sympy(substitutions[str(gen)], ctx)
             else:
                 value = gen
             composition.append(value)
         return FlintRational(
-            self.numerator.compose(*composition), self.denominator.compose(*composition)
+            (content * self.numerator).compose(*composition),
+            (content * self.denominator).compose(*composition),
         )
 
     @staticmethod
     def factor_poly(poly) -> sp.Expr:
         """
-        Factors a polynomial of type fmpz_mpoly and returns it as a sp.Expr
+        Factors a polynomial of type fmpq_mpoly and returns it as a sp.Expr
         """
         gens = poly.context().gens()
         for gen in gens:

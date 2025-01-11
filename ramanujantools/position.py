@@ -88,6 +88,16 @@ class Position(dict):
                 return False
         return True
 
+    def denominator_lcm(self) -> int:
+        r"""
+        Returns the lcm of all denominators
+        """
+        return int(
+            sp.lcm(
+                [sp.simplify(element).as_numer_denom()[1] for element in self.values()]
+            )
+        )
+
     def is_integer(self) -> bool:
         """
         Returns true iff all position elements are numerical

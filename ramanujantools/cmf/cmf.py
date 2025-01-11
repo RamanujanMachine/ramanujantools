@@ -1,7 +1,8 @@
 from __future__ import annotations
+from typing import Dict, List, Optional, Set
+
 import itertools
 from multimethod import multimethod
-from typing import Dict, List, Optional, Set
 
 import sympy as sp
 from sympy.abc import n
@@ -249,7 +250,7 @@ class CMF:
         while depth > 0:
             inner_symbol = sp.Symbol(f"{symbol}{depth}")
             diagonal = trajectory.signs()
-            result *= self.walk(diagonal, depth, position, inner_symbol)
+            result *= self.walk(diagonal, int(depth), position, inner_symbol)
             position += depth * diagonal
             trajectory -= depth * diagonal
             depth = trajectory.shortest()

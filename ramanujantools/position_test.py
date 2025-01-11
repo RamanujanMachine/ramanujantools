@@ -83,5 +83,12 @@ def test_is_polynomial():
     assert not Position({x: sp.Rational(1, 2), y: 1}).is_polynomial()
 
 
+def test_is_denominator_lcm():
+    assert 1 == Position({x: 1, y: 7}).denominator_lcm()
+    assert 1 == Position({x: 1, y: x**2 + 3 * x + 1}).denominator_lcm()
+    assert 2 == Position({x: x / 2, y: x**2 + 3 * x + 1}).denominator_lcm()
+    assert 15 == Position({x: sp.Rational(1, 3), y: x / 5}).denominator_lcm()
+
+
 def test_free_symbols():
     assert {x, z} == Position({x: 1, y: z, z: x}).free_symbols()

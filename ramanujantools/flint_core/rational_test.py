@@ -1,3 +1,5 @@
+from typing import List
+
 import flint
 import sympy as sp
 from sympy.abc import x, y
@@ -5,13 +7,13 @@ from sympy.abc import x, y
 from ramanujantools.flint_core import FlintRational
 
 
-def flintify(expr: sp.Expr) -> FlintRational:
-    return FlintRational.from_sympy(expr)
+def flintify(expr: sp.Expr, symbols: List = None) -> FlintRational:
+    return FlintRational.from_sympy(expr, symbols)
 
 
 def test_from_sympy():
     expression = (x + y - 3) / (x**2 - y)
-    ctx = flint.fmpz_mpoly_ctx.get(["x", "y"], "lex")
+    ctx = flint.fmpq_mpoly_ctx.get(["x", "y"], "lex")
     _x, _y = ctx.gens()
     expected = FlintRational(_x + _y - 3, _x**2 - _y)
     assert expected == flintify(expression)
@@ -63,3 +65,15 @@ def test_eq():
 def test_factor():
     expected = (x + y) * (x**2 + y**2) * (y - 3) / ((x + 17) * (y - 15) * (x * y + 1))
     assert expected == flintify(expected.expand()).factor()
+
+
+def test_subs_integer():
+    expr = (x**2 + 3 * y / 2 - sp.Rational(5, 4)) / (x * y + y**2 / 3)
+    subs = {x: 3, y: x}
+    assert flintify(expr.subs(subs), symbols=[x, y]) == flintify(expr).subs(subs)
+
+
+def test_subs_rational():
+    expr = (x**2 + 3 * y / 2 - sp.Rational(5, 4)) / (x * y + y**2 / 3)
+    subs = {x: sp.Rational(2, 7), y: (x + 5) / 4}
+    assert flintify(expr.subs(subs), symbols=[x, y]) == flintify(expr).subs(subs)
