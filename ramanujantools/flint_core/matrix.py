@@ -17,11 +17,7 @@ class FlintMatrix:
     """
 
     def __init__(
-        self,
-        rows: int,
-        cols: int,
-        values: List[FlintRational],
-        symbols,
+        self, rows: int, cols: int, values: List[FlintRational], symbols
     ) -> FlintMatrix:
         self.symbols = symbols
         self._rows = rows
