@@ -7,13 +7,13 @@ from sympy.abc import x, y
 from ramanujantools.flint_core import FlintRational
 
 
-def flintify(expr: sp.Expr, symbols: List = None) -> FlintRational:
-    return FlintRational.from_sympy(expr, symbols)
+def flintify(expr: sp.Expr, symbols: List = None, fmpz=True) -> FlintRational:
+    return FlintRational.from_sympy(expr, symbols, fmpz)
 
 
 def test_from_sympy():
     expression = (x + y - 3) / (x**2 - y)
-    ctx = flint.fmpq_mpoly_ctx.get(["x", "y"], "lex")
+    ctx = flint.fmpz_mpoly_ctx.get(["x", "y"], "lex")
     _x, _y = ctx.gens()
     expected = FlintRational(_x + _y - 3, _x**2 - _y)
     assert expected == flintify(expression)
@@ -76,4 +76,6 @@ def test_subs_integer():
 def test_subs_rational():
     expr = (x**2 + 3 * y / 2 - sp.Rational(5, 4)) / (x * y + y**2 / 3)
     subs = {x: sp.Rational(2, 7), y: (x + 5) / 4}
-    assert flintify(expr.subs(subs), symbols=[x, y]) == flintify(expr).subs(subs)
+    assert flintify(expr.subs(subs), symbols=[x, y], fmpz=False) == flintify(
+        expr, fmpz=False
+    ).subs(subs)

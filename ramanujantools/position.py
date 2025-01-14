@@ -76,7 +76,7 @@ class Position(dict):
 
     def is_polynomial(self) -> bool:
         """
-        Returns true iff all position elements are numerical
+        Returns true iff all position elements are polynomial
         """
         for element in self.values():
             if not all(

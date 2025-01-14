@@ -15,40 +15,57 @@ class FlintRational:
     """
 
     def __init__(
-        self, numerator: flint.fmpq_mpoly, denominator: flint.fmpq_mpoly
+        self,
+        numerator: flint.fmpz_mpoly | flint.fmpq_mpoly,
+        denominator: flint.fmpz_mpoly | flint.fmpq_mpoly,
     ) -> FlintRational:
-        gcd = numerator.gcd(denominator) * FlintRational.content_gcd(
-            numerator, denominator
-        )
+        self.is_integer = isinstance(numerator, flint.fmpz_mpoly)
+        gcd = numerator.gcd(denominator)
+        if not self.is_integer:
+            content = FlintRational.fmpq_gcd(numerator.coeffs() + denominator.coeffs())
+            gcd *= content
         self.numerator = numerator / gcd
         self.denominator = denominator / gcd
 
     @staticmethod
-    def content_gcd(poly1, poly2):
-        coeffs = poly1.coeffs() + poly2.coeffs()
-        coeffs = [c.numerator for c in coeffs]
-        return math.gcd(*coeffs)
+    def fmpq_gcd(numbers: List[flint.fmpq]) -> flint.fmpz:
+        denominator = flint.fmpz(1)
+        for c in numbers:
+            denominator *= c.denominator
+        numerators = [c.numerator * denominator / c.denominator for c in numbers]
+        gcd = math.gcd(*numerators)
+        return flint.fmpq(gcd, denominator)
 
     @staticmethod
-    def fmpq_from_sympy(poly: sp.Expr, ctx) -> flint.fmpq_mpoly:
+    def mpoly_from_sympy(poly: sp.Expr, ctx) -> flint.fmpz_mpoly | flint.fmpq_mpoly:
         r"""
-        Converts a sympy expression to fmpq_mpoly.
+        Converts a sympy expression to a flint mpoly.
         """
-        return flint.fmpq_mpoly(str(poly).replace("**", "^"), ctx)
+        mpoly_type = type(ctx.constant(0))
+        return mpoly_type(str(poly).replace("**", "^"), ctx)
 
     @staticmethod
-    def from_sympy(rational: sp.Expr, symbols: List = None) -> FlintRational:
+    def from_sympy(rational: sp.Expr, symbols: List = None, fmpz=True) -> FlintRational:
         r"""
         Converts a rational function given as a sympy expression to a FlintRational.
+        Args:
+            rational: The expression to convert to flint
+            symbols: The symbol list to be used inside the context (needed all of them in advance)
+            fmpz: decide between fmpq (supports rational subs) and fmpz (faster but only integer subs).
+        Returns:
+            A FlintRational object representing the `rational` value
         """
         symbols = symbols or list(sorted(rational.free_symbols, key=str))
         symbols = [str(symbol) for symbol in symbols]
-        ctx = flint.fmpq_mpoly_ctx.get(symbols, "lex")
+        if fmpz:
+            ctx = flint.fmpz_mpoly_ctx.get(symbols, "lex")
+        else:
+            ctx = flint.fmpq_mpoly_ctx.get(symbols, "lex")
         assert len(ctx.gens()) == len(symbols)
         numerator, denominator = rational.as_numer_denom()
         return FlintRational(
-            FlintRational.fmpq_from_sympy(numerator, ctx),
-            FlintRational.fmpq_from_sympy(denominator, ctx),
+            FlintRational.mpoly_from_sympy(numerator, ctx),
+            FlintRational.mpoly_from_sympy(denominator, ctx),
         )
 
     def inv(self) -> FlintRational:
@@ -114,13 +131,17 @@ class FlintRational:
         )
         ctx = self.numerator.context()
         composition = []
-        content = substitutions.denominator_lcm() ** max(self.degrees())
         for gen in ctx.gens():
             if str(gen) in substitutions:
-                value = FlintRational.fmpq_from_sympy(substitutions[str(gen)], ctx)
+                value = FlintRational.mpoly_from_sympy(substitutions[str(gen)], ctx)
             else:
                 value = gen
             composition.append(value)
+        content = (
+            1
+            if self.is_integer
+            else substitutions.denominator_lcm() ** max(self.degrees())
+        )
         return FlintRational(
             (content * self.numerator).compose(*composition),
             (content * self.denominator).compose(*composition),
@@ -129,7 +150,7 @@ class FlintRational:
     @staticmethod
     def factor_poly(poly) -> sp.Expr:
         """
-        Factors a polynomial of type fmpq_mpoly and returns it as a sp.Expr
+        Factors an mpoly polynomial and returns it as a sp.Expr
         """
         gens = poly.context().gens()
         for gen in gens:

@@ -40,6 +40,21 @@ def test_trajectory_matrix_3f2(benchmark):
     benchmark(CMF.trajectory_matrix, cmf, trajectory, start)
 
 
+def test_trajectory_matrix_3f2_rational(benchmark):
+    x0, x1, x2 = sp.symbols("x:3")
+    y0, y1 = sp.symbols("y:2")
+    cmf = pFq(3, 2, 1)
+    start = {
+        x0: sp.Rational(1, 2),
+        x1: sp.Rational(1, 2),
+        x2: sp.Rational(1, 2),
+        y0: sp.Rational(3, 2),
+        y1: sp.Rational(3, 2),
+    }
+    trajectory = {x0: 5, x1: 5, x2: 5, y0: 10, y1: 10}
+    benchmark(CMF.trajectory_matrix, cmf, trajectory, start)
+
+
 def test_trajectory_matrix_3f2_pertubated(benchmark):
     x0, x1, x2 = sp.symbols("x:3")
     y0, y1 = sp.symbols("y:2")
