@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Dict, List, Set, Callable
+from typing import Dict, List, Set, Callable, Tuple
 from functools import lru_cache, cached_property
 
 from multimethod import multimethod
@@ -171,14 +171,14 @@ class Matrix(sp.Matrix):
         """
         return self.as_polynomial().reduce() == other.as_polynomial().reduce()
 
-    @lru_cache(maxsize=32)
+    @lru_cache
     def inverse(self) -> Matrix:
         """
         Inverts the matrix.
         """
         return self.inv()
 
-    @lru_cache(maxsize=32)
+    @lru_cache
     def simplify(self) -> Matrix:
         """
         Returns a simplified version of matrix
@@ -284,6 +284,59 @@ class Matrix(sp.Matrix):
         """
         return self.coboundary(self.companion_coboundary_matrix())
 
+    @lru_cache
+    def _walk_inner(
+        self,
+        trajectory: Position,
+        iterations: Tuple[int],
+        start: Position,
+    ) -> List[Matrix]:
+        """
+        Internal walk function, used for type conversions and for caching. Do not use directly.
+        """
+        from ramanujantools.flint_core import FlintMatrix
+
+        if not self.is_square():
+            raise ValueError(
+                f"Matrix.walk is only supported for square matrices, got a {self.rows}x{self.cols} matrix"
+            )
+
+        if start.keys() != trajectory.keys():
+            raise ValueError(
+                f"`start` and `trajectory` must contain same keys, got "
+                f"start={set(start.keys())}, trajectory={set(trajectory.keys())}"
+            )
+
+        iterations_set = set(iterations)
+        if len(iterations_set) != len(iterations):
+            raise ValueError(f"`iterations` values must be unique, got {iterations}")
+
+        if not iterations == tuple(sorted(iterations)):
+            raise ValueError(f"Iterations must be sorted, got {iterations}")
+
+        if not all(depth >= 0 for depth in iterations):
+            raise ValueError(
+                f"iterations must contain only non-negative values, got {iterations}"
+            )
+
+        if self._can_call_flint_walk(trajectory, start):
+            symbols = self.walk_free_symbols(start)
+            as_flint = FlintMatrix.from_sympy(self, symbols)
+            results = as_flint.walk(trajectory, list(iterations), start)
+            results = [result.factor() for result in results]
+            return results
+        else:
+            results = []
+            position = start.copy()
+            matrix = Matrix.eye(self.rows)
+            for depth in range(0, iterations[-1]):
+                if depth in iterations:
+                    results.append(matrix)
+                matrix *= self(position)
+                position += trajectory
+            results.append(matrix)  # Last matrix, for iterations[-1]
+            return results
+
     @multimethod
     def walk(  # noqa: F811
         self,
@@ -312,50 +365,9 @@ class Matrix(sp.Matrix):
                         if `start` and `trajectory` have different keys,
                         if `iterations` contains duplicate values
         """
-        from ramanujantools.flint_core import FlintMatrix
-
-        if not self.is_square():
-            raise ValueError(
-                f"Matrix.walk is only supported for square matrices, got a {self.rows}x{self.cols} matrix"
-            )
-
-        if start.keys() != trajectory.keys():
-            raise ValueError(
-                f"`start` and `trajectory` must contain same keys, got "
-                f"start={set(start.keys())}, trajectory={set(trajectory.keys())}"
-            )
-
-        iterations_set = set(iterations)
-        if len(iterations_set) != len(iterations):
-            raise ValueError(f"`iterations` values must be unique, got {iterations}")
-
-        if not iterations == sorted(iterations):
-            raise ValueError(f"Iterations must be sorted, got {iterations}")
-
-        if not all(depth >= 0 for depth in iterations):
-            raise ValueError(
-                f"iterations must contain only non-negative values, got {iterations}"
-            )
-
-        position = Position(start)
-        trajectory = Position(trajectory)
-
-        if self._can_call_flint_walk(trajectory, position):
-            symbols = self.walk_free_symbols(start)
-            as_flint = FlintMatrix.from_sympy(self, symbols)
-            results = as_flint.walk(trajectory, iterations, start)
-            results = [result.factor() for result in results]
-            return results
-        else:
-            results = []
-            matrix = Matrix.eye(self.rows)
-            for depth in range(0, iterations[-1]):
-                if depth in iterations:
-                    results.append(matrix)
-                matrix *= self(position)
-                position += trajectory
-            results.append(matrix)  # Last matrix, for iterations[-1]
-            return results
+        return self._walk_inner(
+            Position(trajectory), tuple(iterations), Position(start)
+        )
 
     @multimethod
     def walk(  # noqa: F811

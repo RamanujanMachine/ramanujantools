@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing import Dict, List, Optional, Set
+from functools import lru_cache
 
 import itertools
 from multimethod import multimethod
@@ -43,6 +44,9 @@ class CMF:
         self.assert_matrices_same_dimension()
         if validate:
             self.assert_conserving()
+
+    def __hash__(self) -> int:
+        return hash(frozenset(self.matrices.items()))
 
     def __eq__(self, other) -> bool:
         return self.matrices == other.matrices
@@ -167,6 +171,7 @@ class CMF:
             }
         )
 
+    @lru_cache
     def _calculate_diagonal_matrix(
         self, trajectory: Position, start: Position
     ) -> Matrix:

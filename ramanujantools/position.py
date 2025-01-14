@@ -52,6 +52,9 @@ class Position(dict):
     def __neg__(self):
         return -1 * self
 
+    def __hash__(self):
+        return hash(frozenset(self.items()))
+
     def copy(self):
         return Position(super().copy())
 
