@@ -62,4 +62,4 @@ def test_as_companion_3x3_2f2_benchmark(benchmark):
             [-2 * n - 1, -(n**2) + n + 1, (3 * n + 2) * (3 * n + 4)],
         ]
     )
-    benchmark(Matrix.as_companion, matrix, inflate_all=False)
+    benchmark(Matrix.as_companion, matrix)
