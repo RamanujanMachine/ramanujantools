@@ -5,8 +5,8 @@ from ramanujantools import Matrix
 from ramanujantools.flint_core import FlintMatrix
 
 
-def flintify(matrix: Matrix) -> FlintMatrix:
-    return FlintMatrix.from_sympy(matrix)
+def flintify(matrix: Matrix, fmpz=True) -> FlintMatrix:
+    return FlintMatrix.from_sympy(matrix, fmpz=fmpz)
 
 
 def test_factor():
@@ -48,3 +48,21 @@ def test_walk():
     expected = (matrix * matrix.subs({n: n + 1}) * matrix.subs({n: n + 2})).factor()
 
     assert expected == flintify(matrix).walk({n: 1}, 3, {n: n}).factor()
+
+
+def test_walk_rational():
+    matrix = Matrix(
+        [
+            [1, n**2 + n, n**2 - n + 5],
+            [3 * n + 9, n**2 - 1, 1 / (n + 1)],
+            [n**2 + 7, n - 2, (n + 1) * (n - 3)],
+        ],
+    )
+
+    expected = (
+        matrix.subs({n: n / 2})
+        * matrix.subs({n: n / 2 + 1})
+        * matrix.subs({n: n / 2 + 2})
+    ).factor()
+
+    assert expected == flintify(matrix, fmpz=False).walk({n: 1}, 3, {n: n / 2}).factor()

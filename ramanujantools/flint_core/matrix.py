@@ -17,7 +17,7 @@ class FlintMatrix:
     """
 
     def __init__(
-        self, rows: int, cols: int, values: List[FlintMatrix], symbols
+        self, rows: int, cols: int, values: List[FlintRational], symbols
     ) -> FlintMatrix:
         self.symbols = symbols
         self._rows = rows
@@ -25,24 +25,29 @@ class FlintMatrix:
         self.values = values
 
     @staticmethod
-    def from_sympy(matrix: Matrix, symbols=None) -> FlintMatrix:
+    def from_sympy(matrix: Matrix, symbols=None, fmpz=True) -> FlintMatrix:
         """
         Converts a Matrix to FlintMatrix.
+        Args:
+            matrix: The matrix as ramanujantools.Matrix
+            symbols: The symbols this matrix supports
+            fmpz: decide between fmpq (supports rational subs) and fmpz (faster but only integer subs).
         """
         symbols = [str(symbol) for symbol in symbols or matrix.free_symbols]
-        values = [FlintRational.from_sympy(cell, symbols) for cell in matrix]
+        values = [FlintRational.from_sympy(cell, symbols, fmpz) for cell in matrix]
         return FlintMatrix(matrix.rows, matrix.cols, values, symbols)
 
     @staticmethod
-    def eye(N: int, symbols) -> FlintMatrix:
+    def eye(N: int, symbols, fmpz=True) -> FlintMatrix:
         """
         Creates an identity matrix of size N.
 
         Args:
             N: The squared matrix dimension
             symbols: The symbols this matrix supports
+            fmpz: decide between fmpq (supports rational subs) and fmpz (faster but only integer subs).
         """
-        values = [FlintRational.from_sympy(sp.simplify(0), symbols)] * N**2
+        values = [FlintRational.from_sympy(sp.simplify(0), symbols, fmpz=fmpz)] * N**2
         current = 0
         while current < N**2:
             values[current] += 1
@@ -204,7 +209,9 @@ class FlintMatrix:
         position = Position(start)
         trajectory = Position(trajectory)
         results = []
-        matrix = FlintMatrix.eye(self.rows(), self.free_symbols())
+        matrix = FlintMatrix.eye(
+            self.rows(), self.free_symbols(), fmpz=position.is_polynomial()
+        )
         for depth in range(0, iterations[-1]):
             if depth in iterations:
                 results.append(matrix)
