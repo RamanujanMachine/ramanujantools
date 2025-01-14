@@ -58,8 +58,8 @@ def test_can_call_flint_walk():
     # x remains a symbol
     assert m._can_call_flint_walk({x: 1, y: 1}, {x: x, y: 1})
 
-    # currently not supporting rational coefficients of symbolic polynomials
-    assert not m._can_call_flint_walk({x: 1, y: 1}, {x: x / 2, y: 1})
+    # rational coefficients of symbolic polynomials are supported
+    assert m._can_call_flint_walk({x: 1, y: 1}, {x: x / 2, y: 1})
 
     # substituting a different symbol causes symbolic flint calculation
     assert m._can_call_flint_walk({x: 1, y: 1}, {x: n - 1, y: n**2})
