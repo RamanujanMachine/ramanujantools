@@ -83,11 +83,7 @@ class Matrix(sp.Matrix):
         subbed_in = trajectory.free_symbols().union(start.free_symbols())
         subbed_out = set(trajectory.keys()).union(set(start.keys()))
 
-        return (
-            (self.free_symbols - subbed_out).union(subbed_in) != set()
-            and trajectory.is_polynomial()
-            and start.is_polynomial()
-        )
+        return (self.free_symbols - subbed_out).union(subbed_in) != set()
 
     def _can_call_numerical_subs(self, substitutions: Dict) -> bool:
         """
