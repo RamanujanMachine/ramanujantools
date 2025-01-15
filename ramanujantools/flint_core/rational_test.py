@@ -1,21 +1,21 @@
 from typing import List
 
-import flint
 import sympy as sp
 from sympy.abc import x, y
 
-from ramanujantools.flint_core import FlintRational
+from ramanujantools.flint_core import mpoly_ctx, FlintRational
 
 
 def flintify(expr: sp.Expr, symbols: List = None, fmpz=True) -> FlintRational:
-    return FlintRational.from_sympy(expr, symbols, fmpz)
+    ctx = mpoly_ctx(symbols or list(expr.free_symbols), fmpz)
+    return FlintRational.from_sympy(expr, ctx)
 
 
 def test_from_sympy():
     expression = (x + y - 3) / (x**2 - y)
-    ctx = flint.fmpz_mpoly_ctx.get(["x", "y"], "lex")
+    ctx = mpoly_ctx(["x", "y"], fmpz=True)
     _x, _y = ctx.gens()
-    expected = FlintRational(_x + _y - 3, _x**2 - _y)
+    expected = FlintRational(_x + _y - 3, _x**2 - _y, ctx)
     assert expected == flintify(expression)
 
 

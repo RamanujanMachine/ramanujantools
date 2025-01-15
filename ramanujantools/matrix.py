@@ -10,6 +10,7 @@ import sympy as sp
 from sympy.abc import n
 
 from ramanujantools import Position
+from ramanujantools.flint_core import mpoly_ctx, FlintMatrix
 
 
 class Matrix(sp.Matrix):
@@ -186,9 +187,9 @@ class Matrix(sp.Matrix):
         return Matrix(sp.simplify(self))
 
     def factor(self) -> Matrix:
-        from ramanujantools.flint_core import FlintMatrix
-
-        return FlintMatrix.from_sympy(self, self.free_symbols).factor()
+        return FlintMatrix.from_sympy(
+            self, mpoly_ctx(self.free_symbols, fmpz=True)
+        ).factor()
 
     def singular_points(self) -> List[Dict]:
         r"""
@@ -298,7 +299,9 @@ class Matrix(sp.Matrix):
 
         if self._can_call_flint_walk(trajectory, start):
             symbols = self.walk_free_symbols(start)
-            as_flint = FlintMatrix.from_sympy(self, symbols)
+            as_flint = FlintMatrix.from_sympy(
+                self, mpoly_ctx(symbols, fmpz=start.is_polynomial())
+            )
             results = as_flint.walk(trajectory, list(iterations), start)
             results = [result.factor() for result in results]
             return results
@@ -364,7 +367,6 @@ class Matrix(sp.Matrix):
             raise ValueError(
                 f"iterations must contain only non-negative values, got {iterations}"
             )
-
         return self._walk_inner(
             Position(trajectory), tuple(iterations), Position(start)
         )

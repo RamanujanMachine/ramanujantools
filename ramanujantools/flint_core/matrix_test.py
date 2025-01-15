@@ -2,11 +2,12 @@ import sympy as sp
 from sympy.abc import n
 
 from ramanujantools import Matrix
-from ramanujantools.flint_core import FlintMatrix
+from ramanujantools.flint_core import mpoly_ctx, FlintMatrix
 
 
 def flintify(matrix: Matrix, fmpz=True) -> FlintMatrix:
-    return FlintMatrix.from_sympy(matrix, fmpz=fmpz)
+    ctx = mpoly_ctx(matrix.free_symbols, fmpz)
+    return FlintMatrix.from_sympy(matrix, ctx)
 
 
 def test_factor():
@@ -46,7 +47,6 @@ def test_walk():
     )
 
     expected = (matrix * matrix.subs({n: n + 1}) * matrix.subs({n: n + 2})).factor()
-
     assert expected == flintify(matrix).walk({n: 1}, 3, {n: n}).factor()
 
 

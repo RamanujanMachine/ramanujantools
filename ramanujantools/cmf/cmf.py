@@ -9,7 +9,7 @@ import sympy as sp
 from sympy.abc import n
 
 from ramanujantools import Position, Matrix, Limit, simplify
-from ramanujantools.flint_core import FlintMatrix
+from ramanujantools.flint_core import FlintMatrix, FlintContext, mpoly_ctx
 
 
 class CMF:
@@ -104,6 +104,22 @@ class CMF:
                     f"M({symbol}) is of dimension {matrix.rows}x{matrix.cols}, expected {expected_N}x{expected_N}"
                 )
 
+    @staticmethod
+    def inner_symbol(symbol: sp.Symbol) -> sp.Symbol:
+        """
+        Returns the inner symbol used in calculations, based on the symbol used.
+        """
+        return sp.Symbol(f"{symbol}_inner")
+
+    def ctx(self, symbol: sp.Symbol, start: Optional[Position]) -> FlintContext:
+        start = Position(start) if start else Position()
+        free_symbols = (
+            self.free_symbols()
+            .union({symbol, CMF.inner_symbol(symbol)})
+            .union(start.free_symbols())
+        )
+        return mpoly_ctx(free_symbols, fmpz=start.is_polynomial())
+
     def M(self, axis: sp.Symbol, sign: bool = True) -> Matrix:
         """
         Returns the axis matrix for a given axis.
@@ -174,7 +190,7 @@ class CMF:
 
     @lru_cache
     def _calculate_diagonal_matrix(
-        self, trajectory: Position, start: Position, symbols: Set
+        self, trajectory: Position, start: Position, ctx: FlintContext
     ) -> FlintMatrix:
         """
         The manual calculation of trajectory matrix in the stopping condition.
@@ -193,44 +209,42 @@ class CMF:
             )
 
         position = start.copy()
-        fmpz = position.is_polynomial()
-        result = FlintMatrix.eye(self.N(), symbols, fmpz=fmpz)
+        result = FlintMatrix.eye(self.N(), ctx)
         for axis in self.axes_sorter(self.axes(), trajectory, start):
             if trajectory[axis] == 0:
                 continue
             sign = trajectory[axis] >= 0
             current = self.M(axis, sign)
-            result *= FlintMatrix.from_sympy(current, symbols, fmpz).subs(position)
+            result *= FlintMatrix.from_sympy(current, ctx).subs(position)
             position[axis] += trajectory[axis]
         return result
 
     def _trajectory_matrix_inner(
-        self, trajectory: Dict, start: Dict = None, symbol=n
+        self,
+        trajectory: Position,
+        start: Position,
+        symbol: sp.Symbol,
+        ctx: FlintContext,
     ) -> FlintMatrix:
-        trajectory = Position(trajectory)
-        position = (
+        start = (
             CMF.variable_reduction_substitution(trajectory, start, symbol)
             if start is not None
             else Position({axis: axis for axis in self.axes()})
         )
 
-        free_symbols = self.free_symbols().union(position.free_symbols())
-
         # Stopping condition: l-infinity norm of trajectory is less than 1
         if trajectory.longest() <= 1:
-            return self._calculate_diagonal_matrix(
-                trajectory, position, frozenset(free_symbols)
-            )
+            return self._calculate_diagonal_matrix(trajectory, start, ctx)
 
-        inner_symbol = sp.Symbol(f"{symbol}_inner")
-        free_symbols.add(inner_symbol)
-
-        fmpz = position.is_polynomial()
-        result = FlintMatrix.eye(self.N(), free_symbols, fmpz=fmpz)
+        result = FlintMatrix.eye(self.N(), ctx)
+        inner_symbol = CMF.inner_symbol(symbol)
         depth = trajectory.shortest()
+        position = start.copy()
         while depth > 0:
             diagonal = trajectory.signs()
-            result *= self._walk_inner(diagonal, int(depth), position, inner_symbol)
+            result *= self._walk_inner(
+                diagonal, int(depth), position, inner_symbol, ctx
+            )
             position += depth * diagonal
             trajectory -= depth * diagonal
             depth = trajectory.shortest()
@@ -261,7 +275,9 @@ class CMF:
                 f"Start axes {start.keys()} do not match CMF axes {self.axes()}"
             )
 
-        return self._trajectory_matrix_inner(trajectory, start, symbol).factor()
+        return self._trajectory_matrix_inner(
+            Position(trajectory), start, symbol, self.ctx(symbol, start)
+        ).factor()
 
     @staticmethod
     def variable_reduction_substitution(
@@ -294,10 +310,11 @@ class CMF:
         trajectory: Dict,
         iterations: List[int],
         start: Dict,
-        symbol=sp.Symbol("walk"),
+        symbol: sp.Symbol,
+        ctx: FlintContext,
     ) -> List[FlintMatrix]:
         trajectory_matrix = self._trajectory_matrix_inner(
-            trajectory, start, symbol=symbol
+            trajectory, start, symbol, ctx
         )
         return trajectory_matrix.walk({symbol: 1}, iterations, {symbol: 1})
 
@@ -334,8 +351,13 @@ class CMF:
             raise ValueError(
                 f"iterations must contain only non-negative values, got {iterations}"
             )
+
+        trajectory = Position(trajectory)
+        start = Position(start)
+        ctx = self.ctx(symbol, start)
         return [
-            m.factor() for m in self._walk_inner(trajectory, iterations, start, symbol)
+            m.factor()
+            for m in self._walk_inner(trajectory, iterations, start, symbol, ctx)
         ]
 
     @multimethod
