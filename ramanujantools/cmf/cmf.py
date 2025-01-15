@@ -226,6 +226,9 @@ class CMF:
         symbol: sp.Symbol,
         ctx: FlintContext,
     ) -> FlintMatrix:
+        """
+        Internal trajectory matrix logic, used for type conversions. Do not use directly.
+        """
         start = (
             CMF.variable_reduction_substitution(trajectory, start, symbol)
             if start is not None
@@ -307,12 +310,15 @@ class CMF:
 
     def _walk_inner(
         self,
-        trajectory: Dict,
+        trajectory: Position,
         iterations: List[int],
-        start: Dict,
+        start: Position,
         symbol: sp.Symbol,
         ctx: FlintContext,
     ) -> List[FlintMatrix]:
+        """
+        Internal walk logic, used for type conversions. Do not use directly.
+        """
         trajectory_matrix = self._trajectory_matrix_inner(
             trajectory, start, symbol, ctx
         )

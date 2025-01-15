@@ -80,3 +80,12 @@ def test_trajectory_matrix_4f3_huge(benchmark):
     trajectory = {x0: -1, x1: 1, x2: 2, x3: -2, y0: 3, y1: 7, y2: 4}
     start = trajectory
     benchmark(CMF.trajectory_matrix, cmf, trajectory, start)
+
+
+def test_walk_4f3(benchmark):
+    x0, x1, x2, x3 = sp.symbols("x:4")
+    y0, y1, y2 = sp.symbols("y:3")
+    cmf = pFq(4, 3, 1)
+    start = {x0: 1, x1: 1, x2: 2, x3: 2, y0: 3, y1: 3, y2: 4}
+    trajectory = {x0: 1, x1: 1, x2: 2, x3: 2, y0: 3, y1: 3, y2: 4}
+    benchmark(CMF.walk, cmf, trajectory, 1000, start)
