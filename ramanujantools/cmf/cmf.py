@@ -245,7 +245,7 @@ class CMF:
         position = start.copy()
         while depth > 0:
             diagonal = trajectory.signs()
-            result *= self._walk_inner(
+            result *= self._symbolic_walk(
                 diagonal, int(depth), position, inner_symbol, ctx
             )
             position += depth * diagonal
@@ -308,7 +308,7 @@ class CMF:
 
         return Position(start) + (symbol - 1) * Position(trajectory)
 
-    def _walk_inner(
+    def _symbolic_walk(
         self,
         trajectory: Position,
         iterations: List[int],
@@ -317,11 +317,24 @@ class CMF:
         ctx: FlintContext,
     ) -> List[FlintMatrix]:
         """
-        Internal walk logic, used for type conversions. Do not use directly.
+        Internal walk logic for symbolic calculations. Do not use directly.
         """
         trajectory_matrix = self._trajectory_matrix_inner(
             trajectory, start, symbol, ctx
         )
+        return trajectory_matrix.walk({symbol: 1}, iterations, {symbol: 1})
+
+    def _numeric_walk(
+        self,
+        trajectory: Position,
+        iterations: List[int],
+        start: Position,
+        symbol: sp.Symbol,
+    ) -> List[Matrix]:
+        """
+        Internal walk logic for numeric calculations. Do not use directly.
+        """
+        trajectory_matrix = self.trajectory_matrix(trajectory, start, symbol).factor()
         return trajectory_matrix.walk({symbol: 1}, iterations, {symbol: 1})
 
     @multimethod
@@ -346,6 +359,16 @@ class CMF:
             The limit of the walk multiplication as defined above.
             If `iterations` is a list, returns a list of limits.
         """
+        if self.axes() != trajectory.keys():
+            raise ValueError(
+                f"Trajectory axes {trajectory.keys()} do not match CMF axes {self.axes()}"
+            )
+
+        if start and self.axes() != start.keys():
+            raise ValueError(
+                f"Start axes {start.keys()} do not match CMF axes {self.axes()}"
+            )
+
         iterations_set = set(iterations)
         if len(iterations_set) != len(iterations):
             raise ValueError(f"`iterations` values must be unique, got {iterations}")
@@ -360,11 +383,14 @@ class CMF:
 
         trajectory = Position(trajectory)
         start = Position(start)
-        ctx = self.ctx(symbol, start)
-        return [
-            m.factor()
-            for m in self._walk_inner(trajectory, iterations, start, symbol, ctx)
-        ]
+        if start.free_symbols() != set():
+            ctx = self.ctx(symbol, start)
+            return [
+                m.factor()
+                for m in self._symbolic_walk(trajectory, iterations, start, symbol, ctx)
+            ]
+        else:
+            return self._numeric_walk(trajectory, iterations, start, symbol)
 
     @multimethod
     def walk(  # noqa: F811
