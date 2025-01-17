@@ -10,6 +10,7 @@ import sympy as sp
 from sympy.abc import n
 
 from ramanujantools import Position
+from ramanujantools.flint_core import mpoly_ctx, FlintMatrix
 
 
 class Matrix(sp.Matrix):
@@ -186,9 +187,9 @@ class Matrix(sp.Matrix):
         return Matrix(sp.simplify(self))
 
     def factor(self) -> Matrix:
-        from ramanujantools.flint_core import FlintMatrix
-
-        return FlintMatrix.from_sympy(self, self.free_symbols).factor()
+        return FlintMatrix.from_sympy(
+            self, mpoly_ctx(self.free_symbols, fmpz=True)
+        ).factor()
 
     def singular_points(self) -> List[Dict]:
         r"""
@@ -296,32 +297,11 @@ class Matrix(sp.Matrix):
         """
         from ramanujantools.flint_core import FlintMatrix
 
-        if not self.is_square():
-            raise ValueError(
-                f"Matrix.walk is only supported for square matrices, got a {self.rows}x{self.cols} matrix"
-            )
-
-        if start.keys() != trajectory.keys():
-            raise ValueError(
-                f"`start` and `trajectory` must contain same keys, got "
-                f"start={set(start.keys())}, trajectory={set(trajectory.keys())}"
-            )
-
-        iterations_set = set(iterations)
-        if len(iterations_set) != len(iterations):
-            raise ValueError(f"`iterations` values must be unique, got {iterations}")
-
-        if not iterations == tuple(sorted(iterations)):
-            raise ValueError(f"Iterations must be sorted, got {iterations}")
-
-        if not all(depth >= 0 for depth in iterations):
-            raise ValueError(
-                f"iterations must contain only non-negative values, got {iterations}"
-            )
-
         if self._can_call_flint_walk(trajectory, start):
             symbols = self.walk_free_symbols(start)
-            as_flint = FlintMatrix.from_sympy(self, symbols)
+            as_flint = FlintMatrix.from_sympy(
+                self, mpoly_ctx(symbols, fmpz=start.is_polynomial())
+            )
             results = as_flint.walk(trajectory, list(iterations), start)
             results = [result.factor() for result in results]
             return results
@@ -365,6 +345,28 @@ class Matrix(sp.Matrix):
                         if `start` and `trajectory` have different keys,
                         if `iterations` contains duplicate values
         """
+        if not self.is_square():
+            raise ValueError(
+                f"Matrix.walk is only supported for square matrices, got a {self.rows}x{self.cols} matrix"
+            )
+
+        if start.keys() != trajectory.keys():
+            raise ValueError(
+                f"`start` and `trajectory` must contain same keys, got "
+                f"start={set(start.keys())}, trajectory={set(trajectory.keys())}"
+            )
+
+        iterations_set = set(iterations)
+        if len(iterations_set) != len(iterations):
+            raise ValueError(f"`iterations` values must be unique, got {iterations}")
+
+        if not iterations == sorted(iterations):
+            raise ValueError(f"Iterations must be sorted, got {iterations}")
+
+        if not all(depth >= 0 for depth in iterations):
+            raise ValueError(
+                f"iterations must contain only non-negative values, got {iterations}"
+            )
         return self._walk_inner(
             Position(trajectory), tuple(iterations), Position(start)
         )

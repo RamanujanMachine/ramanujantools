@@ -6,6 +6,7 @@ import flint
 import sympy as sp
 
 from ramanujantools import Position
+from ramanujantools.flint_core import FlintPoly, FlintContext
 
 
 class FlintRational:
@@ -15,9 +16,7 @@ class FlintRational:
     """
 
     def __init__(
-        self,
-        numerator: flint.fmpz_mpoly | flint.fmpq_mpoly,
-        denominator: flint.fmpz_mpoly | flint.fmpq_mpoly,
+        self, numerator: FlintPoly, denominator: FlintPoly, ctx: FlintContext
     ) -> FlintRational:
         self.is_integer = isinstance(numerator, flint.fmpz_mpoly)
         gcd = numerator.gcd(denominator)
@@ -26,6 +25,32 @@ class FlintRational:
             gcd *= content
         self.numerator = numerator / gcd
         self.denominator = denominator / gcd
+        self.ctx = ctx
+
+    @staticmethod
+    def mpoly_from_sympy(poly: sp.Expr, ctx: FlintContext) -> FlintPoly:
+        r"""
+        Converts a sympy expression to a flint mpoly.
+        """
+        mpoly_type = type(ctx.constant(0))
+        return mpoly_type(str(poly).replace("**", "^"), ctx)
+
+    @staticmethod
+    def from_sympy(rational: sp.Expr, ctx: FlintContext) -> FlintRational:
+        r"""
+        Converts a rational function given as a sympy expression to a FlintRational.
+        Args:
+            rational: The expression to convert to flint
+            ctx: The desired mpoly context (which also defines the supported variables)
+        Returns:
+            A FlintRational object representing the `rational` value
+        """
+        numerator, denominator = rational.as_numer_denom()
+        return FlintRational(
+            FlintRational.mpoly_from_sympy(numerator, ctx),
+            FlintRational.mpoly_from_sympy(denominator, ctx),
+            ctx,
+        )
 
     @staticmethod
     def fmpq_gcd(numbers: List[flint.fmpq]) -> flint.fmpz:
@@ -36,51 +61,20 @@ class FlintRational:
         gcd = math.gcd(*numerators)
         return flint.fmpq(gcd, denominator)
 
-    @staticmethod
-    def mpoly_from_sympy(poly: sp.Expr, ctx) -> flint.fmpz_mpoly | flint.fmpq_mpoly:
-        r"""
-        Converts a sympy expression to a flint mpoly.
-        """
-        mpoly_type = type(ctx.constant(0))
-        return mpoly_type(str(poly).replace("**", "^"), ctx)
-
-    @staticmethod
-    def from_sympy(rational: sp.Expr, symbols: List = None, fmpz=True) -> FlintRational:
-        r"""
-        Converts a rational function given as a sympy expression to a FlintRational.
-        Args:
-            rational: The expression to convert to flint
-            symbols: The symbol list to be used inside the context (needed all of them in advance)
-            fmpz: decide between fmpq (supports rational subs) and fmpz (faster but only integer subs).
-        Returns:
-            A FlintRational object representing the `rational` value
-        """
-        symbols = symbols or list(sorted(rational.free_symbols, key=str))
-        symbols = [str(symbol) for symbol in symbols]
-        if fmpz:
-            ctx = flint.fmpz_mpoly_ctx.get(symbols, "lex")
-        else:
-            ctx = flint.fmpq_mpoly_ctx.get(symbols, "lex")
-        assert len(ctx.gens()) == len(symbols)
-        numerator, denominator = rational.as_numer_denom()
-        return FlintRational(
-            FlintRational.mpoly_from_sympy(numerator, ctx),
-            FlintRational.mpoly_from_sympy(denominator, ctx),
-        )
-
     def inv(self) -> FlintRational:
         """
         Returns 1 / self.
         """
-        return FlintRational(self.denominator, self.numerator)
+        return FlintRational(self.denominator, self.numerator, self.ctx)
 
     def __neg__(self):
-        return FlintRational(-self.numerator, self.denominator)
+        return FlintRational(-self.numerator, self.denominator, self.ctx)
 
     def __add__(self, other: FlintRational) -> FlintRational:
         return FlintRational(
             self.numerator * other.denominator + self.denominator * other.numerator,
             self.denominator * other.denominator,
+            self.ctx,
         )
 
     def __radd__(self, other: FlintRational) -> FlintRational:
@@ -96,9 +90,9 @@ class FlintRational:
         if isinstance(other, FlintRational):
             numerator = self.numerator * other.numerator
             denominator = self.denominator * other.denominator
-            return FlintRational(numerator, denominator)
+            return FlintRational(numerator, denominator, self.ctx)
         else:
-            return FlintRational(self.numerator * other, self.denominator)
+            return FlintRational(self.numerator * other, self.denominator, self.ctx)
 
     def __rmul__(self, other) -> FlintRational:
         return self * other
@@ -106,7 +100,7 @@ class FlintRational:
     def __truediv__(self, other) -> FlintRational:
         if isinstance(other, FlintRational):
             return self * other.inv()
-        return FlintRational(self.numerator, self.denominator * other)
+        return FlintRational(self.numerator, self.denominator * other, self.ctx)
 
     def __rtruediv__(self, other) -> FlintRational:
         return other * self.inv()
@@ -129,11 +123,12 @@ class FlintRational:
         substitutions = Position(
             {str(key): value for key, value in substitutions.items()}
         )
-        ctx = self.numerator.context()
         composition = []
-        for gen in ctx.gens():
+        for gen in self.ctx.gens():
             if str(gen) in substitutions:
-                value = FlintRational.mpoly_from_sympy(substitutions[str(gen)], ctx)
+                value = FlintRational.mpoly_from_sympy(
+                    substitutions[str(gen)], self.ctx
+                )
             else:
                 value = gen
             composition.append(value)
@@ -145,6 +140,7 @@ class FlintRational:
         return FlintRational(
             (content * self.numerator).compose(*composition),
             (content * self.denominator).compose(*composition),
+            self.ctx,
         )
 
     @staticmethod

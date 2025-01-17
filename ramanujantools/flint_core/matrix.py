@@ -2,11 +2,13 @@ from __future__ import annotations
 
 from typing import Dict, List
 
-import sympy as sp
 from multimethod import multimethod
 
-from ramanujantools import Matrix, Position
-from ramanujantools.flint_core import FlintRational
+import sympy as sp
+
+import ramanujantools as rt
+from ramanujantools import Position
+from ramanujantools.flint_core import FlintRational, FlintContext
 
 
 class FlintMatrix:
@@ -17,42 +19,39 @@ class FlintMatrix:
     """
 
     def __init__(
-        self, rows: int, cols: int, values: List[FlintRational], symbols
+        self, rows: int, cols: int, values: List[FlintRational], ctx: FlintContext
     ) -> FlintMatrix:
-        self.symbols = symbols
         self._rows = rows
         self._cols = cols
         self.values = values
+        self.ctx = ctx
 
     @staticmethod
-    def from_sympy(matrix: Matrix, symbols=None, fmpz=True) -> FlintMatrix:
+    def from_sympy(matrix: rt.Matrix, ctx: FlintContext) -> FlintMatrix:
         """
         Converts a Matrix to FlintMatrix.
         Args:
             matrix: The matrix as ramanujantools.Matrix
-            symbols: The symbols this matrix supports
-            fmpz: decide between fmpq (supports rational subs) and fmpz (faster but only integer subs).
+            ctx: The desired mpoly context (which also defines the supported variables)
         """
-        symbols = [str(symbol) for symbol in symbols or matrix.free_symbols]
-        values = [FlintRational.from_sympy(cell, symbols, fmpz) for cell in matrix]
-        return FlintMatrix(matrix.rows, matrix.cols, values, symbols)
+        values = [FlintRational.from_sympy(cell, ctx) for cell in matrix]
+        return FlintMatrix(matrix.rows, matrix.cols, values, ctx)
 
     @staticmethod
-    def eye(N: int, symbols, fmpz=True) -> FlintMatrix:
+    def eye(N: int, ctx: FlintContext) -> FlintMatrix:
         """
         Creates an identity matrix of size N.
 
         Args:
             N: The squared matrix dimension
-            symbols: The symbols this matrix supports
-            fmpz: decide between fmpq (supports rational subs) and fmpz (faster but only integer subs).
+            ctx: The desired mpoly context (which also defines the supported variables)
         """
-        values = [FlintRational.from_sympy(sp.simplify(0), symbols, fmpz=fmpz)] * N**2
+        values = [FlintRational.from_sympy(sp.simplify(0), ctx)] * N**2
         current = 0
         while current < N**2:
             values[current] += 1
             current += N + 1
-        return FlintMatrix(N, N, values, symbols)
+        return FlintMatrix(N, N, values, ctx)
 
     def __getitem__(self, key):
         """
@@ -80,12 +79,6 @@ class FlintMatrix:
 
     def __eq__(self, other: FlintRational):
         return self.values == other.values
-
-    def free_symbols(self):
-        """
-        Returns the free symbols this matrix supports
-        """
-        return self.symbols
 
     def rows(self):
         return self._rows
@@ -134,14 +127,14 @@ class FlintMatrix:
                     for k in range(self.cols()):
                         current += self[row, k] * other[k, col]
                     elements.append(current)
-            return FlintMatrix(self.rows(), self.cols(), elements, self.free_symbols())
+            return FlintMatrix(self.rows(), self.cols(), elements, self.ctx)
 
         else:
             return FlintMatrix(
                 self.rows(),
                 self.cols(),
                 [value * other for value in self.values],
-                self.free_symbols(),
+                self.ctx,
             )
 
     def __rmul__(self, other: FlintMatrix | int) -> FlintMatrix:
@@ -162,7 +155,7 @@ class FlintMatrix:
             self.rows(),
             self.cols(),
             [value / other for value in self.values],
-            self.free_symbols(),
+            self.ctx,
         )
 
     def subs(self, substitutions: Dict) -> FlintMatrix:
@@ -173,15 +166,15 @@ class FlintMatrix:
             self.rows(),
             self.cols(),
             [value.subs(substitutions) for value in self.values],
-            self.free_symbols(),
+            self.ctx,
         )
 
-    def factor(self) -> Matrix:
+    def factor(self) -> rt.Matrix:
         """
         Factors all elements in the matrix.
         """
         values = [value.factor() for value in self.values]
-        return Matrix(self.rows(), self.cols(), values)
+        return rt.Matrix(self.rows(), self.cols(), values)
 
     @multimethod
     def walk(self, trajectory: Dict, iterations: List[int], start: Dict) -> FlintMatrix:
@@ -209,9 +202,7 @@ class FlintMatrix:
         position = Position(start)
         trajectory = Position(trajectory)
         results = []
-        matrix = FlintMatrix.eye(
-            self.rows(), self.free_symbols(), fmpz=position.is_polynomial()
-        )
+        matrix = FlintMatrix.eye(self.rows(), self.ctx)
         for depth in range(0, iterations[-1]):
             if depth in iterations:
                 results.append(matrix)
@@ -226,5 +217,5 @@ class FlintMatrix:
         trajectory: Dict,
         iterations: int,
         start: Dict,
-    ) -> Matrix:
+    ) -> rt.Matrix:
         return self.walk(trajectory, [iterations], start)[0]
