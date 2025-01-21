@@ -188,6 +188,32 @@ class CMF:
             }
         )
 
+    def _calculate_diagonal_matrix_backtrack(
+        self, trajectory: Position, start: Position, ctx: FlintContext
+    ) -> FlintMatrix:
+        """
+        Inner function of an inner function. DO NOT USE DIRECTLY.
+        This is the backtracking hook used for `_calculate_diagonal_marix`.
+        It's used to look for a non-singular path towards the trajectroy matrix.
+        """
+        if trajectory.longest() == 0:
+            return FlintMatrix.eye(self.N(), ctx)
+        for axis in sorted(trajectory.keys(), key=str):
+            try:
+                inner_trajectory = trajectory.copy()
+                position = start.copy()
+                sign = inner_trajectory[axis] >= 0
+                current = FlintMatrix.from_sympy(self.M(axis, sign), ctx).subs(position)
+                position[axis] += inner_trajectory.pop(axis)
+                return current * self._calculate_diagonal_matrix_backtrack(
+                    inner_trajectory, position, ctx
+                )
+            except ZeroDivisionError:
+                continue
+        raise ZeroDivisionError(
+            "A singularity has occured in every possible trajectory combination"
+        )
+
     @lru_cache
     def _calculate_diagonal_matrix(
         self, trajectory: Position, start: Position, ctx: FlintContext
@@ -207,17 +233,11 @@ class CMF:
             raise ValueError(
                 f"Called _calculate_diagonal_matrix with a trajectory that is not a simple diagonal: {trajectory}"
             )
+        trajectory = Position(
+            {axis: value for axis, value in trajectory.items() if value != 0}
+        )
 
-        position = start.copy()
-        result = FlintMatrix.eye(self.N(), ctx)
-        for axis in self.axes_sorter(self.axes(), trajectory, start):
-            if trajectory[axis] == 0:
-                continue
-            sign = trajectory[axis] >= 0
-            current = self.M(axis, sign)
-            result *= FlintMatrix.from_sympy(current, ctx).subs(position)
-            position[axis] += trajectory[axis]
-        return result
+        return self._calculate_diagonal_matrix_backtrack(trajectory, start, ctx)
 
     def _trajectory_matrix_inner(
         self,
