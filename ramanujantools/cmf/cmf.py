@@ -198,7 +198,7 @@ class CMF:
         """
         if trajectory.longest() == 0:
             return FlintMatrix.eye(self.N(), ctx)
-        for axis in trajectory:
+        for axis in sorted(trajectory.keys(), key=str):
             try:
                 inner_trajectory = trajectory.copy()
                 position = start.copy()
@@ -210,7 +210,7 @@ class CMF:
                 )
             except ZeroDivisionError:
                 continue
-        raise ValueError(
+        raise ZeroDivisionError(
             "A singularity has occured in every possible trajectory combination"
         )
 
