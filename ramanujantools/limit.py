@@ -76,7 +76,7 @@ class Limit:
     @property
     def mp(self):
         limit_ctx = mp.mp.clone()
-        limit_ctx.dps = self.precision()
+        limit_ctx.dps = self.precision() * 1.1
         return limit_ctx
 
     @staticmethod
@@ -172,6 +172,8 @@ class Limit:
         p, q = self.as_rational()
         gcd = sp.gcd(p, q)
         reduced_q = self.mp.fabs(q // gcd)
+        if q == 0:
+            return self.mp.mpf("-inf")
         if reduced_q == 1:
             return self.mp.mpf("inf")
         return -(1 + self.mp.log(self.mp.fabs(L - (p / q)), reduced_q))
