@@ -436,7 +436,7 @@ class Matrix(sp.Matrix):
         Assumes polynomial only contain n as a free symbol.
         """
         current_degree = 0
-        charpoly_coeffs = poly.coeffs()
+        charpoly_coeffs = poly.all_coeffs()
         for i in range(len(charpoly_coeffs)):
             coeff = charpoly_coeffs[i]
             numerator, denominator = coeff.as_numer_denom()
@@ -512,7 +512,7 @@ class Matrix(sp.Matrix):
         for limit in limits:
             p, q = limit.as_rational()
             gcd = sp.gcd(p, q)
-            q_reduced_list.append(sp.log(abs(q // gcd).evalf(30)))
+            q_reduced_list.append(sp.log(abs(q // gcd)).evalf(30))
         fit = np.polyfit(
             np.array(depths), np.array(q_reduced_list, dtype=np.float64), 1
         )
