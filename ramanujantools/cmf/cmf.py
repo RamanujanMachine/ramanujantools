@@ -55,6 +55,12 @@ class CMF:
     def __repr__(self) -> str:
         return f"CMF({self.matrices})"
 
+    def __getstate__(self):
+        return self.matrices
+
+    def __setstate__(self, state):
+        self.matrices = state
+
     def _are_conserving(
         self,
         x: sp.Symbol,
