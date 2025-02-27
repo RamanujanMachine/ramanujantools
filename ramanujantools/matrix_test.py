@@ -124,7 +124,7 @@ def test_singular_points_multi_variable():
 def test_coboundary():
     m = Matrix([[1, n, 2], [3, n**2, 5 * n], [n - 7, n**2 + 1, n - 3]])
     U = Matrix([[3, 1, n - 2], [5, n**2 - 3 * n + 1, 0], [11 * n + 2, 3, n - 19]])
-    expected = U * m * U.inverse().subs({n: n + 1})
+    expected = U.inverse() * m * U.subs({n: n + 1})
     assert expected == m.coboundary(U)
 
 
