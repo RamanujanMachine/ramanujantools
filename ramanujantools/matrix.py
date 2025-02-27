@@ -204,7 +204,7 @@ class Matrix(sp.Matrix):
 
     def coboundary(self, U: Matrix, symbol: sp.Symbol = n) -> Matrix:
         r"""
-        Calculates the coboundary relation of M and U $U(n) * M(n) * U^{-1}(n+1)$, where $M$ is `self`.
+        Calculates the coboundary relation of M and U $U^{-1}(n) * M(n) * U^(n+1)$, where $M$ is `self`.
 
         Args:
             U: The coboundary matrix
@@ -212,7 +212,7 @@ class Matrix(sp.Matrix):
         Returns:
             The coboundary relation as described above
         """
-        return (U * self * U.inverse().subs({symbol: symbol + 1})).simplify()
+        return (U.inverse() * self * U.subs({symbol: symbol + 1})).simplify()
 
     def companion_coboundary_matrix(self, symbol: sp.Symbol = n) -> Matrix:
         r"""
@@ -226,7 +226,7 @@ class Matrix(sp.Matrix):
         vectors = [e1]
         for i in range(1, N):
             vectors.append(self * vectors[i - 1].subs({symbol: symbol + 1}))
-        return Matrix.hstack(*vectors).inverse().simplify()
+        return Matrix.hstack(*vectors).simplify()
 
     @staticmethod
     def companion_form(values: List[sp.Expr]) -> Matrix:
@@ -283,7 +283,17 @@ class Matrix(sp.Matrix):
         Args:
             inflate_all: if True, will greedily inflate the companion form matrix until it's polynomial.
         """
-        return self.coboundary(self.companion_coboundary_matrix())
+        U = self.companion_coboundary_matrix()
+        rank = U.rank()
+        if rank == self.rows:
+            return self.coboundary(self.companion_coboundary_matrix())
+        else:
+            symbols = sp.symbols(f"c:{rank}")
+            variables = Matrix(symbols + (-1,))
+            truncated = U[:, : rank + 1]
+            solutions = sp.solve(truncated * variables, symbols)
+            elements = [solutions[symbol] for symbol in symbols]
+            return Matrix.companion_form(elements)
 
     @lru_cache
     def _walk_inner(
