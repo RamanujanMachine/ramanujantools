@@ -4,6 +4,7 @@ import sympy as sp
 from sympy.abc import x, y, n
 
 from ramanujantools import Matrix, Limit, simplify
+from ramanujantools.pcf import PCF
 from ramanujantools.cmf.known_cmfs import pFq
 
 
@@ -166,6 +167,24 @@ def test_as_companion():
 
     companion = m.as_companion()
     assert companion.is_companion()
+
+
+def test_as_companion_smaller_recursion():
+    # This matrix is derived from pFq(4, 3, 1) with
+    # start = {x0: 0, x1: 0, x2: 1, x3: 1, y0: 1, y1: 1, y2: 1},
+    # trajectory = {x0: -1, x1: -1, x2: 1, x3: 1, y0: 0, y1: 0, y2: 0}
+    m = Matrix(
+        [
+            [(17 * n - 12) / n, 12 * n - 8, 4 * n * (2 * n - 1)],
+            [(24 * n - 24) / n**2, (17 * n - 16) / n, 12 * n - 8],
+            [-12 / n**3, -8 / n**2, (n - 4) / n],
+        ]
+    )
+    companion = m.as_companion()
+    assert companion.is_companion()
+    assert 2 == companion.rows
+    # This is Apery's PCF
+    assert companion.as_pcf().pcf == PCF(34 * n**3 + 51 * n**2 + 27 * n + 5, -(n**6))
 
 
 def test_companion_coboundary_two_variables():

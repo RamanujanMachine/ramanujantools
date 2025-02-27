@@ -283,7 +283,17 @@ class Matrix(sp.Matrix):
         Args:
             inflate_all: if True, will greedily inflate the companion form matrix until it's polynomial.
         """
-        return self.coboundary(self.companion_coboundary_matrix())
+        U = self.companion_coboundary_matrix()
+        rank = U.rank()
+        if rank == self.rows:
+            return self.coboundary(self.companion_coboundary_matrix())
+        else:
+            symbols = sp.symbols(f"c:{rank}")
+            variables = Matrix(symbols + (-1,))
+            truncated = U[:, : rank + 1]
+            solutions = sp.solve(truncated * variables, symbols)
+            elements = [solutions[symbol] for symbol in symbols]
+            return Matrix.companion_form(elements)
 
     @lru_cache
     def _walk_inner(
