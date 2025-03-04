@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Callable, Dict, List
 
-from flint import fmpq_mat, fmpq
+from flint import fmpq_mat, fmpq  # noqa: F401
 from sympy.utilities.lambdify import lambdastr
 from sympy.printing.pycode import SymPyPrinter
 
