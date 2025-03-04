@@ -60,11 +60,35 @@ class NumericMatrix(fmpq_mat):
         retval = NumericMatrix.eye(matrix.rows)
         for depth in range(0, iterations[-1]):
             if depth in iterations:
-                results.append(NumericMatrix(retval))
+                results.append(retval)
             retval *= fast_subs(position)
             position += trajectory
-        results.append(NumericMatrix(retval))  # Last matrix, for iterations[-1]
+        results.append(retval)  # Last matrix, for iterations[-1]
         return results
 
     def to_rt(self) -> rt.Matrix:
         return rt.Matrix(self.nrows(), self.ncols(), list(self))
+
+    def __neg__(self) -> NumericMatrix:
+        return NumericMatrix(super().__neg__())
+
+    def __add__(self, other) -> NumericMatrix:
+        return NumericMatrix(super().__add__(other))
+
+    def __radd__(self, other) -> NumericMatrix:
+        return NumericMatrix(super().__radd__(other))
+
+    def __sub__(self, other) -> NumericMatrix:
+        return NumericMatrix(super().__sub__(other))
+
+    def __rsub__(self, other) -> NumericMatrix:
+        return NumericMatrix(super().__rsub__(other))
+
+    def __mul__(self, other) -> NumericMatrix:
+        return NumericMatrix(super().__mul__(other))
+
+    def __rmul__(self, other) -> NumericMatrix:
+        return NumericMatrix(super().__rmul__(other))
+
+    def __div__(self, other) -> NumericMatrix:
+        return NumericMatrix(super().__div__(other))
