@@ -10,11 +10,9 @@ import numpy as np
 import mpmath as mp
 import sympy as sp
 from sympy.abc import n
-from sympy.utilities.lambdify import lambdastr
-from sympy.printing.pycode import SymPyPrinter
 
 from ramanujantools import Position
-from ramanujantools.flint_core import mpoly_ctx, FlintMatrix
+from ramanujantools.flint_core import mpoly_ctx, SymbolicMatrix, NumericMatrix
 
 
 class Matrix(sp.Matrix):
@@ -85,35 +83,6 @@ class Matrix(sp.Matrix):
 
         return (self.free_symbols - subbed_out).union(subbed_in) == set()
 
-    @lru_cache
-    def create_fast_subs(self) -> Callable:
-        """
-        Returns a function that evaluates the matrix at given substitutions.
-
-        Works by storing the matrix as a string, setting all local symbols as variables in the local scope,
-        and then simply (but not symply) returning it.
-        Evaluation occures in the python interpreter, rather by recursively substituting the sympy expressions.
-        This optimizes by a factor of 2~
-        """
-        # Makes sp.Rational(1, 2) print as "S(1)/2" rather than "1/2""
-        SymPyPrinter()._default_settings["sympy_integers"] = True
-
-        symbols = list(sorted(self.free_symbols, key=str))
-        evaluation_string = (
-            lambdastr(symbols, self, printer=SymPyPrinter)
-            .replace("ImmutableDenseMatrix", "fmpq_mat")
-            .replace("**S", "**")
-            .replace("S", "fmpq")
-        )
-
-        def fast_subs(substitutions: Dict):
-            values = [substitutions[symbol] for symbol in symbols]
-            print(evaluation_string)
-            print(values)
-            return eval(evaluation_string)(*values)
-
-        return fast_subs
-
     def is_square(self) -> int:
         """
         Returns the amount of rows/columns of the square matrix (which is of dimension NxN)
@@ -176,7 +145,7 @@ class Matrix(sp.Matrix):
         return Matrix(sp.simplify(self))
 
     def factor(self) -> Matrix:
-        return FlintMatrix.from_sympy(
+        return SymbolicMatrix.from_sympy(
             self, mpoly_ctx(self.free_symbols, fmpz=True)
         ).factor()
 
@@ -295,23 +264,11 @@ class Matrix(sp.Matrix):
         Internal walk function, used for type conversions and for caching. Do not use directly.
         """
         if self._is_numeric_walk(trajectory, start):
-            results = []
-            position = start.copy()
-            fast_subs = self.create_fast_subs()
-            # Ugly way to construct an eye matrix of type fmpq_mat
-            matrix = Matrix.eye(self.rows).create_fast_subs()(position)
-            for depth in range(0, iterations[-1]):
-                if depth in iterations:
-                    results.append(matrix)
-                matrix *= fast_subs(position)
-                position += trajectory
-            results.append(matrix)  # Last matrix, for iterations[-1]
-            return [Matrix(self.rows, self.cols, list(result)) for result in results]
+            results = NumericMatrix.walk_list(self, trajectory, iterations, start)
+            return [result.to_rt() for result in results]
         else:
-            from ramanujantools.flint_core import FlintMatrix
-
             symbols = self.walk_free_symbols(start)
-            as_flint = FlintMatrix.from_sympy(
+            as_flint = SymbolicMatrix.from_sympy(
                 self, mpoly_ctx(symbols, fmpz=start.is_polynomial())
             )
             results = as_flint.walk(trajectory, list(iterations), start)

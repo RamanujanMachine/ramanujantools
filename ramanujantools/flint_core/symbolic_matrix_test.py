@@ -2,12 +2,12 @@ import sympy as sp
 from sympy.abc import n
 
 from ramanujantools import Matrix
-from ramanujantools.flint_core import mpoly_ctx, FlintMatrix
+from ramanujantools.flint_core import mpoly_ctx, SymbolicMatrix
 
 
-def flintify(matrix: Matrix, fmpz=True) -> FlintMatrix:
+def flintify(matrix: Matrix, fmpz=True) -> SymbolicMatrix:
     ctx = mpoly_ctx(matrix.free_symbols, fmpz)
-    return FlintMatrix.from_sympy(matrix, ctx)
+    return SymbolicMatrix.from_sympy(matrix, ctx)
 
 
 def test_factor():
