@@ -9,7 +9,12 @@ import sympy as sp
 from sympy.abc import n
 
 from ramanujantools import Position, Matrix, Limit, simplify
-from ramanujantools.flint_core import SymbolicMatrix, FlintContext, mpoly_ctx
+from ramanujantools.flint_core import (
+    NumericMatrix,
+    SymbolicMatrix,
+    FlintContext,
+    mpoly_ctx,
+)
 
 
 class CMF:
@@ -111,18 +116,13 @@ class CMF:
                 )
 
     @staticmethod
-    def inner_symbol(symbol: sp.Symbol) -> sp.Symbol:
-        """
-        Returns the inner symbol used in calculations, based on the symbol used.
-        """
-        return sp.Symbol(f"{symbol}_inner")
+    def walk_symbol() -> sp.Symbol:
+        return sp.Symbol("walk")
 
-    def ctx(self, symbol: sp.Symbol, start: Optional[Position]) -> FlintContext:
+    def ctx(self, start: Optional[Position]) -> FlintContext:
         start = Position(start) if start else Position()
         free_symbols = (
-            self.free_symbols()
-            .union({symbol, CMF.inner_symbol(symbol)})
-            .union(start.free_symbols())
+            self.free_symbols().union({CMF.walk_symbol()}).union(start.free_symbols())
         )
         return mpoly_ctx(free_symbols, fmpz=start.is_polynomial())
 
@@ -209,7 +209,9 @@ class CMF:
                 inner_trajectory = trajectory.copy()
                 position = start.copy()
                 sign = inner_trajectory[axis] >= 0
-                current = SymbolicMatrix.from_sympy(self.M(axis, sign), ctx).subs(position)
+                current = SymbolicMatrix.from_sympy(self.M(axis, sign), ctx).subs(
+                    position
+                )
                 position[axis] += inner_trajectory.pop(axis)
                 return current * self._calculate_diagonal_matrix_backtrack(
                     inner_trajectory, position, ctx
@@ -245,42 +247,89 @@ class CMF:
 
         return self._calculate_diagonal_matrix_backtrack(trajectory, start, ctx)
 
-    def _trajectory_matrix_inner(
+    def _work_symbolic(
         self,
         trajectory: Position,
         start: Position,
-        symbol: sp.Symbol,
-        ctx: FlintContext,
     ) -> SymbolicMatrix:
         """
-        Internal trajectory matrix logic, used for type conversions. Do not use directly.
+        Internal work logic. Do not use directly.
         """
-        start = (
-            CMF.variable_reduction_substitution(trajectory, start, symbol)
-            if start is not None
-            else Position({axis: axis for axis in self.axes()})
-        )
-
+        ctx = self.ctx(start)
         # Stopping condition: l-infinity norm of trajectory is less than 1
         if trajectory.longest() <= 1:
             return self._calculate_diagonal_matrix(trajectory, start, ctx)
 
         result = SymbolicMatrix.eye(self.N(), ctx)
-        inner_symbol = CMF.inner_symbol(symbol)
+        symbol = CMF.walk_symbol()
         depth = trajectory.shortest()
         position = start.copy()
         while depth > 0:
             diagonal = trajectory.signs()
-            result *= self._symbolic_walk(
-                diagonal, int(depth), position, inner_symbol, ctx
+            result *= self._trajectory_matrix_inner(diagonal, position, symbol).walk(
+                {symbol: 1}, int(depth), {symbol: 1}
             )
             position += depth * diagonal
             trajectory -= depth * diagonal
             depth = trajectory.shortest()
         return result
 
+    def _work_numeric(
+        self,
+        trajectory: Position,
+        start: Position,
+    ) -> NumericMatrix:
+        """
+        Internal work logic. Do not use directly.
+        """
+        ctx = self.ctx(start)
+        # Stopping condition: l-infinity norm of trajectory is less than 1
+        if trajectory.longest() <= 1:
+            matrix = self._calculate_diagonal_matrix(trajectory, start, ctx).factor()
+            return NumericMatrix.lambda_from_rt(matrix)(start)
+
+        result = NumericMatrix.eye(self.N())
+        symbol = CMF.walk_symbol()
+        depth = trajectory.shortest()
+        position = start.copy()
+        while depth > 0:
+            diagonal = trajectory.signs()
+            result *= NumericMatrix.walk(
+                self.trajectory_matrix(diagonal, position, symbol),
+                Position({symbol: 1}),
+                int(depth),
+                Position({symbol: 1}),
+            )
+            position += depth * diagonal
+            trajectory -= depth * diagonal
+            depth = trajectory.shortest()
+        return result
+
+    def work(self, start: Position, end: Position) -> Matrix:
+        """
+        Returns the transformation matrix corresponding to walking from start to end
+        """
+        start = Position(start)
+        end = Position(end)
+        trajectory = end - start
+        if not trajectory.is_integer():
+            raise ValueError(
+                f"Can only calculate work for two points with integer trajectory between them! "
+                f"start={start}, end={end}, trajectory={trajectory}"
+            )
+        if start.free_symbols() == set():
+            return self._work_numeric(trajectory, start).to_rt()
+        else:
+            return self._work_symbolic(trajectory, start).factor()
+
+    def _trajectory_matrix_inner(
+        self, trajectory: Position, start: Position, symbol: sp.Symbol
+    ) -> SymbolicMatrix:
+        start = self.trajectory_substitution(trajectory, start, symbol)
+        return self._work_symbolic(trajectory, start)
+
     def trajectory_matrix(
-        self, trajectory: Dict, start: Dict = None, symbol=n
+        self, trajectory: Dict, start: Dict, symbol: sp.Symbol = n
     ) -> Matrix:
         """
         Returns a corresponding matrix for walking in a trajectory, up to a constant.
@@ -294,26 +343,26 @@ class CMF:
             ValueError: if trajectory, start and matrix keys do not match.
         """
 
+        trajectory = Position(trajectory)
+        start = Position(start)
+
         if self.axes() != trajectory.keys():
             raise ValueError(
                 f"Trajectory axes {trajectory.keys()} do not match CMF axes {self.axes()}"
             )
 
-        if start and self.axes() != start.keys():
+        if not set(start.keys()).issubset(self.axes()):
             raise ValueError(
-                f"Start axes {start.keys()} do not match CMF axes {self.axes()}"
+                f"Start axes {start.keys()} are not a subset of CMF axes {self.axes()}!"
             )
 
-        return self._trajectory_matrix_inner(
-            Position(trajectory), start, symbol, self.ctx(symbol, start)
-        ).factor()
+        return self._trajectory_matrix_inner(trajectory, start, symbol).factor()
 
-    @staticmethod
-    def variable_reduction_substitution(
-        trajectory: Position, start: Position, symbol: sp.Symbol
+    def trajectory_substitution(
+        self, trajectory: Position, start: Position, symbol: sp.Symbol
     ) -> Position:
         """
-        Returns the substitution that reduces all CMF variables into one variable.
+        Returns the substitution of the start position to a function of the new trajectory symbol.
 
         This transformation is possible only when the starting point is known.
         Each incrementation of the variable `symbol` represents a full step in `trajectory`.
@@ -327,41 +376,19 @@ class CMF:
         Raises:
             ValueError: if trajectory keys and start keys do not match
         """
-        if start.keys() != trajectory.keys():
+        trajectory = Position(trajectory)
+        start = Position(start)
+
+        if symbol in start or symbol in trajectory or symbol in start.free_symbols():
             raise ValueError(
-                f"Trajectory axes {trajectory.keys()} do not match start axes {start.keys()}"
+                f"Attempted to run a trajectory_matrix where desired symbol is in start or trajectory! "
+                f"symbol={symbol}, start={start}, trajectory={trajectory}"
             )
+        effective_start = Position({axis: axis for axis in self.axes()})
+        for axis in start:
+            effective_start[axis] = start[axis]
 
-        return Position(start) + (symbol - 1) * Position(trajectory)
-
-    def _symbolic_walk(
-        self,
-        trajectory: Position,
-        iterations: List[int],
-        start: Position,
-        symbol: sp.Symbol,
-        ctx: FlintContext,
-    ) -> List[SymbolicMatrix]:
-        """
-        Internal walk logic for symbolic calculations. Do not use directly.
-        """
-        trajectory_matrix = self._trajectory_matrix_inner(
-            trajectory, start, symbol, ctx
-        )
-        return trajectory_matrix.walk({symbol: 1}, iterations, {symbol: 1})
-
-    def _numeric_walk(
-        self,
-        trajectory: Position,
-        iterations: List[int],
-        start: Position,
-        symbol: sp.Symbol,
-    ) -> List[Matrix]:
-        """
-        Internal walk logic for numeric calculations. Do not use directly.
-        """
-        trajectory_matrix = self.trajectory_matrix(trajectory, start, symbol).factor()
-        return trajectory_matrix.walk({symbol: 1}, iterations, {symbol: 1})
+        return effective_start + (symbol - 1) * Position(trajectory)
 
     @multimethod
     def walk(  # noqa: F811
@@ -369,7 +396,6 @@ class CMF:
         trajectory: Dict,
         iterations: List[int],
         start: Dict,
-        symbol=sp.Symbol("walk"),
     ) -> List[Matrix]:
         r"""
         Returns a list of trajectorial walk multiplication matrices in the desired depths.
@@ -409,14 +435,9 @@ class CMF:
 
         trajectory = Position(trajectory)
         start = Position(start)
-        if start.free_symbols() != set():
-            ctx = self.ctx(symbol, start)
-            return [
-                m.factor()
-                for m in self._symbolic_walk(trajectory, iterations, start, symbol, ctx)
-            ]
-        else:
-            return self._numeric_walk(trajectory, iterations, start, symbol)
+        return self.trajectory_matrix(trajectory, start).walk(
+            {n: 1}, iterations, {n: 1}
+        )
 
     @multimethod
     def walk(  # noqa: F811
@@ -424,9 +445,8 @@ class CMF:
         trajectory: Dict,
         iterations: int,
         start: Dict,
-        symbol=sp.Symbol("walk"),
     ) -> Matrix:
-        return self.walk(trajectory, [iterations], start, symbol)[0]
+        return self.walk(trajectory, [iterations], start)[0]
 
     @multimethod
     def limit(

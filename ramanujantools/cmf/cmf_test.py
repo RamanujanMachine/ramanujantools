@@ -27,18 +27,22 @@ def test_symbols():
 
 def test_trajectory_matrix_axis():
     cmf = known_cmfs.e()
-    assert cmf.trajectory_matrix({x: 3, y: 0}) == simplify(
-        cmf.M(x).walk({x: 1, y: 0}, 3, {x: x, y: y})
-    )
-    assert cmf.trajectory_matrix({x: 0, y: 2}) == simplify(
-        cmf.M(y).walk({x: 0, y: 1}, 2, {x: x, y: y})
-    )
+    assert cmf.trajectory_matrix({x: 3, y: 0}, {x: x, y: y}).walk(
+        {n: 1}, 1, {n: 1}
+    ) == simplify(cmf.M(x).walk({x: 1, y: 0}, 3, {x: x, y: y}))
+    assert cmf.trajectory_matrix({x: 0, y: 2}, {x: x, y: y}).walk(
+        {n: 1}, 1, {n: 1}
+    ) == simplify(cmf.M(y).walk({x: 0, y: 1}, 2, {x: x, y: y}))
 
 
 def test_trajectory_matrix_diagonal():
     cmf = known_cmfs.e()
-    assert cmf.trajectory_matrix({x: 1, y: 1}) == simplify(
-        cmf.M(x) * cmf.M(y)({x: x + 1})
+    trajectory = Position({x: 1, y: 1})
+    start = Position({x: x, y: y})
+    assert cmf.trajectory_matrix(trajectory, start) == simplify(
+        (cmf.M(x) * cmf.M(y)({x: x + 1})).subs(
+            cmf.trajectory_substitution(trajectory, start, n)
+        )
     )
 
 
@@ -52,11 +56,16 @@ def test_back_negates_forward():
 
 def test_trajectory_matrix_negative_axis():
     cmf = known_cmfs.e()
-    assert cmf.trajectory_matrix({x: -3, y: 0}).limit_equivalent(
-        cmf.M(x, False).walk({x: -1, y: 0}, 3, {x: x, y: y})
+    start = {x: x, y: y}
+    assert cmf.trajectory_matrix({x: -3, y: 0}, start).limit_equivalent(
+        cmf.M(x, False).walk(
+            {x: -1, y: 0}, 3, cmf.trajectory_substitution({x: -3, y: 0}, start, n)
+        )
     )
-    assert cmf.trajectory_matrix({x: 0, y: -2}).limit_equivalent(
-        cmf.M(y, False).walk({x: 0, y: -1}, 2, {x: x, y: y})
+    assert cmf.trajectory_matrix({x: 0, y: -2}, start).limit_equivalent(
+        cmf.M(y, False).walk(
+            {x: 0, y: -1}, 2, cmf.trajectory_substitution({x: 0, y: -2}, start, n)
+        )
     )
 
 
@@ -68,24 +77,15 @@ def test_trajectory_matrix_negative():
         * cmf.M(b, sign=False).subs({a: a + 1, b: b - 1})
         * cmf.M(c, sign=False).subs({a: a + 1, b: b - 2})
     )
-
-    assert cmf.trajectory_matrix({a: 1, b: -2, c: -1}).limit_equivalent(expected)
-
-
-def test_trajectory_matrix_variable_reduction():
-    cmf = known_cmfs.e()
-    trajectory = {x: -2, y: 3}
-    start = {x: 5, y: -7}
-    assert cmf.trajectory_matrix(trajectory).subs(
-        CMF.variable_reduction_substitution(trajectory, start, n)
-    ) == cmf.trajectory_matrix(trajectory, start)
+    actual = cmf.trajectory_matrix({a: 1, b: -2, c: -1}, {a: a, b: b, c: c})
+    assert actual.walk({n: 1}, 1, {n: 1}).limit_equivalent(expected)
 
 
 def test_trajectory_matrix_rational():
     cmf = known_cmfs.e()
     start = Position({x: sp.Rational(2, 3), y: sp.Rational(1, 4)})
     trajectory = {x: 1, y: 1}
-    symbolic_start = CMF.variable_reduction_substitution(trajectory, start, n)
+    symbolic_start = cmf.trajectory_substitution(trajectory, start, n)
     expected = (
         cmf.M(x).subs(symbolic_start) * cmf.M(y).subs(symbolic_start + Position({x: 1}))
     ).factor()
@@ -122,7 +122,7 @@ def test_limit_diagonal():
     cmf = known_cmfs.e()
     trajectory = {x: 1, y: 1}
     start = {x: 1, y: 1}
-    Mxy = cmf.trajectory_matrix(trajectory)
+    Mxy = cmf.walk(trajectory, 1, {x: x, y: y})
     assert cmf.limit(trajectory, 17, start) == Mxy.limit(trajectory, 17, start)
 
 
@@ -152,19 +152,28 @@ def test_walk_list():
     ]
 
 
-def test_variable_reduction_substitution_axis():
+def test_trajectory_substitution_throws_on_collision():
+    cmf = known_cmfs.e()
+    trajectory = Position({x: 1, y: 0})
+    start = Position({x: n, y: 0})
+    with raises(ValueError):
+        cmf.trajectory_substitution(trajectory, start, n)
+    assert {x: n - 1 + a, y: 0} == cmf.trajectory_substitution(trajectory, start, a)
+
+
+def test_trajectory_substitution_axis():
+    cmf = known_cmfs.e()
     x_axis = {x: 1, y: 0}
     y_axis = {x: 0, y: 1}
-    assert {x: n, y: 0} == CMF.variable_reduction_substitution(x_axis, x_axis, n)
-    assert {x: 0, y: n} == CMF.variable_reduction_substitution(y_axis, y_axis, n)
+    assert {x: n, y: 0} == cmf.trajectory_substitution(x_axis, x_axis, n)
+    assert {x: 0, y: n} == cmf.trajectory_substitution(y_axis, y_axis, n)
 
 
-def test_variable_reduction_substitution_diagonal():
+def test_trajectory_substitution_diagonal():
+    cmf = known_cmfs.e()
     trajectory = {x: 1, y: 2}
     start = {x: 3, y: 5}
-    assert {x: n + 2, y: 2 * n + 3} == CMF.variable_reduction_substitution(
-        trajectory, start, n
-    )
+    assert {x: n + 2, y: 2 * n + 3} == cmf.trajectory_substitution(trajectory, start, n)
 
 
 def test_N():
@@ -177,16 +186,61 @@ def test_dim():
     assert 3 == cmf.dim()
 
 
-def test_variable_reduction_walk_equivalence():
+def test_trajectory_matrix_walk_equivalence():
     cmf = known_cmfs.e()
     iterations = 7
     trajectory = {x: 1, y: 1}
     start = {x: 3, y: 5}
-    unsubbed = cmf.trajectory_matrix(trajectory)
-    subbed = cmf.trajectory_matrix(trajectory, start)
-    assert subbed.walk({n: 1}, iterations, {n: 1}) == unsubbed.walk(
+    trajectory_matrix = cmf.trajectory_matrix(trajectory, start)
+    assert trajectory_matrix.walk({n: 1}, iterations, {n: 1}) == cmf.walk(
         trajectory, iterations, start
     )
+
+
+def test_work_non_integer_trajectory_throws():
+    cmf = known_cmfs.e()
+    with raises(ValueError):
+        cmf.work(Position({x: 1, y: 1}), Position({x: 2, y: sp.Rational(5, 2)}))
+    with raises(ValueError):
+        cmf.work(Position({x: 1, y: n}), Position({x: 1, y: 2 * n}))
+
+
+def test_work_numeric_e():
+    cmf = known_cmfs.e()
+    start = Position({x: 1, y: -1})
+    end = Position({x: 17, y: -13})
+    trajectory = end - start
+    expected = cmf.walk(trajectory, 1, start)
+    actual = cmf.work(start, end)
+    assert expected == actual
+
+
+def test_work_numeric_3f2():
+    cmf = known_cmfs.pFq(3, 2, -1)
+    x0, x1, x2 = sp.symbols("x:3")
+    y0, y1 = sp.symbols("y:2")
+    start = Position(
+        {x0: 1, x1: -sp.Rational(1, 2), x2: 0, y0: sp.Rational(5, 3), y1: -1}
+    )
+    end = Position(
+        {x0: 17, x1: -sp.Rational(13, 2), x2: 0, y0: sp.Rational(20, 3), y1: -4}
+    )
+    trajectory = end - start
+    expected = cmf.walk(trajectory, 1, start)
+    actual = cmf.work(start, end)
+    assert expected == actual
+
+
+def test_work_symbolic():
+    cmf = known_cmfs.e()
+    start = Position({x: 1 + x, y: -1 + 7 * y / 2})
+    end = Position({x: 17 + x, y: -13 + 7 * y / 2})
+    trajectory = end - start
+    expected = cmf.walk(trajectory, 1, start)
+    actual = cmf.work(start, end)
+    print(expected)
+    print(actual)
+    assert expected == actual
 
 
 def test_delta_correctness():
