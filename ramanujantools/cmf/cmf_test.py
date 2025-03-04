@@ -71,7 +71,6 @@ def test_trajectory_matrix_negative_axis():
 
 def test_trajectory_matrix_negative():
     cmf = known_cmfs.hypergeometric_derived_2F1()
-    trajectory = Position({a: 1, b: -2, c: -1})
     expected = (
         cmf.M(a, sign=True)
         * cmf.M(b, sign=False).subs({a: a + 1})
