@@ -295,7 +295,7 @@ class CMF:
         # Stopping condition: l-infinity norm of trajectory is less than 1
         if trajectory.longest() <= 1:
             matrix = self._calculate_diagonal_matrix(trajectory, start, ctx).factor()
-            return NumericMatrix.lambda_from_rt(matrix)()
+            return NumericMatrix.lambda_from_rt(matrix)(start)
 
         result = NumericMatrix.eye(self.N())
         inner_symbol = CMF.walk_symbol()
@@ -318,6 +318,8 @@ class CMF:
         """
         Returns the amount of work to move from start to end
         """
+        start = Position(start)
+        end = Position(end)
         if start.free_symbols() == set():
             return self._work_numeric(start, end).to_rt()
         else:
@@ -376,6 +378,11 @@ class CMF:
         Raises:
             ValueError: if trajectory keys and start keys do not match
         """
+        if symbol in start or symbol in trajectory or symbol in start.free_symbols():
+            raise ValueError(
+                f"Attempted to run a trajectory_matrix where desired symbol is in start or trajectory!"
+                f"symbol={symbol}, start={start}, trajectory={trajectory}"
+            )
         effective_start = Position({axis: axis for axis in self.axes()})
         for axis in start:
             effective_start[axis] = start[axis]
