@@ -31,39 +31,22 @@ def test_reduce():
     assert m.reduce() == initial
 
 
-def test_can_call_numerical_subs():
+def test_is_numeric_walk():
     m = Matrix([[x, 1], [y, 2]])
 
-    # not enough parameters
-    assert not m._can_call_numerical_subs({x: 1})
-
-    # some parameters are not integer
-    assert not m._can_call_numerical_subs({x: 1, y: y})
-    assert not m._can_call_numerical_subs({x: 1, y: sp.Rational(2, 3)})
-
-    # rational matrix
-    assert not (m / x)._can_call_numerical_subs({x: 1, y: 1})
-
-    assert m._can_call_numerical_subs({x: 17, y: 31})
-
-
-def test_can_call_flint_walk():
-    m = Matrix([[x, 1], [y, 2]])
-
-    # flint is slow for numerical walk (both integer and rational)
-    assert not m._can_call_flint_walk({x: 1, y: 1}, {x: 1, y: 1})
-    assert not m._can_call_flint_walk(
+    assert m._is_numeric_walk({x: 1, y: 1}, {x: 1, y: 1})
+    assert m._is_numeric_walk(
         {x: 1, y: 1}, {x: sp.Rational(1, 2), y: sp.Rational(1, 2)}
     )
 
     # x remains a symbol
-    assert m._can_call_flint_walk({x: 1, y: 1}, {x: x, y: 1})
+    assert not m._is_numeric_walk({x: 1, y: 1}, {x: x, y: 1})
 
     # rational coefficients of symbolic polynomials are supported
-    assert m._can_call_flint_walk({x: 1, y: 1}, {x: x / 2, y: 1})
+    assert not m._is_numeric_walk({x: 1, y: 1}, {x: x / 2, y: 1})
 
     # substituting a different symbol causes symbolic flint calculation
-    assert m._can_call_flint_walk({x: 1, y: 1}, {x: n - 1, y: n**2})
+    assert not m._is_numeric_walk({x: 1, y: 1}, {x: n - 1, y: n**2})
 
 
 def test_subs_degenerated():
@@ -83,12 +66,6 @@ def test_subs_symbolic():
     m = Matrix([[x, x**2, 13 + x, -x]])
     expr = y**2 + x - 3
     assert Matrix([[expr, (expr) ** 2, 13 + expr, -expr]]) == m.subs({x: expr})
-
-
-def test_subs_numerical_equivalent_to_symbolic():
-    m = Matrix([[x, x**2], [13 + x, -x]])
-    substitutions = {x: 5}
-    assert m.xreplace(substitutions) == m.numerical_subs(substitutions)
 
 
 def test_as_polynomial():

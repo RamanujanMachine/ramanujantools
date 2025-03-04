@@ -4,10 +4,14 @@ from functools import lru_cache, cached_property
 
 from multimethod import multimethod
 
+from flint import fmpq, fmpq_mat  # noqa: F401
+
 import numpy as np
 import mpmath as mp
 import sympy as sp
 from sympy.abc import n
+from sympy.utilities.lambdify import lambdastr
+from sympy.printing.pycode import SymPyPrinter
 
 from ramanujantools import Position
 from ramanujantools.flint_core import mpoly_ctx, FlintMatrix
@@ -69,45 +73,20 @@ class Matrix(sp.Matrix):
 
         Calls the underlying sympy xreplace method, as subs is too slow and we don't need it's extra functionality
         https://docs.sympy.org/latest/modules/core.html#sympy.core.basic.Basic.xreplace
-
-        In the case where all substitutions are numbers (and not symbols or expressions),
-        Uses numerical as an optimization
         """
-        if self._can_call_numerical_subs(substitutions):
-            return self.numerical_subs(substitutions)
         return self.xreplace(substitutions)
 
-    def _can_call_flint_walk(self, trajectory: Dict, start: Dict) -> bool:
+    def _is_numeric_walk(self, trajectory: Dict, start: Dict) -> bool:
         trajectory = Position(trajectory)
         start = Position(start)
 
         subbed_in = trajectory.free_symbols().union(start.free_symbols())
         subbed_out = set(trajectory.keys()).union(set(start.keys()))
 
-        return (self.free_symbols - subbed_out).union(subbed_in) != set()
+        return (self.free_symbols - subbed_out).union(subbed_in) == set()
 
-    def _can_call_numerical_subs(self, substitutions: Dict) -> bool:
-        """
-        Returns true iff the all substitutions are numerical and we can can call `numerical_subs` instead of `xreplace`.
-        """
-        substitutions = Position(substitutions)
-        return (
-            substitutions.keys() == self.free_symbols
-            and self.is_polynomial()
-            and substitutions.is_integer()
-        )
-
-    def numerical_subs(self, substitutions: Dict) -> Matrix:
-        """
-        An optimized version of `subs` for the case where all free_symbols are present in the substitutions dict,
-        and all requested values are numerical (i.e not sympy expressions of any sort)
-        """
-        fast_subs = Matrix.create_fast_subs(self)
-        return fast_subs(substitutions)
-
-    @staticmethod
     @lru_cache
-    def create_fast_subs(matrix: Matrix) -> Callable:
+    def create_fast_subs(self) -> Callable:
         """
         Returns a function that evaluates the matrix at given substitutions.
 
@@ -116,12 +95,22 @@ class Matrix(sp.Matrix):
         Evaluation occures in the python interpreter, rather by recursively substituting the sympy expressions.
         This optimizes by a factor of 2~
         """
-        matrix_string = str(matrix)
+        # Makes sp.Rational(1, 2) print as "S(1)/2" rather than "1/2""
+        SymPyPrinter()._default_settings["sympy_integers"] = True
+
+        symbols = list(sorted(self.free_symbols, key=str))
+        evaluation_string = (
+            lambdastr(symbols, self, printer=SymPyPrinter)
+            .replace("ImmutableDenseMatrix", "fmpq_mat")
+            .replace("**S", "**")
+            .replace("S", "fmpq")
+        )
 
         def fast_subs(substitutions: Dict):
-            for symbol, value in substitutions.items():
-                exec(f"{symbol} = {value}")
-            return eval(matrix_string)
+            values = [substitutions[symbol] for symbol in symbols]
+            print(evaluation_string)
+            print(values)
+            return eval(evaluation_string)(*values)
 
         return fast_subs
 
@@ -305,27 +294,28 @@ class Matrix(sp.Matrix):
         """
         Internal walk function, used for type conversions and for caching. Do not use directly.
         """
-        from ramanujantools.flint_core import FlintMatrix
+        if self._is_numeric_walk(trajectory, start):
+            results = []
+            position = start.copy()
+            fast_subs = self.create_fast_subs()
+            # Ugly way to construct an eye matrix of type fmpq_mat
+            matrix = Matrix.eye(self.rows).create_fast_subs()(position)
+            for depth in range(0, iterations[-1]):
+                if depth in iterations:
+                    results.append(matrix)
+                matrix *= fast_subs(position)
+                position += trajectory
+            results.append(matrix)  # Last matrix, for iterations[-1]
+            return [Matrix(self.rows, self.cols, list(result)) for result in results]
+        else:
+            from ramanujantools.flint_core import FlintMatrix
 
-        if self._can_call_flint_walk(trajectory, start):
             symbols = self.walk_free_symbols(start)
             as_flint = FlintMatrix.from_sympy(
                 self, mpoly_ctx(symbols, fmpz=start.is_polynomial())
             )
             results = as_flint.walk(trajectory, list(iterations), start)
-            results = [result.factor() for result in results]
-            return results
-        else:
-            results = []
-            position = start.copy()
-            matrix = Matrix.eye(self.rows)
-            for depth in range(0, iterations[-1]):
-                if depth in iterations:
-                    results.append(matrix)
-                matrix *= self(position)
-                position += trajectory
-            results.append(matrix)  # Last matrix, for iterations[-1]
-            return results
+            return [result.factor() for result in results]
 
     @multimethod
     def walk(  # noqa: F811
@@ -394,7 +384,6 @@ class Matrix(sp.Matrix):
         """
         Returns the expected free_symbols of the expression `self.walk(trajectory, iterations, start)`
         """
-
         free_symbols = self.free_symbols.copy()
         for key in start.keys():
             free_symbols = free_symbols.union(set(sp.simplify(key).free_symbols))

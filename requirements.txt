@@ -3,6 +3,6 @@ multimethod>=1.10
 pytest>=8.2.0
 numpy>=2.0.0
 mpmath>=1.3.0
-sympy>=1.11.1
+sympy>=1.13.3
 gmpy2>=2.1.5
 python-flint>=0.7.0a5
