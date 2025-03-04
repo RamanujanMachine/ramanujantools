@@ -197,6 +197,14 @@ def test_trajectory_matrix_walk_equivalence():
     )
 
 
+def test_work_non_integer_trajectory_throws():
+    cmf = known_cmfs.e()
+    with raises(ValueError):
+        cmf.work(Position({x: 1, y: 1}), Position({x: 2, y: sp.Rational(5, 2)}))
+    with raises(ValueError):
+        cmf.work(Position({x: 1, y: n}), Position({x: 1, y: 2 * n}))
+
+
 def test_work_numeric_e():
     cmf = known_cmfs.e()
     start = Position({x: 1, y: -1})
