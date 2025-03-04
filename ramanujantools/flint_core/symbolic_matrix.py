@@ -11,7 +11,7 @@ from ramanujantools import Position
 from ramanujantools.flint_core import FlintRational, FlintContext
 
 
-class FlintMatrix:
+class SymbolicMatrix:
     """
     Represents a Matrix of FlintRationals.
 
@@ -20,25 +20,25 @@ class FlintMatrix:
 
     def __init__(
         self, rows: int, cols: int, values: List[FlintRational], ctx: FlintContext
-    ) -> FlintMatrix:
+    ) -> SymbolicMatrix:
         self._rows = rows
         self._cols = cols
         self.values = values
         self.ctx = ctx
 
     @staticmethod
-    def from_sympy(matrix: rt.Matrix, ctx: FlintContext) -> FlintMatrix:
+    def from_sympy(matrix: rt.Matrix, ctx: FlintContext) -> SymbolicMatrix:
         """
-        Converts a Matrix to FlintMatrix.
+        Converts a Matrix to SymbolicMatrix.
         Args:
             matrix: The matrix as ramanujantools.Matrix
             ctx: The desired mpoly context (which also defines the supported variables)
         """
         values = [FlintRational.from_sympy(cell, ctx) for cell in matrix]
-        return FlintMatrix(matrix.rows, matrix.cols, values, ctx)
+        return SymbolicMatrix(matrix.rows, matrix.cols, values, ctx)
 
     @staticmethod
-    def eye(N: int, ctx: FlintContext) -> FlintMatrix:
+    def eye(N: int, ctx: FlintContext) -> SymbolicMatrix:
         """
         Creates an identity matrix of size N.
 
@@ -51,7 +51,7 @@ class FlintMatrix:
         while current < N**2:
             values[current] += 1
             current += N + 1
-        return FlintMatrix(N, N, values, ctx)
+        return SymbolicMatrix(N, N, values, ctx)
 
     def __getitem__(self, key):
         """
@@ -108,16 +108,16 @@ class FlintMatrix:
         return data
 
     def __repr__(self) -> str:
-        return f"FlintMatrix({self.data()})"
+        return f"SymbolicMatrix({self.data()})"
 
     def __str__(self) -> str:
-        return f"FlintMatrix({self.data()})"
+        return f"SymbolicMatrix({self.data()})"
 
-    def __mul__(self, other: FlintMatrix | int) -> FlintMatrix:
+    def __mul__(self, other: SymbolicMatrix | int) -> SymbolicMatrix:
         """
-        Multiplies self by another FlintMatrix or a scalar.
+        Multiplies self by another SymbolicMatrix or a scalar.
         """
-        if isinstance(other, FlintMatrix):
+        if isinstance(other, SymbolicMatrix):
             if self.cols() != other.rows():
                 raise ValueError("Attempting to multiply")
             elements = []
@@ -127,42 +127,42 @@ class FlintMatrix:
                     for k in range(self.cols()):
                         current += self[row, k] * other[k, col]
                     elements.append(current)
-            return FlintMatrix(self.rows(), self.cols(), elements, self.ctx)
+            return SymbolicMatrix(self.rows(), self.cols(), elements, self.ctx)
 
         else:
-            return FlintMatrix(
+            return SymbolicMatrix(
                 self.rows(),
                 self.cols(),
                 [value * other for value in self.values],
                 self.ctx,
             )
 
-    def __rmul__(self, other: FlintMatrix | int) -> FlintMatrix:
+    def __rmul__(self, other: SymbolicMatrix | int) -> SymbolicMatrix:
         """
-        Multiplies a FlintMatrix or a scalar by self.
+        Multiplies a SymbolicMatrix or a scalar by self.
         """
         if isinstance(other, int):
             return self * other
         return other * self
 
-    def __truediv__(self, other: int) -> FlintMatrix:
+    def __truediv__(self, other: int) -> SymbolicMatrix:
         """
         Divides self by a scalar
         """
-        if isinstance(other, FlintMatrix):
+        if isinstance(other, SymbolicMatrix):
             raise ValueError("Attempted to divide by matrix!")
-        return FlintMatrix(
+        return SymbolicMatrix(
             self.rows(),
             self.cols(),
             [value / other for value in self.values],
             self.ctx,
         )
 
-    def subs(self, substitutions: Dict) -> FlintMatrix:
+    def subs(self, substitutions: Dict) -> SymbolicMatrix:
         """
         Substitutes symbols in the matrix.
         """
-        return FlintMatrix(
+        return SymbolicMatrix(
             self.rows(),
             self.cols(),
             [value.subs(substitutions) for value in self.values],
@@ -177,7 +177,7 @@ class FlintMatrix:
         return rt.Matrix(self.rows(), self.cols(), values)
 
     @multimethod
-    def walk(self, trajectory: Dict, iterations: List[int], start: Dict) -> FlintMatrix:
+    def walk(self, trajectory: Dict, iterations: List[int], start: Dict) -> SymbolicMatrix:
         r"""
         Returns the multiplication result of walking in a certain trajectory.
 
@@ -202,7 +202,7 @@ class FlintMatrix:
         position = Position(start)
         trajectory = Position(trajectory)
         results = []
-        matrix = FlintMatrix.eye(self.rows(), self.ctx)
+        matrix = SymbolicMatrix.eye(self.rows(), self.ctx)
         for depth in range(0, iterations[-1]):
             if depth in iterations:
                 results.append(matrix)

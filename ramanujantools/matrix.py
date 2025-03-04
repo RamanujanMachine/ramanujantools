@@ -12,7 +12,7 @@ import sympy as sp
 from sympy.abc import n
 
 from ramanujantools import Position
-from ramanujantools.flint_core import mpoly_ctx, FlintMatrix, NumericMatrix
+from ramanujantools.flint_core import mpoly_ctx, SymbolicMatrix, NumericMatrix
 
 
 class Matrix(sp.Matrix):
@@ -145,7 +145,7 @@ class Matrix(sp.Matrix):
         return Matrix(sp.simplify(self))
 
     def factor(self) -> Matrix:
-        return FlintMatrix.from_sympy(
+        return SymbolicMatrix.from_sympy(
             self, mpoly_ctx(self.free_symbols, fmpz=True)
         ).factor()
 
@@ -268,7 +268,7 @@ class Matrix(sp.Matrix):
             return [result.to_rt() for result in results]
         else:
             symbols = self.walk_free_symbols(start)
-            as_flint = FlintMatrix.from_sympy(
+            as_flint = SymbolicMatrix.from_sympy(
                 self, mpoly_ctx(symbols, fmpz=start.is_polynomial())
             )
             results = as_flint.walk(trajectory, list(iterations), start)

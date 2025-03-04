@@ -9,7 +9,7 @@ import sympy as sp
 from sympy.abc import n
 
 from ramanujantools import Position, Matrix, Limit, simplify
-from ramanujantools.flint_core import FlintMatrix, FlintContext, mpoly_ctx
+from ramanujantools.flint_core import SymbolicMatrix, FlintContext, mpoly_ctx
 
 
 class CMF:
@@ -196,20 +196,20 @@ class CMF:
 
     def _calculate_diagonal_matrix_backtrack(
         self, trajectory: Position, start: Position, ctx: FlintContext
-    ) -> FlintMatrix:
+    ) -> SymbolicMatrix:
         """
         Inner function of an inner function. DO NOT USE DIRECTLY.
         This is the backtracking hook used for `_calculate_diagonal_marix`.
         It's used to look for a non-singular path towards the trajectroy matrix.
         """
         if trajectory.longest() == 0:
-            return FlintMatrix.eye(self.N(), ctx)
+            return SymbolicMatrix.eye(self.N(), ctx)
         for axis in sorted(trajectory.keys(), key=str):
             try:
                 inner_trajectory = trajectory.copy()
                 position = start.copy()
                 sign = inner_trajectory[axis] >= 0
-                current = FlintMatrix.from_sympy(self.M(axis, sign), ctx).subs(position)
+                current = SymbolicMatrix.from_sympy(self.M(axis, sign), ctx).subs(position)
                 position[axis] += inner_trajectory.pop(axis)
                 return current * self._calculate_diagonal_matrix_backtrack(
                     inner_trajectory, position, ctx
@@ -223,7 +223,7 @@ class CMF:
     @lru_cache
     def _calculate_diagonal_matrix(
         self, trajectory: Position, start: Position, ctx: FlintContext
-    ) -> FlintMatrix:
+    ) -> SymbolicMatrix:
         """
         The manual calculation of trajectory matrix in the stopping condition.
         You should probably use `trajectory_matrix` instead.
@@ -251,7 +251,7 @@ class CMF:
         start: Position,
         symbol: sp.Symbol,
         ctx: FlintContext,
-    ) -> FlintMatrix:
+    ) -> SymbolicMatrix:
         """
         Internal trajectory matrix logic, used for type conversions. Do not use directly.
         """
@@ -265,7 +265,7 @@ class CMF:
         if trajectory.longest() <= 1:
             return self._calculate_diagonal_matrix(trajectory, start, ctx)
 
-        result = FlintMatrix.eye(self.N(), ctx)
+        result = SymbolicMatrix.eye(self.N(), ctx)
         inner_symbol = CMF.inner_symbol(symbol)
         depth = trajectory.shortest()
         position = start.copy()
@@ -341,7 +341,7 @@ class CMF:
         start: Position,
         symbol: sp.Symbol,
         ctx: FlintContext,
-    ) -> List[FlintMatrix]:
+    ) -> List[SymbolicMatrix]:
         """
         Internal walk logic for symbolic calculations. Do not use directly.
         """
