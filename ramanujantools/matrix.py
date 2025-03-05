@@ -170,9 +170,7 @@ class Matrix(sp.Matrix):
         Returns:
             The coboundary relation as described above
         """
-        retval = U.inverse() * self * U.subs({symbol: symbol + 1})
-        retval = retval.factor()
-        return retval
+        return (U.inverse() * self * U.subs({symbol: symbol + 1})).factor()
 
     def companion_coboundary_matrix(self, symbol: sp.Symbol = n) -> Matrix:
         r"""
@@ -186,8 +184,7 @@ class Matrix(sp.Matrix):
         vectors = [e1]
         for i in range(1, N):
             vectors.append(self * vectors[i - 1].subs({symbol: symbol + 1}))
-        retval = Matrix.hstack(*vectors).factor()
-        return retval
+        return Matrix.hstack(*vectors).factor()
 
     @staticmethod
     def companion_form(values: List[sp.Expr]) -> Matrix:
