@@ -170,7 +170,13 @@ class Matrix(sp.Matrix):
         Returns:
             The coboundary relation as described above
         """
-        return (U.inverse() * self * U.subs({symbol: symbol + 1})).factor()
+        free_symbols = self.free_symbols.union({symbol})
+        ctx = mpoly_ctx(free_symbols, fmpz=False)
+        return (
+            SymbolicMatrix.from_sympy(U.inverse(), ctx)
+            * SymbolicMatrix.from_sympy(self, ctx)
+            * SymbolicMatrix.from_sympy(U.subs({symbol: symbol + 1}), ctx)
+        ).factor()
 
     def companion_coboundary_matrix(self, symbol: sp.Symbol = n) -> Matrix:
         r"""
@@ -239,10 +245,10 @@ class Matrix(sp.Matrix):
         Converts the matrix to companion form.
         """
         U = self.companion_coboundary_matrix()
-        rank = U.rank()
-        if rank == self.rows:
+        try:
             return self.coboundary(U)
-        else:
+        except ValueError:
+            rank = U.rank()
             symbols = sp.symbols(f"c:{rank}")
             variables = Matrix(symbols + (-1,))
             truncated = U[:, : rank + 1]
