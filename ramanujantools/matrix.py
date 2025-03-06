@@ -171,7 +171,7 @@ class Matrix(sp.Matrix):
             The coboundary relation as described above
         """
         free_symbols = self.free_symbols.union({symbol})
-        ctx = mpoly_ctx(free_symbols, fmpz=False)
+        ctx = mpoly_ctx(free_symbols, fmpz=True)
         return (
             SymbolicMatrix.from_sympy(U.inverse(), ctx)
             * SymbolicMatrix.from_sympy(self, ctx)
@@ -185,12 +185,12 @@ class Matrix(sp.Matrix):
         if not (self.is_square()):
             raise ValueError("Only square matrices can have a coboundary relation")
         N = self.rows
-        e1 = Matrix.zeros(N, 1)
-        e1[0, 0] = 1
-        vectors = [e1]
-        for i in range(1, N):
-            vectors.append(self * vectors[i - 1].subs({symbol: symbol + 1}))
-        return Matrix.hstack(*vectors).factor()
+        ctx = mpoly_ctx(self.free_symbols, fmpz=True)
+        flint_self = SymbolicMatrix.from_sympy(self, ctx)
+        vectors = [SymbolicMatrix.from_sympy(Matrix(N, 1, [1] + (N - 1) * [0]), ctx)]
+        for _ in range(1, N):
+            vectors.append(flint_self * vectors[-1].subs({symbol: symbol + 1}))
+        return Matrix.hstack(*[vector.factor() for vector in vectors]).factor()
 
     @staticmethod
     def companion_form(values: List[sp.Expr]) -> Matrix:
@@ -218,35 +218,17 @@ class Matrix(sp.Matrix):
                         return False
         return True
 
-    @staticmethod
-    def inflation_coboundary_matrix(
-        N: int, c: sp.Expr, symbol: sp.Symbol = n
-    ) -> Matrix:
-        r"""
-        Returns the matrix inflation matrix U for polynomial c.
-
-        See `inflate`.
-
-        Args:
-            N: The dimension of the square matrix.
-            c: The polynomial to inflate by.
-            symbol: The symbol of the coboundary relation.
-
-        Returns:
-            The inflation matrix U
-        """
-        U = Matrix.eye(N)
-        for i in range(1, N):
-            U[N - (i + 1), N - (i + 1)] = U[N - i, N - i] * c.subs({symbol: symbol - i})
-        return U
-
-    def as_companion(self) -> Matrix:
+    def as_companion(self, symbol: sp.Symbol = n) -> Matrix:
         r"""
         Converts the matrix to companion form.
         """
-        U = self.companion_coboundary_matrix()
+        if symbol not in self.free_symbols:
+            raise ValueError(
+                f"Companionization symbol must be in matrix! matrix={self}, symbol={symbol}"
+            )
+        U = self.companion_coboundary_matrix(symbol)
         try:
-            return self.coboundary(U)
+            return self.coboundary(U, symbol)
         except ValueError:
             rank = U.rank()
             symbols = sp.symbols(f"c:{rank}")
