@@ -127,7 +127,7 @@ class SymbolicMatrix:
                     for k in range(self.cols()):
                         current += self[row, k] * other[k, col]
                     elements.append(current)
-            return SymbolicMatrix(self.rows(), self.cols(), elements, self.ctx)
+            return SymbolicMatrix(self.rows(), other.cols(), elements, self.ctx)
 
         else:
             return SymbolicMatrix(
@@ -177,7 +177,9 @@ class SymbolicMatrix:
         return rt.Matrix(self.rows(), self.cols(), values)
 
     @multimethod
-    def walk(self, trajectory: Dict, iterations: List[int], start: Dict) -> SymbolicMatrix:
+    def walk(
+        self, trajectory: Dict, iterations: List[int], start: Dict
+    ) -> SymbolicMatrix:
         r"""
         Returns the multiplication result of walking in a certain trajectory.
 
