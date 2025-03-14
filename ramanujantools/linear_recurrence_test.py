@@ -48,7 +48,7 @@ def test_deflate():
     assert r.inflate(1 / f("e")) == r.deflate(f("e"))
 
 
-def test_compose():
+def test_fold():
     r = LinearRecurrence([f("a"), f("b"), f("c")])
     assert LinearRecurrence(
         [
@@ -57,28 +57,39 @@ def test_compose():
             f("b", n - 1) * f("d") + f("c"),
             f("c", n - 1) * f("d"),
         ]
-    ) == r.compose(f("d"))
+    ) == r.fold(f("d"))
 
 
-def test_decompose_poly():
+def test_unfold_poly():
     r = LinearRecurrence([1, n, n])
-    composition = n - 3
-    composed = r.compose(composition)
-    assert r == composed.decompose_poly(composition)
+    multiplier = n - 3
+    folded = r.fold(multiplier)
+    assert r == folded.unfold_poly(multiplier)
 
 
-def test_decompose():
+def test_unfold():
     r = LinearRecurrence([1, n, (n - 3) * (n + 7) * (n - 11)])
-    composition = (n - 1) * (n + 2)
-    composed = r.compose(composition)
-    assert r == composed.decompose_poly(composition)
+    multiplier = (n - 1) * (n + 2)
+    folded = r.fold(multiplier)
+    assert (r, sp.Poly(multiplier, n)) == folded.unfold()[0]
+
+
+def test_unfold_deflate():
+    r = LinearRecurrence([1, n, n])
+    multiplier = n - 17
+    inflation = n + 1
+    folded = r.fold(multiplier).inflate(inflation)
+    solutions = folded.unfold(-1)
+    recurrence, actual_multiplier = solutions[-1]
+    assert r == recurrence.deflate(inflation)
+    assert actual_multiplier == sp.Poly(multiplier * inflation, n)
 
 
 def test_euler():
     # from https://arxiv.org/abs/1010.1420
     m = Matrix([[0, -(n**2), 0], [1, 2 * n + 2, 0], [0, -(n - 1) / (n + 1), 1]])
     r = LinearRecurrence(m)
-    assert [] == r.decompose()
+    assert [] == r.unfold()
     lim = r.limit(1000, 2)
     assert IntegerRelation([[-3, -12, -59], [6, 21, 102]]) == lim.identify(lim.mp.euler)
     assert IntegerRelation([[1, 4, 20], [-2, -7, -34]]) == lim.identify(
@@ -91,8 +102,8 @@ def test_euler():
         [[-3625, 26792, -461718], [6270, -46380, 799620]]
     ) == lim.identify(lim.mp.euler, maxcoeff=10**6)
 
-    decomposed = inflated.decompose_poly(n)
-    pcf = decomposed.recurrence_matrix.as_pcf().pcf
+    unfolded = inflated.unfold_poly(n)
+    pcf = unfolded.recurrence_matrix.as_pcf().pcf
     assert PCF(-2 * (n + 2), -((n + 1) ** 2)) == pcf
 
 
