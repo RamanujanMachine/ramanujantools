@@ -73,9 +73,9 @@ class LinearRecurrence:
 
     def __str__(self) -> str:
         p = sp.Function("p")(n)
-        lhs = f"{(self.relation[0])*p.subs({n: n+1})}"
+        lhs = f"{(self.relation[0]) * p.subs({n: n + 1})}"
         rhs = " + ".join(
-            [f"{c*p.subs({n: n-i})}" for i, c in enumerate(self.relation[1:])]
+            [f"{c * p.subs({n: n - i})}" for i, c in enumerate(self.relation[1:])]
         )
         return f"{lhs} = {rhs}"
 
@@ -149,9 +149,9 @@ class LinearRecurrence:
         """
         return self.recurrence_matrix.limit({n: 1}, iterations, {n: start})
 
-    def compose(self, composition: sp.Expr) -> LinearRecurrence:
+    def fold(self, multiplier: sp.Expr) -> LinearRecurrence:
         r"""
-        Composes the recurrence into a higher depth recurrence.
+        Folds the recurrence into a higher depth recurrence.
 
         Given a recurrence
         $a_0(n) p(n + 1) = \sum_{i=1}^{N}a_i(n) p(n + 1 - i)$
@@ -159,20 +159,20 @@ class LinearRecurrence:
         We can derive that
         $a_0(n) p(n) = \sum_{i=1}^{N}a_i(n - 1) p(n - i)$
 
-        Selecting a composition polynomial $d$, we can subtract the latter from the recursion d(n) times.
+        Selecting a multiplier rational function $d$, we can subtract the latter from the recursion d(n) times.
 
         Example:
             >>> s = LinearRecurrence([sp.Function("a")(n), sp.Function("b")(n), sp.Function("c")(n)])
             >>> s
             LinearRecurrence([a(n), b(n), c(n)])
-            >>> s.compose(sp.Function("d")(n))
+            >>> s.fold(sp.Function("d")(n))
             LinearRecurrence([a(n), -a(n - 1)*d(n) + b(n), b(n - 1)*d(n) + c(n), c(n - 1)*d(n)])
         """
         relation = self.relation
         modification = (
             [0]
-            + [-composition * self.relation[0].subs({n: n - 1})]
-            + [composition * c.subs({n: n - 1}) for c in self.relation[1:]]
+            + [-multiplier * self.relation[0].subs({n: n - 1})]
+            + [multiplier * c.subs({n: n - 1}) for c in self.relation[1:]]
         )
         relation = [
             sum(d) for d in itertools.zip_longest(relation, modification, fillvalue=0)
@@ -199,45 +199,45 @@ class LinearRecurrence:
             divisors.append(sp.prod(combination))
         return divisors
 
-    def possible_decompositions(self) -> List[sp.Poly]:
+    def possible_multipliers(self) -> List[sp.Poly]:
         r"""
-        Returns all candidates for a composition polynomial $d(n)$
-        that could have been used to compose a lesser depth recursion into this one.
+        Returns all candidates for a multiplier rational $d(n)$
+        that could have been used to fold a lesser depth recursion into this one.
         """
         return LinearRecurrence.all_divisors(self.relation[-1])
 
-    def decompose_poly(self, decomposition: sp.Poly) -> LinearRecurrence:
+    def unfold_poly(self, multiplier: sp.Poly) -> LinearRecurrence:
         r"""
-        Attempts to decompose this recursion using a decomposition polynomial.
-        In case of success, returns a recurrence such that `recurrence.compose(decomposition) == self`
+        Attempts to unfold this recursion using a multiplier rational function.
+        In case of success, returns a recurrence such that `recurrence.fold(multiplier) == self`
 
         If `self` contains parameters (other than n), will attempt to find a matching substitution.
         In case of success, the returned recurrence will be substituted with the solution.
-        i.e, for that solution, `recurrence.compose(decomposition) == self.subs(solution)`
+        i.e, for that solution, `recurrence.fold(multiplier) == self.subs(solution)`
         """
-        decomposition = sp.Poly(decomposition, n).as_expr()
-        decomposed = [self.relation[0]]
+        multiplier = sp.Poly(multiplier, n).as_expr()
+        unfolded = [self.relation[0]]
         for index in range(1, len(self.relation) - 1):
-            next = (-1 if index == 1 else 1) * decomposed[index - 1].subs({n: n - 1})
-            decomposed.append(sp.simplify(self.relation[index] - next * decomposition))
-        expected_tail = decomposed[-1].subs({n: n - 1}) * decomposition
+            next = (-1 if index == 1 else 1) * unfolded[index - 1].subs({n: n - 1})
+            unfolded.append(sp.simplify(self.relation[index] - next * multiplier))
+        expected_tail = unfolded[-1].subs({n: n - 1}) * multiplier
         if sp.simplify(expected_tail - self.relation[-1]) == 0:
-            return LinearRecurrence(decomposed)
+            return LinearRecurrence(unfolded)
         if len(self.free_symbols()) > 0:
             solutions = sp.solve(sp.Poly(expected_tail - self.relation[-1], n).coeffs())
             assert len(solutions) < 2
             for solution in solutions:
-                decomposed = [d.subs(solution) for d in decomposed]
-                return LinearRecurrence(decomposed)
+                unfolded = [d.subs(solution) for d in unfolded]
+                return LinearRecurrence(unfolded)
         return None
 
-    def decompose(self, inflation_degree=0) -> Tuple[LinearRecurrence, sp.Poly]:
+    def unfold(self, inflation_degree=0) -> Tuple[LinearRecurrence, sp.Poly]:
         r"""
-        Attempts to decompose this recursion by enumerating over all possible
-        decomposition candidates and attempting to decompose using them.
+        Attempts to unfold this recursion by enumerating over all possible
+        multiplier candidates and attempting to unfold using them.
 
         If `inflation_degree` is not zero, will inflate `self` by a generic polynomial of that degree.
-        The solver will then attempt to find a solution for that inflation that manages to decompose the recurrence.
+        The solver will then attempt to find a solution for that inflation that manages to unfold the recurrence.
         """
         results = []
         if inflation_degree > 0:
@@ -245,13 +245,13 @@ class LinearRecurrence:
             recurrence = self.inflate(inflation)
         elif inflation_degree < 0:
             inflation, _ = GenericPolynomial.of_degree(-inflation_degree, "c", n)
-            recurrence = self.deflate(inflation)
+            recurrence = self.deflate(inflation).normalize()
         else:
             recurrence = self
-        for decomposition in tqdm(self.possible_decompositions()):
-            decomposed = recurrence.decompose_poly(decomposition)
-            if decomposed is not None:
-                results.append((decomposed, decomposition))
+        for multiplier in tqdm(self.possible_multipliers()):
+            unfolded = recurrence.unfold_poly(multiplier)
+            if unfolded is not None:
+                results.append((unfolded, multiplier))
         return results
 
     def inflate(self, c: sp.Expr) -> LinearRecurrence:
