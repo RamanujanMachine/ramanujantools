@@ -29,7 +29,6 @@ class CMF:
         self,
         matrices: Dict[sp.Symbol, Matrix],
         validate: bool = True,
-        axes_sorter=lambda axes, trajectory, position: sorted(axes, key=str),
     ):
         """
         Initializes a CMF with `Mx` and `My` matrices.
@@ -46,7 +45,6 @@ class CMF:
             raise ValueError(
                 "Do not use symbol n as an axis, it's reserved for companion conversions"
             )
-        self.axes_sorter = axes_sorter
         self.assert_matrices_same_dimension()
         if validate:
             self.assert_conserving()
