@@ -73,8 +73,8 @@ class CMF:
     ) -> bool:
         Mx = self.M(x, x_forward)
         My = self.M(y, y_forward)
-        Mxy = simplify(Mx * My({x: x + 1 if x_forward else x - 1}))
-        Myx = simplify(My * Mx({y: y + 1 if y_forward else y - 1}))
+        Mxy = (Mx * My({x: x + 1 if x_forward else x - 1})).factor()
+        Myx = (My * Mx({y: y + 1 if y_forward else y - 1})).factor()
         return Mxy == Myx
 
     def assert_conserving(self, check_negatives: bool = False) -> None:
