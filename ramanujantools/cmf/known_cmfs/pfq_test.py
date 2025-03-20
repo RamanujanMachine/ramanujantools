@@ -1,7 +1,8 @@
 import sympy as sp
 from sympy.abc import z
 
-from ramanujantools.cmf import known_cmfs, CMF
+from ramanujantools.cmf import CMF
+from ramanujantools.cmf.known_cmfs import pFq
 from ramanujantools import Matrix, IntegerRelation
 
 
@@ -38,7 +39,7 @@ def test_2F1_theta_derivative():
             ),
         }
     )
-    cmf = known_cmfs.pFq(2, 1)
+    cmf = pFq(2, 1)
     cmf.assert_conserving()
     assert cmf == expected
 
@@ -73,7 +74,7 @@ def test_2F1_theta_derivative_negate_denominator():
             ),
         }
     )
-    cmf = known_cmfs.pFq(2, 1, negate_denominator_params=True)
+    cmf = pFq(2, 1, negate_denominator_params=True)
     cmf.assert_conserving()
     assert cmf == expected
 
@@ -111,7 +112,7 @@ def test_2F1_normal_derivative():
             ),
         }
     )
-    cmf = known_cmfs.pFq(2, 1, theta_derivative=False)
+    cmf = pFq(2, 1, theta_derivative=False)
     cmf.assert_conserving()
     assert cmf == expected
 
@@ -146,7 +147,7 @@ def test_2F1_normal_derivative_negate_denominator():
             ),
         }
     )
-    cmf = known_cmfs.pFq(2, 1, theta_derivative=False, negate_denominator_params=True)
+    cmf = pFq(2, 1, theta_derivative=False, negate_denominator_params=True)
     cmf.assert_conserving()
     assert cmf == expected
 
@@ -155,13 +156,11 @@ def test_2F1_z_evaluation():
     p = 2
     q = 1
     z_value = -7
-    assert known_cmfs.pFq(p, q, z_eval=z_value) == known_cmfs.pFq(p, q).subs(
-        {z: z_value}
-    )
+    assert pFq(p, q, z_eval=z_value) == pFq(p, q).subs({z: z_value})
 
 
 def test_gamma():
-    cmf = known_cmfs.pFq(2, 2, negate_denominator_params=True, z_eval=-1)
+    cmf = pFq(2, 2, negate_denominator_params=True, z_eval=-1)
     x0, x1 = sp.symbols("x:2")
     y0, y1 = sp.symbols("y:2")
     trajectory = {x0: 1, x1: 1, y0: 1, y1: 0}
@@ -173,13 +172,28 @@ def test_gamma():
 def test_pfq_conserving():
     for p in range(1, 3):
         for q in range(1, 3):
-            known_cmfs.pFq(p, q).assert_conserving()
+            pFq(p, q).assert_conserving()
 
 
 def test_predict_N():
     for p in range(1, 5):
         for q in range(1, 5):
             for z_eval in [-1, 1]:
-                assert known_cmfs.pFq(
+                assert pFq(
                     p, q, z_eval=z_eval, negate_denominator_params=True
-                ).N() == known_cmfs.pFq.predict_N(p, q, z_eval)
+                ).N() == pFq.predict_N(p, q, z_eval)
+
+
+def test_state_vector():
+    p = 3
+    q = 2
+    z_eval = -1
+    a_symbols = sp.symbols(f"a:{p}")
+    b_symbols = sp.symbols(f"b:{q}")
+    state_vector = pFq.state_vector(p, q, z_eval)
+    assert len(state_vector) == pFq.predict_N(p, q, z_eval)
+    assert state_vector.free_symbols == set(a_symbols).union(b_symbols)
+    value = sp.hyper(a_symbols, b_symbols, z).simplify()
+    for i in range(len(state_vector)):
+        assert value.subs({z: z_eval}).simplify() == state_vector[i]
+        value = pFq.theta_derivative(value)

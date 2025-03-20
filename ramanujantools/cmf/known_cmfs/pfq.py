@@ -123,10 +123,14 @@ class pFq(CMF):
         return N
 
     @staticmethod
-    def state_vector(p, q, z=z):
+    def state_vector(p, q, z_eval=z):
         a_symbols = sp.symbols(f"a:{p}")
-        b_symbols = sp.symobls(f"b:{p}")
-        values = [sp.hyper(a_symbols, b_symbols, z)]
-        for _ in range(1, pFq.predict_N(p, q, z)):
-            values.append(sp.Derivative(values[-1], z))
-        return Matrix(values)
+        b_symbols = sp.symbols(f"b:{q}")
+        values = [sp.hyper(a_symbols, b_symbols, z).simplify()]
+        for _ in range(1, pFq.predict_N(p, q, z_eval)):
+            values.append(pFq.theta_derivative(values[-1]))
+        return Matrix(values).subs({z: z_eval}).simplify()
+
+    @staticmethod
+    def theta_derivative(expr):
+        return z * sp.Derivative(expr, z).simplify()
