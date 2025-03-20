@@ -174,3 +174,12 @@ def test_pfq_conserving():
     for p in range(1, 3):
         for q in range(1, 3):
             known_cmfs.pFq(p, q).assert_conserving()
+
+
+def test_predict_N():
+    for p in range(1, 5):
+        for q in range(1, 5):
+            for z_eval in [-1, 1]:
+                assert known_cmfs.pFq(
+                    p, q, z_eval=z_eval, negate_denominator_params=True
+                ).N() == known_cmfs.pFq.predict_N(p, q, z_eval)
