@@ -197,3 +197,22 @@ def test_state_vector():
     for i in range(len(state_vector)):
         assert value.subs({z: z_eval}).simplify() == state_vector[i]
         value = pFq.theta_derivative(value)
+
+
+def test_evaluate_2f1():
+    for z_eval in [
+        -1,
+        -sp.Rational(1, 2),
+        -sp.Rational(1, 4),
+        sp.Rational(1, 4),
+        sp.Rational(1, 2),
+    ]:
+        for a_values, b_values in [
+            ([1, 1], [2]),
+            ([1, 3], [5]),
+            ([sp.Rational(3, 2), sp.Rational(5, 2)], [sp.Rational(7, 2)]),
+            ([sp.Rational(3, 2), 4], [-sp.Rational(1, 2)]),
+        ]:
+            evaluation = pFq.evaluate(a_values, b_values, z_eval).simplify()
+            expected = sp.hyper(a_values, b_values, z_eval).simplify().simplify()
+            assert expected == evaluation
