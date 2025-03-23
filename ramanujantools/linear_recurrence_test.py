@@ -31,6 +31,45 @@ def test_limit():
     assert r.limit(depths) == r.recurrence_matrix.limit({n: 1}, depths, {n: 1})
 
 
+def test_evaluate_solution_basis():
+    r = LinearRecurrence([1, n, n**2, 3])
+    iterations = 100
+    initial_values = [0, 1, 0]
+    points = list(range(0, iterations))
+    matrices = r.walk(points)
+    evaluations = r.evaluate_solution(initial_values, iterations)
+    assert len(matrices) == len(evaluations)
+    for i in range(len(evaluations)):
+        assert matrices[i].col(-1)[1] == evaluations[i]
+
+
+def test_evaluate_solution_basis_with_start():
+    r = LinearRecurrence([n, -n, 5, n**2 + n + 1])
+    start = 3
+    iterations = 100
+    initial_values = [0, 0, 1]
+    points = list(range(0, iterations))
+    matrices = r.walk(points, start)
+    evaluations = r.evaluate_solution(initial_values, iterations, start)
+    assert len(matrices) == len(evaluations)
+    for i in range(len(evaluations)):
+        assert matrices[i].col(-1)[2] == evaluations[i]
+
+
+def test_evaluate_solution_generic():
+    r = LinearRecurrence([2, -n + 1, n**3 + n, 14])
+    start = 17
+    iterations = 100
+    initial_values = [5, -4, 2]
+    points = list(range(0, iterations))
+    matrices = r.walk(points, start)
+    evaluations = r.evaluate_solution(initial_values, iterations, start)
+    assert len(matrices) == len(evaluations)
+    for i in range(len(evaluations)):
+        expected = (Matrix(initial_values).transpose() * matrices[i].col(-1))[0]
+        assert expected == evaluations[i]
+
+
 def test_inflate():
     r = LinearRecurrence([f("a"), f("b"), f("c"), f("d")])
     assert LinearRecurrence(
