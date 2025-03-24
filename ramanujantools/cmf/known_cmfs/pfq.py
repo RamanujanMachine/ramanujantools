@@ -101,7 +101,8 @@ class pFq(CMF):
         if negate_denominator_params:
             M = M.subs({y[i]: -y[i] for i in range(q)})
             y_matrices = {
-                y[i]: Matrix(-M / (y[i] + 1) + sp.eye(equation_size)) for i in range(q)
+                y[i]: Matrix(-M / (y[i] + 1) + Matrix.eye(equation_size))
+                for i in range(q)
             }
         else:
             y_matrices = {
@@ -113,7 +114,9 @@ class pFq(CMF):
                 for i in range(q)
             }
 
-        matrices = {x[i]: Matrix(M / x[i] + sp.eye(equation_size)) for i in range(p)}
+        matrices = {
+            x[i]: Matrix(M / x[i] + Matrix.eye(equation_size)) for i in range(p)
+        }
         matrices.update(y_matrices)
         return matrices
 
