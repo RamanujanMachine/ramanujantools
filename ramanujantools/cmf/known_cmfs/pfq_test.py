@@ -190,7 +190,7 @@ def test_state_vector():
     z_eval = -1
     a_symbols = sp.symbols(f"a:{p}")
     b_symbols = sp.symbols(f"b:{q}")
-    state_vector = pFq.state_vector(p, q, z_eval)
+    state_vector = pFq.state_vector(a_symbols, b_symbols, z_eval)
     assert len(state_vector) == pFq.predict_N(p, q, z_eval)
     assert state_vector.free_symbols == set(a_symbols).union(b_symbols)
     value = sp.hyper(a_symbols, b_symbols, z).simplify()

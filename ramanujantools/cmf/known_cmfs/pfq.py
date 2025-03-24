@@ -131,13 +131,19 @@ class pFq(CMF):
         return N
 
     @staticmethod
-    def state_vector(p: int, q: int, z_eval: sp.Expr = z):
+    def state_vector(
+        a_values: List[sp.Rational], b_values: List[sp.Rational], z_eval: sp.Expr = z
+    ):
+        p = len(a_values)
+        q = len(b_values)
         a_symbols = sp.symbols(f"a:{p}")
         b_symbols = sp.symbols(f"b:{q}")
         values = [sp.hyper(a_symbols, b_symbols, z).simplify()]
         for _ in range(1, pFq.predict_N(p, q, z_eval)):
             values.append(pFq.theta_derivative(values[-1]))
-        return Matrix(values).transpose().subs({z: z_eval}).simplify()
+        a_subs = pFq.list_to_dict(a_values, "a")
+        b_subs = pFq.list_to_dict(b_values, "b")
+        return Matrix(values).transpose().subs(a_subs | b_subs | {z: z_eval}).simplify()
 
     @staticmethod
     def theta_derivative(expr: sp.Expr):
@@ -155,17 +161,16 @@ class pFq(CMF):
     ) -> sp.Expr:
         a_values = [sp.S(value) for value in a_values]
         b_values = [sp.S(value) for value in b_values]
-        p = len(a_values)
-        q = len(b_values)
         a_anchor = [
             sp.sign(value) * (value - (value.floor() - 1)) for value in a_values
         ]
         b_anchor = [
             sp.sign(value) * (value - (value.floor() - 2)) for value in b_values
         ]
-        anchor = pFq.list_to_dict(a_anchor, "a") | pFq.list_to_dict(b_anchor, "b")
+        vector = pFq.state_vector(a_anchor, b_anchor, z).simplify()
+        p = len(a_values)
+        q = len(b_values)
         start = pFq.list_to_dict(a_anchor, "x") | pFq.list_to_dict(b_anchor, "y")
         end = pFq.list_to_dict(a_values, "x") | pFq.list_to_dict(b_values, "y")
-        vector = pFq.state_vector(p, q, z).subs(anchor).simplify()
         m = pFq(p, q, z).work(start, end)
         return (vector * m)[0]
