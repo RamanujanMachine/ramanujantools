@@ -3,7 +3,7 @@ from typing import List
 import sympy as sp
 from sympy.abc import z
 
-from ramanujantools import Matrix
+from ramanujantools import Matrix, Position
 from ramanujantools.cmf import CMF
 
 from functools import lru_cache
@@ -131,9 +131,22 @@ class pFq(CMF):
         return N
 
     @staticmethod
+    def theta_derivative(expr: sp.Expr):
+        r"""
+        Returns the \theta derivative of an expression,
+        which is defined as z * d/dz.
+        """
+        return z * sp.Derivative(expr, z).simplify()
+
+    @staticmethod
     def state_vector(
         a_values: List[sp.Rational], b_values: List[sp.Rational], z_eval: sp.Expr = z
     ):
+        r"""
+        Returns the state vector of a pFq CMF in a specific point.
+        The state vector is of length N, and the ith element is $\theta^i pFq(\bar{a}, \bar{b}, z)$,
+        with a_values, b_values and z_eval substituted in.
+        """
         p = len(a_values)
         q = len(b_values)
         a_symbols = sp.symbols(f"a:{p}")
@@ -141,24 +154,21 @@ class pFq(CMF):
         values = [sp.hyper(a_symbols, b_symbols, z).simplify()]
         for _ in range(1, pFq.predict_N(p, q, z_eval)):
             values.append(pFq.theta_derivative(values[-1]))
-        a_subs = pFq.list_to_dict(a_values, "a")
-        b_subs = pFq.list_to_dict(b_values, "b")
+        a_subs = Position.from_list(a_values, "a")
+        b_subs = Position.from_list(b_values, "b")
         return Matrix(values).transpose().subs(a_subs | b_subs | {z: z_eval}).simplify()
-
-    @staticmethod
-    def theta_derivative(expr: sp.Expr):
-        return z * sp.Derivative(expr, z).simplify()
-
-    @staticmethod
-    def list_to_dict(values: List[sp.Rational], symbol: str):
-        dim = len(values)
-        symbols = sp.symbols(f"{symbol}:{dim}")
-        return {symbols[i]: values[i] for i in range(dim)}
 
     @staticmethod
     def evaluate(
         a_values: List[sp.Rational], b_values: list[sp.Rational], z: sp.Rational
     ) -> sp.Expr:
+        """
+        Evaluates symbolically the pFq function at a specific point.
+        Levarages the pFq CMF to calculate the contiguous relations.
+        Works by selecting a small anchor point for which we calculate the state vector
+        using sympy, and then calculating the `work` matrix which represents the contiguous
+        relations transformation up to our desired point.
+        """
         a_values = [sp.S(value) for value in a_values]
         b_values = [sp.S(value) for value in b_values]
         a_anchor = [
@@ -170,7 +180,7 @@ class pFq(CMF):
         vector = pFq.state_vector(a_anchor, b_anchor, z).simplify()
         p = len(a_values)
         q = len(b_values)
-        start = pFq.list_to_dict(a_anchor, "x") | pFq.list_to_dict(b_anchor, "y")
-        end = pFq.list_to_dict(a_values, "x") | pFq.list_to_dict(b_values, "y")
+        start = Position.from_list(a_anchor, "x") | Position.from_list(b_anchor, "y")
+        end = Position.from_list(a_values, "x") | Position.from_list(b_values, "y")
         m = pFq(p, q, z).work(start, end)
         return (vector * m)[0]

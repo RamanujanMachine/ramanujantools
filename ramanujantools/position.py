@@ -112,3 +112,15 @@ class Position(dict):
         for value in self.values():
             symbols = symbols.union((sp.simplify(0) + value).free_symbols)
         return symbols
+
+    @staticmethod
+    def from_list(values: List[sp.Expr], symbol: str) -> Position:
+        """
+        Constructs a Position object with incrementing symbols from a list.
+        Example:
+            >>> Position.from_list([1, 2, 3], "x")
+            Position({x0: 1, x1: 2, x2: 3})
+        """
+        amount = len(values)
+        symbols = sp.symbols(f"{symbol}:{amount}")
+        return {symbols[i]: values[i] for i in range(amount)}

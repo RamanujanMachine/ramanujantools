@@ -28,7 +28,7 @@ class Matrix(sp.Matrix):
 
     @staticmethod
     def e(N: int, index: int, column=True) -> Matrix:
-        r"""
+        """
         Returns a coordinate vector of size N for a given index, i.e,
         a vector of size N of zeroes with 1 in the corresponding index
 
