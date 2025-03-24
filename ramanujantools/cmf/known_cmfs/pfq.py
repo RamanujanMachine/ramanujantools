@@ -159,6 +159,16 @@ class pFq(CMF):
         return Matrix(values).transpose().subs(a_subs | b_subs | {z: z_eval}).simplify()
 
     @staticmethod
+    def contiguous_relation(point, anchor, z) -> Matrix:
+        a_point, b_point = point
+        a_anchor, b_anchor = anchor
+        p = len(a_point)
+        q = len(b_point)
+        start = Position.from_list(a_anchor, "x") | Position.from_list(b_anchor, "y")
+        end = Position.from_list(a_point, "x") | Position.from_list(b_point, "y")
+        return pFq(p, q, z).work(start, end)
+
+    @staticmethod
     def evaluate(
         a_values: List[sp.Rational], b_values: list[sp.Rational], z: sp.Rational
     ) -> sp.Expr:
@@ -178,9 +188,5 @@ class pFq(CMF):
             sp.sign(value) * (value - (value.floor() - 2)) for value in b_values
         ]
         vector = pFq.state_vector(a_anchor, b_anchor, z).simplify()
-        p = len(a_values)
-        q = len(b_values)
-        start = Position.from_list(a_anchor, "x") | Position.from_list(b_anchor, "y")
-        end = Position.from_list(a_values, "x") | Position.from_list(b_values, "y")
-        m = pFq(p, q, z).work(start, end)
+        m = pFq.contiguous_relation((a_values, b_values), (a_anchor, b_anchor), z)
         return (vector * m)[0]
