@@ -25,7 +25,7 @@ class pFq(CMF):
         q: int,
         z_eval: sp.Expr = z,
         theta_derivative: bool = True,
-        negate_denominator_params: bool = False,
+        negate_denominator_params: bool = True,
     ):
         r"""
         Constructs a pFq CMF.
@@ -61,7 +61,7 @@ class pFq(CMF):
         q: int,
         z_eval: sp.Expr = z,
         theta_derivative: bool = True,
-        negate_denominator_params: bool = False,
+        negate_denominator_params: bool = True,
     ):
         r"""
         Constructs the pFq CMF matrices.
@@ -99,18 +99,18 @@ class pFq(CMF):
             ).factor()
 
         if negate_denominator_params:
-            M = M.subs({y[i]: -y[i] for i in range(q)})
-            y_matrices = {
-                y[i]: Matrix(-M / (y[i] + 1) + Matrix.eye(equation_size))
-                for i in range(q)
-            }
-        else:
             y_matrices = {
                 y[i]: Matrix(
                     M.subs({y[i]: y[i] + 1}) / y[i] + Matrix.eye(equation_size)
                 )
                 .inverse()
                 .factor()
+                for i in range(q)
+            }
+        else:
+            M = M.subs({y[i]: -y[i] for i in range(q)})
+            y_matrices = {
+                y[i]: Matrix(-M / (y[i] + 1) + Matrix.eye(equation_size))
                 for i in range(q)
             }
 

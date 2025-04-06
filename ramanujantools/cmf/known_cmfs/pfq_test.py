@@ -74,7 +74,7 @@ def test_2F1_theta_derivative_negate_denominator():
             ),
         }
     )
-    cmf = pFq(2, 1, negate_denominator_params=True)
+    cmf = pFq(2, 1, negate_denominator_params=False)
     cmf.assert_conserving()
     assert cmf == expected
 
@@ -147,7 +147,7 @@ def test_2F1_normal_derivative_negate_denominator():
             ),
         }
     )
-    cmf = pFq(2, 1, theta_derivative=False, negate_denominator_params=True)
+    cmf = pFq(2, 1, theta_derivative=False, negate_denominator_params=False)
     cmf.assert_conserving()
     assert cmf == expected
 
@@ -160,7 +160,7 @@ def test_2F1_z_evaluation():
 
 
 def test_gamma():
-    cmf = pFq(2, 2, negate_denominator_params=True, z_eval=-1)
+    cmf = pFq(2, 2, negate_denominator_params=False, z_eval=-1)
     x0, x1 = sp.symbols("x:2")
     y0, y1 = sp.symbols("y:2")
     trajectory = {x0: 1, x1: 1, y0: 1, y1: 0}
@@ -179,9 +179,7 @@ def test_predict_N():
     for p in range(1, 5):
         for q in range(1, 5):
             for z_eval in [-1, 1]:
-                assert pFq(
-                    p, q, z_eval=z_eval, negate_denominator_params=True
-                ).N() == pFq.predict_N(p, q, z_eval)
+                assert pFq(p, q, z_eval=z_eval).N() == pFq.predict_N(p, q, z_eval)
 
 
 def test_state_vector():
