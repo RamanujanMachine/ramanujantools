@@ -151,12 +151,14 @@ class pFq(CMF):
         q = len(b_values)
         a_symbols = sp.symbols(f"a:{p}")
         b_symbols = sp.symbols(f"b:{q}")
-        values = [sp.hyper(a_symbols, b_symbols, z).simplify()]
+        values = [sp.hyper(a_symbols, b_symbols, z)]
         for _ in range(1, pFq.predict_N(p, q, z_eval)):
             values.append(pFq.theta_derivative(values[-1]))
         a_subs = Position.from_list(a_values, "a")
         b_subs = Position.from_list(b_values, "b")
-        return Matrix(values).transpose().subs(a_subs | b_subs | {z: z_eval}).simplify()
+        return sp.hyperexpand(
+            Matrix(values).transpose().subs(a_subs | b_subs | {z: z_eval})
+        )
 
     @staticmethod
     def contiguous_relation(point, anchor, z) -> Matrix:
@@ -164,9 +166,9 @@ class pFq(CMF):
         a_anchor, b_anchor = anchor
         p = len(a_point)
         q = len(b_point)
-        start = Position.from_list(a_anchor, "x") | Position.from_list(b_anchor, "y")
-        end = Position.from_list(a_point, "x") | Position.from_list(b_point, "y")
-        return pFq(p, q, z).work(start, end)
+        start = Position.from_list(a_anchor, "x") | -Position.from_list(b_anchor, "y")
+        end = Position.from_list(a_point, "x") | -Position.from_list(b_point, "y")
+        return pFq(p, q, z, negate_denominator_params=False).work(start, end)
 
     @staticmethod
     def evaluate(
@@ -187,6 +189,6 @@ class pFq(CMF):
         b_anchor = [
             sp.sign(value) * (value - (value.floor() - 2)) for value in b_values
         ]
-        vector = pFq.state_vector(a_anchor, b_anchor, z).simplify()
+        vector = pFq.state_vector(a_anchor, b_anchor, z)
         m = pFq.contiguous_relation((a_values, b_values), (a_anchor, b_anchor), z)
         return (vector * m)[0]

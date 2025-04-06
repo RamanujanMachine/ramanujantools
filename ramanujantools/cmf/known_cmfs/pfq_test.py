@@ -191,9 +191,9 @@ def test_state_vector():
     state_vector = pFq.state_vector(a_symbols, b_symbols, z_eval)
     assert len(state_vector) == pFq.predict_N(p, q, z_eval)
     assert state_vector.free_symbols == set(a_symbols).union(b_symbols)
-    value = sp.hyper(a_symbols, b_symbols, z).simplify()
+    value = sp.hyper(a_symbols, b_symbols, z)
     for i in range(len(state_vector)):
-        assert value.subs({z: z_eval}).simplify() == state_vector[i]
+        assert sp.hyperexpand(value.subs({z: z_eval})) == state_vector[i]
         value = pFq.theta_derivative(value)
 
 
