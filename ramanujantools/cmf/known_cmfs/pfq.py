@@ -166,9 +166,9 @@ class pFq(CMF):
         a_anchor, b_anchor = anchor
         p = len(a_point)
         q = len(b_point)
-        start = Position.from_list(a_anchor, "x") | -Position.from_list(b_anchor, "y")
-        end = Position.from_list(a_point, "x") | -Position.from_list(b_point, "y")
-        return pFq(p, q, z, negate_denominator_params=False).work(start, end)
+        start = Position.from_list(a_anchor, "x") | Position.from_list(b_anchor, "y")
+        end = Position.from_list(a_point, "x") | Position.from_list(b_point, "y")
+        return pFq(p, q, z).work(start, end)
 
     @staticmethod
     def evaluate(
