@@ -96,6 +96,7 @@ def test_free_symbols():
 
 def test_from_list():
     z0, z1, z2, z3 = sp.symbols("z:4")
-    assert Position({z0: 9, z1: 8, z2: 7, z3: 6}) == Position.from_list(
-        [9, 8, 7, 6], "z"
-    )
+    expected = Position({z0: 9, z1: 8, z2: 7, z3: 6})
+    actual = Position.from_list([9, 8, 7, 6], "z")
+    assert isinstance(actual, Position)
+    assert expected == actual

@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Dict, Set
+from typing import Dict, List, Set
 
 import sympy as sp
 
@@ -123,4 +123,4 @@ class Position(dict):
         """
         amount = len(values)
         symbols = sp.symbols(f"{symbol}:{amount}")
-        return {symbols[i]: values[i] for i in range(amount)}
+        return Position({symbols[i]: values[i] for i in range(amount)})
