@@ -143,11 +143,41 @@ class LinearRecurrence:
         relation = [p * self.denominator_lcm / self.gcd for p in self.relation]
         return LinearRecurrence([sp.factor(p.simplify()) for p in relation])
 
-    def limit(self, iterations: int | List[int], start=1) -> Limit:
+    def walk(self, iterations: int | List[int], start=1) -> Matrix | List[Matrix]:
+        r"""
+        Returns the Limit matrix of the recursion up to a certain depth
+        """
+        return self.recurrence_matrix.walk({n: 1}, iterations, {n: start})
+
+    def limit(self, iterations: int | List[int], start=1) -> Limit | List[Limit]:
         r"""
         Returns the Limit matrix of the recursion up to a certain depth
         """
         return self.recurrence_matrix.limit({n: 1}, iterations, {n: start})
+
+    def evaluate_solution(
+        self, initial_values: List[int], iterations: int, start: int = 1
+    ) -> List[sp.Rational]:
+        """
+        Returns an evaluation of a specific solution of the recurrence.
+        A specific solution is uniquely defined by initial values.
+        Args:
+            initial_values: The initial values of the recurrence
+            iterations: The amount of solution points to evaluate.
+            start: The first index of the solution to be evaluated.
+        Returns:
+            A list of evaluated points of the specific recurrence
+        """
+        if self.depth() != len(initial_values):
+            raise ValueError(
+                "Initial values of a recursion must be of the recurrence's order"
+            )
+        retval = []
+        initial_values = Matrix(initial_values).transpose()
+        matrices = self.walk(list(range(0, iterations)), start)
+        for matrix in matrices:
+            retval.append((initial_values * matrix.col(-1))[0])
+        return retval
 
     def fold(self, multiplier: sp.Expr) -> LinearRecurrence:
         r"""
