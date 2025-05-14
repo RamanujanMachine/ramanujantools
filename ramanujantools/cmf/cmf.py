@@ -135,19 +135,19 @@ class CMF:
         else:
             return self.matrices[axis].inverse()({axis: axis - 1})
 
-    def axes(self) -> Set[sp.Symbol]:
+    def axes(self) -> set[sp.Symbol]:
         """
         Returns the symbols of all axes of the CMF.
         """
         return set(self.matrices.keys())
 
-    def parameters(self) -> Set[sp.Symbol]:
+    def parameters(self) -> set[sp.Symbol]:
         """
         Returns all (non-axis) symbolic parameters of the CMF.
         """
         return self.free_symbols() - self.axes()
 
-    def free_symbols(self) -> Set[sp.Symbol]:
+    def free_symbols(self) -> set[sp.Symbol]:
         """
         Returns all symbolic variables of the CMF, both axes and parameters.
         """
