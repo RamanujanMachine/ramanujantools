@@ -1,12 +1,10 @@
-from typing import List
-
 import sympy as sp
 from sympy.abc import x, y
 
 from ramanujantools.flint_core import mpoly_ctx, FlintRational
 
 
-def flintify(expr: sp.Expr, symbols: List = None, fmpz=True) -> FlintRational:
+def flintify(expr: sp.Expr, symbols: list = None, fmpz=True) -> FlintRational:
     ctx = mpoly_ctx(symbols or list(expr.free_symbols), fmpz)
     return FlintRational.from_sympy(expr, ctx)
 

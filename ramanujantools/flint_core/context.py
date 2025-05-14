@@ -1,13 +1,11 @@
-from typing import List, TypeAlias
-
 import flint
 import sympy as sp
 
-FlintContext: TypeAlias = flint.fmpz_mpoly_ctx | flint.fmpq_mpoly_ctx
-FlintPoly: TypeAlias = flint.fmpz_mpoly | flint.fmpq_mpoly_ctx
+FlintContext = flint.fmpz_mpoly_ctx | flint.fmpq_mpoly_ctx
+FlintPoly = flint.fmpz_mpoly | flint.fmpq_mpoly_ctx
 
 
-def mpoly_ctx(symbols: List[sp.Symbol], fmpz: bool) -> FlintContext:
+def mpoly_ctx(symbols: list[sp.Symbol], fmpz: bool) -> FlintContext:
     """
     Creates a FlintContext
     Args:

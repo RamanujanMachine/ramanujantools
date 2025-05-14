@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Dict, List
-
 from multimethod import multimethod
 
 import sympy as sp
@@ -19,7 +17,7 @@ class SymbolicMatrix:
     """
 
     def __init__(
-        self, rows: int, cols: int, values: List[FlintRational], ctx: FlintContext
+        self, rows: int, cols: int, values: list[FlintRational], ctx: FlintContext
     ) -> SymbolicMatrix:
         self._rows = rows
         self._cols = cols
@@ -89,13 +87,13 @@ class SymbolicMatrix:
     def shape(self):
         return (self.rows(), self.cols())
 
-    def row(self, index: int) -> List[FlintRational]:
+    def row(self, index: int) -> list[FlintRational]:
         row = []
         for i in range(self.cols()):
             row.append(self[index, i])
         return row
 
-    def col(self, index: int) -> List[FlintRational]:
+    def col(self, index: int) -> list[FlintRational]:
         col = []
         for i in range(self.rows()):
             col.append(self[i, index])
@@ -158,7 +156,7 @@ class SymbolicMatrix:
             self.ctx,
         )
 
-    def subs(self, substitutions: Dict) -> SymbolicMatrix:
+    def subs(self, substitutions: dict) -> SymbolicMatrix:
         """
         Substitutes symbols in the matrix.
         """
@@ -178,7 +176,7 @@ class SymbolicMatrix:
 
     @multimethod
     def walk(
-        self, trajectory: Dict, iterations: List[int], start: Dict
+        self, trajectory: dict, iterations: list[int], start: dict
     ) -> SymbolicMatrix:
         r"""
         Returns the multiplication result of walking in a certain trajectory.
@@ -216,8 +214,8 @@ class SymbolicMatrix:
     @multimethod
     def walk(  # noqa: F811
         self,
-        trajectory: Dict,
+        trajectory: dict,
         iterations: int,
-        start: Dict,
+        start: dict,
     ) -> rt.Matrix:
         return self.walk(trajectory, [iterations], start)[0]

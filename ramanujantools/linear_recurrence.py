@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import List, Dict, Set, Tuple
+
 from functools import cached_property
 import copy
 import itertools
@@ -11,7 +11,7 @@ from sympy.abc import n
 from ramanujantools import Matrix, Limit, GenericPolynomial
 
 
-def trim_trailing_zeros(sequence: List[int]) -> List[int]:
+def trim_trailing_zeros(sequence: list[int]) -> list[int]:
     ending = len(sequence)
     while sequence[ending - 1] == 0:
         ending -= 1
@@ -29,7 +29,7 @@ class LinearRecurrence:
     for all integers $s$.
     """
 
-    def __init__(self, recurrence: Matrix | List[sp.Expr]):
+    def __init__(self, recurrence: Matrix | list[sp.Expr]):
         r"""
         Construct the recurrence.
 
@@ -105,25 +105,25 @@ class LinearRecurrence:
         """
         return len(self.relation) - 1
 
-    def degrees(self) -> List[int]:
+    def degrees(self) -> list[int]:
         """
         Returns a list of the degrees of all coefficients
         """
         return [sp.Poly(p, n).degree() for p in self.relation]
 
-    def subs(self, substitutions: Dict) -> LinearRecurrence:
+    def subs(self, substitutions: dict[sp.Symbol, sp.Expr]) -> LinearRecurrence:
         """
         Substitutes symbols in the recurrence.
         """
         return LinearRecurrence([p.subs(substitutions) for p in self.relation])
 
-    def free_symbols(self) -> Set[sp.Symbol]:
+    def free_symbols(self) -> set[sp.Symbol]:
         """
         Returns all free symbols of the recurrence (including `n`)
         """
         return set.union(*[p.free_symbols for p in self.relation])
 
-    def parameters(self) -> Set[sp.Symbol]:
+    def parameters(self) -> set[sp.Symbol]:
         """
         Returns all symbolic parameters of the recurrence (excluding `n`)
         """
@@ -143,7 +143,7 @@ class LinearRecurrence:
         relation = [p * self.denominator_lcm / self.gcd for p in self.relation]
         return LinearRecurrence([sp.factor(p.simplify()) for p in relation])
 
-    def limit(self, iterations: int | List[int], start=1) -> Limit:
+    def limit(self, iterations: int | list[int], start=1) -> Limit:
         r"""
         Returns the Limit matrix of the recursion up to a certain depth
         """
@@ -180,7 +180,7 @@ class LinearRecurrence:
         return LinearRecurrence(relation)
 
     @staticmethod
-    def all_divisors(p: sp.Poly) -> List[sp.Poly]:
+    def all_divisors(p: sp.Poly) -> list[sp.Poly]:
         r"""
         Returns all divisors of polynomial `p`.
         Assumes p is polynomial in `n`.
@@ -199,7 +199,7 @@ class LinearRecurrence:
             divisors.append(sp.prod(combination))
         return divisors
 
-    def possible_multipliers(self) -> List[sp.Poly]:
+    def possible_multipliers(self) -> list[sp.Poly]:
         r"""
         Returns all candidates for a multiplier rational $d(n)$
         that could have been used to fold a lesser depth recursion into this one.
@@ -231,7 +231,7 @@ class LinearRecurrence:
                 return LinearRecurrence(unfolded)
         return None
 
-    def unfold(self, inflation_degree=0) -> Tuple[LinearRecurrence, sp.Poly]:
+    def unfold(self, inflation_degree=0) -> tuple[LinearRecurrence, sp.Poly]:
         r"""
         Attempts to unfold this recursion by enumerating over all possible
         multiplier candidates and attempting to unfold using them.

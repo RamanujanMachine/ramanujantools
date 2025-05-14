@@ -1,10 +1,9 @@
 from __future__ import annotations
-from typing import Dict, List, Set
 
 import sympy as sp
 
 
-class Position(dict):
+class Position(dict[sp.Symbol, sp.Expr]):
     r"""
     Represents a Position (or a trajectory).
 
@@ -24,21 +23,21 @@ class Position(dict):
     def __repr__(self):
         return f"Position({super().__repr__()})"
 
-    def __iadd__(self, other: Dict):
+    def __iadd__(self, other: dict):
         for key in other:
             self[key] = self.get(key, 0) + other[key]
         return self
 
-    def __add__(self, other: Dict):
+    def __add__(self, other: dict):
         result = self.copy()
         result += other
         return result
 
-    def __isub__(self, other: Dict):
+    def __isub__(self, other: dict):
         self += -other
         return self
 
-    def __sub__(self, other: Dict):
+    def __sub__(self, other: dict):
         result = self.copy()
         result -= other
         return result
@@ -107,14 +106,14 @@ class Position(dict):
         """
         return all(sp.simplify(element).is_Integer for element in self.values())
 
-    def free_symbols(self) -> Set:
+    def free_symbols(self) -> set:
         symbols = set()
         for value in self.values():
             symbols = symbols.union((sp.simplify(0) + value).free_symbols)
         return symbols
 
     @staticmethod
-    def from_list(values: List[sp.Expr], symbol: str) -> Position:
+    def from_list(values: list[sp.Expr], symbol: str) -> Position:
         """
         Constructs a Position object with incrementing symbols from a list.
         Example:

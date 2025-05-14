@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Callable, Dict, List
+from typing import Callable
 
 from flint import fmpq_mat, fmpq  # noqa: F401
 from sympy.utilities.lambdify import lambdastr
@@ -38,7 +38,7 @@ class NumericMatrix(fmpq_mat):
             .replace("S", "fmpq")
         )
 
-        def fast_subs(substitutions: Dict):
+        def fast_subs(substitutions: dict):
             values = [substitutions[symbol] for symbol in symbols]
             return eval(evaluation_string)(*values)
 
@@ -52,8 +52,8 @@ class NumericMatrix(fmpq_mat):
 
     @staticmethod
     def walk_list(
-        matrix: rt.Matrix, trajectory: Position, iterations: List[int], start: Position
-    ) -> List[NumericMatrix]:
+        matrix: rt.Matrix, trajectory: Position, iterations: list[int], start: Position
+    ) -> list[NumericMatrix]:
         results = []
         position = start.copy()
         fast_subs = NumericMatrix.lambda_from_rt(matrix)

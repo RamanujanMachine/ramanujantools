@@ -2,7 +2,7 @@ import mpmath as mp
 import sympy as sp
 from sympy.abc import n
 
-from typing import Dict, List, Collection
+from typing import Collection
 from multimethod import multimethod
 
 from ramanujantools import Matrix, Limit
@@ -136,7 +136,7 @@ class PCF:
         """Substitutes parameters in the PCF"""
         return PCF(self.a_n.subs(*args, **kwargs), self.b_n.subs(*args, **kwargs))
 
-    def singular_points(self) -> List[Dict]:
+    def singular_points(self) -> list[dict]:
         return [
             solution
             for solution in self.M().singular_points()
@@ -144,7 +144,7 @@ class PCF:
         ]
 
     @multimethod
-    def walk(self, iterations: Collection[int], start: int = 0) -> List[Matrix]:
+    def walk(self, iterations: Collection[int], start: int = 0) -> list[Matrix]:
         r"""
         Returns the matrix corresponding to calculating the PCF up to a certain depth, including $a_0$
 
@@ -180,7 +180,7 @@ class PCF:
         return self.walk([iterations], start)[0]
 
     @multimethod
-    def limit(self, iterations: Collection[int], start: int = 0) -> List[Limit]:
+    def limit(self, iterations: Collection[int], start: int = 0) -> list[Limit]:
         r"""
         Returns the limit corresponding to calculating the PCF up to a certain depth, including $a_0$
 

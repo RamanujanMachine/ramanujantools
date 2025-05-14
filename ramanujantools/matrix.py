@@ -1,5 +1,4 @@
 from __future__ import annotations
-from typing import Dict, List, Set, Tuple
 from functools import lru_cache, cached_property
 
 from multimethod import multimethod
@@ -59,13 +58,13 @@ class Matrix(sp.Matrix):
     def __hash__(self) -> int:
         return hash(frozenset(self))
 
-    def __call__(self, substitutions: Dict) -> Matrix:
+    def __call__(self, substitutions: dict) -> Matrix:
         """
         Substitutes symbols in the matrix, in a more math-like syntax.
         """
         return self.subs(substitutions)
 
-    def subs(self, substitutions: Dict) -> Matrix:
+    def subs(self, substitutions: dict) -> Matrix:
         """
         Substitutes symbols in the matrix.
 
@@ -74,7 +73,7 @@ class Matrix(sp.Matrix):
         """
         return self.xreplace(substitutions)
 
-    def _is_numeric_walk(self, trajectory: Dict, start: Dict) -> bool:
+    def _is_numeric_walk(self, trajectory: dict, start: dict) -> bool:
         trajectory = Position(trajectory)
         start = Position(start)
 
@@ -149,7 +148,7 @@ class Matrix(sp.Matrix):
             self, mpoly_ctx(self.free_symbols, fmpz=True)
         ).factor()
 
-    def singular_points(self) -> List[Dict]:
+    def singular_points(self) -> list[dict]:
         r"""
         Calculates the singular points of the matrix,
         i.e, points where $|m| = 0$
@@ -193,7 +192,7 @@ class Matrix(sp.Matrix):
         return Matrix.hstack(*[vector.factor() for vector in vectors]).factor()
 
     @staticmethod
-    def companion_form(values: List[sp.Expr]) -> Matrix:
+    def companion_form(values: list[sp.Expr]) -> Matrix:
         N = len(values)
         columns = []
         for i in range(N - 1):
@@ -242,9 +241,9 @@ class Matrix(sp.Matrix):
     def _walk_inner(
         self,
         trajectory: Position,
-        iterations: Tuple[int],
+        iterations: tuple[int],
         start: Position,
-    ) -> List[Matrix]:
+    ) -> list[Matrix]:
         """
         Internal walk function, used for type conversions and for caching. Do not use directly.
         """
@@ -262,10 +261,10 @@ class Matrix(sp.Matrix):
     @multimethod
     def walk(  # noqa: F811
         self,
-        trajectory: Dict,
-        iterations: List[int],
-        start: Dict,
-    ) -> List[Matrix]:
+        trajectory: dict,
+        iterations: list[int],
+        start: dict,
+    ) -> list[Matrix]:
         r"""
         Returns the multiplication result of walking in a certain trajectory.
 
@@ -316,13 +315,13 @@ class Matrix(sp.Matrix):
     @multimethod
     def walk(  # noqa: F811
         self,
-        trajectory: Dict,
+        trajectory: dict,
         iterations: int,
-        start: Dict,
+        start: dict,
     ) -> Matrix:
         return self.walk(trajectory, [iterations], start)[0]
 
-    def walk_free_symbols(self, start: Dict) -> Set:
+    def walk_free_symbols(self, start: dict) -> set[sp.Symbol]:
         """
         Returns the expected free_symbols of the expression `self.walk(trajectory, iterations, start)`
         """
@@ -336,9 +335,9 @@ class Matrix(sp.Matrix):
     @multimethod
     def limit(
         self,
-        trajectory: Dict,
-        iterations: List[int],
-        start: Dict,
+        trajectory: dict,
+        iterations: list[int],
+        start: dict,
     ):  # noqa: F811
         from ramanujantools import Limit
 
@@ -350,9 +349,9 @@ class Matrix(sp.Matrix):
     @multimethod
     def limit(  # noqa: F811
         self,
-        trajectory: Dict,
+        trajectory: dict,
         iterations: int,
-        start: Dict,
+        start: dict,
     ):
         return self.limit(trajectory, [iterations], start)[0]
 
@@ -405,7 +404,7 @@ class Matrix(sp.Matrix):
             poly = Matrix.poincare_poly(poly)
         return poly
 
-    def eigenvals(self, poincare=False) -> Dict:
+    def eigenvals(self, poincare=False) -> dict:
         """
         Returns the eigenvalues of the matrix, which are the roots of the characteristic polynomials.
 
@@ -416,7 +415,7 @@ class Matrix(sp.Matrix):
         charpoly = self.charpoly(poincare)
         return sp.roots(charpoly)
 
-    def sorted_eigenvals(self) -> List:
+    def sorted_eigenvals(self) -> list:
         """
         Returns the eigenvalues of the matrix in Poincare form, sorted by absolute value in descending order.
         """
@@ -428,7 +427,7 @@ class Matrix(sp.Matrix):
             retval, key=lambda value: abs(value).evalf(chop=True), reverse=True
         )
 
-    def errors(self) -> List:
+    def errors(self) -> list:
         """
         Approximate the possible errors of integer recurrence approximations using this Matrix.
         """
@@ -459,7 +458,7 @@ class Matrix(sp.Matrix):
         )
         return mp.mpf(fit[0])
 
-    def kamidelta(self, depth=20):
+    def kamidelta(self, depth=20) -> list[mp.mpf]:
         r"""
         Predicts the possible delta values of the integer sequence approximation that the matrix generates.
 

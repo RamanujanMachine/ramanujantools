@@ -1,5 +1,4 @@
 from __future__ import annotations
-from typing import List, Dict
 
 import math
 import flint
@@ -53,7 +52,7 @@ class FlintRational:
         )
 
     @staticmethod
-    def fmpq_gcd(numbers: List[flint.fmpq]) -> flint.fmpz:
+    def fmpq_gcd(numbers: list[flint.fmpq]) -> flint.fmpz:
         denominator = flint.fmpz(1)
         for c in numbers:
             denominator *= c.denominator
@@ -113,10 +112,10 @@ class FlintRational:
             self.numerator == other.numerator and self.denominator == other.denominator
         )
 
-    def degrees(self) -> List[int]:
+    def degrees(self) -> list[int]:
         return [max(poly.degrees()) for poly in [self.numerator, self.denominator]]
 
-    def subs(self, substitutions: Dict) -> FlintRational:
+    def subs(self, substitutions: dict) -> FlintRational:
         """
         Substitutes symbols in self.
         """

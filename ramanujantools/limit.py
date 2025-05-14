@@ -1,5 +1,6 @@
 from __future__ import annotations
-from typing import List, Callable, Optional
+
+from typing import Callable
 
 import sympy as sp
 import mpmath as mp
@@ -41,8 +42,8 @@ class Limit:
         self,
         current: Matrix,
         previous: Matrix,
-        p_vectors: Optional[List[Matrix]] = None,
-        q_vectors: Optional[List[Matrix]] = None,
+        p_vectors: list[Matrix] | None = None,
+        q_vectors: list[Matrix] | None = None,
     ):
         self.current = current
         self.previous = previous
@@ -76,16 +77,16 @@ class Limit:
     @property
     def mp(self):
         limit_ctx = mp.mp.clone()
-        limit_ctx.dps = self.precision() * 1.1
+        limit_ctx.dps = max(self.precision() * 1.1, 15)
         return limit_ctx
 
     @staticmethod
     def walk_to_limit(
-        iterations: List[int],
-        walk_function: Callable[List[int], List[Limit]],
-        p_vectors: Optional[List[Matrix]] = None,
-        q_vectors: Optional[List[Matrix]] = None,
-    ) -> List[Limit]:
+        iterations: list[int],
+        walk_function: Callable[list[int], list[Limit]],
+        p_vectors: list[Matrix] | None = None,
+        q_vectors: list[Matrix] | None = None,
+    ) -> list[Limit]:
         previous_values = [depth - 1 for depth in iterations]
         walk_iterations = sorted(list(set(iterations + previous_values)))
         walk_matrices = walk_function(walk_iterations)
@@ -105,7 +106,7 @@ class Limit:
             )
         return limits
 
-    def as_rational(self, previous=False) -> List:
+    def as_rational(self, previous=False) -> list:
         r"""
         Returns the limit as a rational number $\frac{p}{q}$.
 
@@ -186,7 +187,7 @@ class Limit:
 
     def identify_rational(
         self, column_index=-1, maxcoeff=1000
-    ) -> Optional[IntegerRelation]:
+    ) -> IntegerRelation | None:
         r"""
         Searches for constants $a_0, \dots, a_{N-1}
         such that $0 \approx \prod_{i=0}^{N-1}a_i * p_i$,
@@ -209,7 +210,7 @@ class Limit:
 
     def identify(
         self, L: mp.mpf, column_index=-1, maxcoeff=1000
-    ) -> Optional[IntegerRelation]:
+    ) -> IntegerRelation | None:
         r"""
         Given a constant $L$, searches for constants $a_0, \dots, a_{N-1}, b_0, \dots, b_{N-1}$
         such that $0 \approx \prod_{i=0}^{N-1}a_i * p_i - L * \prod_{i=0}^{N-1}b_i * p_i$,

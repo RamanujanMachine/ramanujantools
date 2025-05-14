@@ -1,5 +1,3 @@
-from typing import List
-
 import sympy as sp
 from sympy.abc import z
 
@@ -140,7 +138,7 @@ class pFq(CMF):
 
     @staticmethod
     def state_vector(
-        a_values: List[sp.Rational], b_values: List[sp.Rational], z_eval: sp.Expr = z
+        a_values: list[sp.Rational], b_values: list[sp.Rational], z_eval: sp.Expr = z
     ):
         r"""
         Returns the state vector of a pFq CMF in a specific point.
@@ -172,7 +170,7 @@ class pFq(CMF):
 
     @staticmethod
     def evaluate(
-        a_values: List[sp.Rational], b_values: list[sp.Rational], z: sp.Rational
+        a_values: list[sp.Rational], b_values: list[sp.Rational], z: sp.Rational
     ) -> sp.Expr:
         """
         Evaluates symbolically the pFq function at a specific point.

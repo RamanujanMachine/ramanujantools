@@ -1,5 +1,4 @@
 from __future__ import annotations
-from typing import Dict, List, Optional, Set
 from functools import lru_cache
 
 import itertools
@@ -27,7 +26,7 @@ class CMF:
 
     def __init__(
         self,
-        matrices: Dict[sp.Symbol, Matrix],
+        matrices: dict[sp.Symbol, Matrix],
         validate: bool = True,
     ):
         """
@@ -117,7 +116,7 @@ class CMF:
     def walk_symbol() -> sp.Symbol:
         return sp.Symbol("walk")
 
-    def ctx(self, start: Optional[Position]) -> FlintContext:
+    def ctx(self, start: Position | None) -> FlintContext:
         start = Position(start) if start else Position()
         free_symbols = (
             self.free_symbols().union({CMF.walk_symbol()}).union(start.free_symbols())
@@ -327,7 +326,7 @@ class CMF:
         return self._work_symbolic(trajectory, start)
 
     def trajectory_matrix(
-        self, trajectory: Dict, start: Dict, symbol: sp.Symbol = n
+        self, trajectory: dict, start: dict, symbol: sp.Symbol = n
     ) -> Matrix:
         """
         Returns a corresponding matrix for walking in a trajectory, up to a constant.
@@ -391,10 +390,10 @@ class CMF:
     @multimethod
     def walk(  # noqa: F811
         self,
-        trajectory: Dict,
-        iterations: List[int],
-        start: Dict,
-    ) -> List[Matrix]:
+        trajectory: dict,
+        iterations: list[int],
+        start: dict,
+    ) -> list[Matrix]:
         r"""
         Returns a list of trajectorial walk multiplication matrices in the desired depths.
 
@@ -440,21 +439,21 @@ class CMF:
     @multimethod
     def walk(  # noqa: F811
         self,
-        trajectory: Dict,
+        trajectory: dict,
         iterations: int,
-        start: Dict,
+        start: dict,
     ) -> Matrix:
         return self.walk(trajectory, [iterations], start)[0]
 
     @multimethod
     def limit(
         self,
-        trajectory: Dict,
-        iterations: List[int],
-        start: Dict,
-        p_vectors: Optional[List[Matrix]] = None,
-        q_vectors: Optional[List[Matrix]] = None,
-    ) -> List[Limit]:
+        trajectory: dict,
+        iterations: list[int],
+        start: dict,
+        p_vectors: list[Matrix] | None = None,
+        q_vectors: list[Matrix] | None = None,
+    ) -> list[Limit]:
         r"""
         Returns a list of limits of trajectorial walk multiplication matrices in the desired depths.
 
@@ -478,22 +477,22 @@ class CMF:
     @multimethod
     def limit(  # noqa: F811
         self,
-        trajectory: Dict,
+        trajectory: dict,
         iterations: int,
-        start: Dict,
-        p_vectors: Optional[List[Matrix]] = None,
-        q_vectors: Optional[List[Matrix]] = None,
+        start: dict,
+        p_vectors: list[Matrix] | None = None,
+        q_vectors: list[Matrix] | None = None,
     ) -> Limit:
         return self.limit(trajectory, [iterations], start, p_vectors, q_vectors)[0]
 
     def delta(
         self,
-        trajectory: Dict,
+        trajectory: dict,
         depth: int,
-        start: Dict,
+        start: dict,
         limit: float = None,
-        p_vectors: Optional[List[Matrix]] = None,
-        q_vectors: Optional[List[Matrix]] = None,
+        p_vectors: list[Matrix] | None = None,
+        q_vectors: list[Matrix] | None = None,
     ):
         r"""
         Calculates the irrationality measure $\delta$ defined, as:
@@ -526,12 +525,12 @@ class CMF:
 
     def delta_sequence(
         self,
-        trajectory: Dict,
+        trajectory: dict,
         depth: int,
-        start: Dict,
+        start: dict,
         limit: float = None,
-        p_vectors: Optional[List[Matrix]] = None,
-        q_vectors: Optional[List[Matrix]] = None,
+        p_vectors: list[Matrix] | None = None,
+        q_vectors: list[Matrix] | None = None,
     ):
         r"""
         Calculates delta values sequentially up to `depth`.

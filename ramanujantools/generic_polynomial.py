@@ -2,15 +2,13 @@ import math
 
 import sympy
 from sympy import Poly, Symbol
-from typing import List, Tuple
 
 
 class GenericPolynomial:
-
     @staticmethod
     def of_degree(
         deg: int, var_name: str, s: Symbol, monic: bool = False
-    ) -> Tuple[Poly, List[Symbol]]:
+    ) -> tuple[Poly, list[Symbol]]:
         r"""
         Creates and returns a generic polynomial of a single variable with degree 'deg' with a list of
         its generic coefficients.
@@ -43,7 +41,7 @@ class GenericPolynomial:
                 yield [i] + sub_sum
 
     @staticmethod
-    def of_combined_degree(deg: int, var_name: str, variables: List[Symbol]):
+    def of_combined_degree(deg: int, var_name: str, variables: list[Symbol]):
         r"""
         Similar to method 'of_degree', except this is a polynomial in several variables, and we bound the combined
         degree, which is the sum of the powers of the different variables. For example combined(x**2 y**3) = 5.
@@ -70,7 +68,7 @@ class GenericPolynomial:
         return poly, coefficients
 
     @staticmethod
-    def symmetric_polynomials(*expressions) -> List:
+    def symmetric_polynomials(*expressions) -> list:
         r"""
         Returns a list of all the symmetric polynomials in the given expressions. The k'th element is the
         sum of product of k distinct elements from the 'expressions' list.
@@ -81,7 +79,7 @@ class GenericPolynomial:
         return poly.all_coeffs()
 
     @staticmethod
-    def as_symmetric(polynomial, symm_symbols: List[Symbol], symm_var_name: str):
+    def as_symmetric(polynomial, symm_symbols: list[Symbol], symm_var_name: str):
         r"""
         Given a polynomial in (symbols, symm_symbols), tries to find a new polynomial as a function
         of the symmetric polynomial in the symm_symbols.
@@ -94,7 +92,7 @@ class GenericPolynomial:
         n = len(symm_symbols)
         symm_polynomial = 0
         symm = GenericPolynomial.symmetric_polynomials(*symm_symbols)
-        s = sympy.symbols(f"{symm_var_name}:{n+1}")
+        s = sympy.symbols(f"{symm_var_name}:{n + 1}")
 
         monomial, coefficient = Poly(polynomial, *symm_symbols).LT()
         while coefficient != 0:

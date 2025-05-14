@@ -1,7 +1,6 @@
 import pytest
 import sympy
 from sympy.abc import x, y, z
-from typing import List
 from ramanujantools.generic_polynomial import GenericPolynomial
 
 
@@ -39,7 +38,7 @@ from ramanujantools.generic_polynomial import GenericPolynomial
         ),
     ],
 )
-def test_sum_to(n: int, num_var: int, output: List[List[int]]):
+def test_sum_to(n: int, num_var: int, output: list[list[int]]):
     for elements in GenericPolynomial._sum_to(n=n, num_var=num_var):
         assert elements in output
         output.remove(elements)
