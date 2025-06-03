@@ -7,6 +7,27 @@ from ramanujantools import Position, Matrix, simplify
 from ramanujantools.cmf import CMF, known_cmfs
 
 
+def test_N():
+    cmf = known_cmfs.hypergeometric_derived_2F1()
+    assert 2 == cmf.N()
+
+
+def test_dim():
+    cmf = known_cmfs.hypergeometric_derived_2F1()
+    assert 3 == cmf.dim()
+
+
+def test_dual_conserving():
+    cmf = known_cmfs.cmf2()
+    dual_cmf = cmf.dual()
+    dual_cmf.assert_conserving
+
+
+def test_dual_inverible():
+    cmf = known_cmfs.cmf1()
+    assert cmf == cmf.dual().dual()
+
+
 def test_assert_conserving():
     m = Matrix([[x, x + 17], [y * x, y * 3 - x + 5]])
     cmf = CMF(matrices={x: m, y: m}, validate=False)
@@ -174,16 +195,6 @@ def test_trajectory_substitution_diagonal():
     trajectory = {x: 1, y: 2}
     start = {x: 3, y: 5}
     assert {x: n + 2, y: 2 * n + 3} == cmf.trajectory_substitution(trajectory, start, n)
-
-
-def test_N():
-    cmf = known_cmfs.hypergeometric_derived_2F1()
-    assert 2 == cmf.N()
-
-
-def test_dim():
-    cmf = known_cmfs.hypergeometric_derived_2F1()
-    assert 3 == cmf.dim()
 
 
 def test_trajectory_matrix_walk_equivalence():
