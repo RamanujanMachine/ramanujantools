@@ -385,7 +385,7 @@ class CMF:
         for axis in start:
             effective_start[axis] = start[axis]
 
-        return effective_start + (symbol - 1) * Position(trajectory)
+        return effective_start + symbol * Position(trajectory)
 
     @multimethod
     def walk(  # noqa: F811
