@@ -3,7 +3,29 @@ from sympy.abc import z
 
 from ramanujantools.cmf import CMF
 from ramanujantools.cmf.known_cmfs import pFq
-from ramanujantools import Matrix, IntegerRelation
+from ramanujantools import Matrix, IntegerRelation, Position
+
+x0, x1, x2 = sp.symbols("x:3")
+y0, y1 = sp.symbols("y:2")
+
+
+def test_subs():
+    cmf = pFq(2, 1)
+    assert pFq(2, 1, -1) == cmf.subs({z: -1})
+
+
+def test_ascend():
+    cmf = pFq(2, 1)
+    start = Position({x0: 1, x1: 2, y0: 3})
+    trajectory = Position({x0: 4, x1: 5, y0: 6})
+
+    expected_cmf = pFq(3, 2)
+    expected_start = start + Position({x2: x2, y1: y1})
+    expected_trajectory = trajectory + Position({x2: 0, y1: 0})
+
+    assert (expected_cmf, expected_trajectory, expected_start) == cmf.ascend(
+        trajectory, start
+    )
 
 
 def test_2F1_theta_derivative():

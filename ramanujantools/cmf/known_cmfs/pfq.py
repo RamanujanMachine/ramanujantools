@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import sympy as sp
 from sympy.abc import z
 
@@ -48,6 +50,7 @@ class pFq(CMF):
         )
         self.p = p
         self.q = q
+        self.z = sp.S(z_eval)
         self.theta_derivative = theta_derivative
         self.negate_denominator_params = negate_denominator_params
         super().__init__(matrices=matrices, validate=False)
@@ -117,6 +120,41 @@ class pFq(CMF):
         }
         matrices.update(y_matrices)
         return matrices
+
+    def ascend(
+        self, trajectory: Position, start: Position
+    ) -> tuple[CMF, Position, Position]:
+        r"""
+        Returns a tuple of (CMF, trajectory, start), such that:
+        1. The CMF is ascended, i.e, the CMF of _{p+1}F_{q+1}
+        2. The start position contains two new more symbols
+        3. The trajectory is padded with two zeros
+        such that for any two choices of parameters $x_p, y_p$ such that $x_p - y_p \in \mathbb{Z}$,
+        the ascended trajectory matrix contains all constants of the original,
+        and the ascended delta is the same as the original.
+        """
+        ascended_cmf = pFq(
+            self.p + 1,
+            self.q + 1,
+            self.z,
+            self.theta_derivative,
+            self.negate_denominator_params,
+        )
+        xp = sp.Symbol(f"x{self.p}")
+        yq = sp.Symbol(f"y{self.q}")
+        ascended_start = start + Position({xp: xp, yq: yq})
+        ascended_trajectory = trajectory + Position({xp: 0, yq: 0})
+        return (ascended_cmf, ascended_trajectory.sorted(), ascended_start.sorted())
+
+    def subs(self, substitutions: Position) -> pFq:
+        self._validate_axes_substitutions(substitutions)
+        return pFq(
+            self.p,
+            self.q,
+            self.z.subs(substitutions),
+            self.theta_derivative,
+            self.negate_denominator_params,
+        )
 
     @staticmethod
     def predict_N(p: int, q: int, z: sp.Expr):

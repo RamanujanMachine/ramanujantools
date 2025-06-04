@@ -46,6 +46,28 @@ def test_symbols():
     assert set().union(expected_axes, expected_parameters) == cmf.free_symbols()
 
 
+def test_subs():
+    cmf = known_cmfs.var_root_cmf()
+    substitution = Position({known_cmfs.c0: 1, known_cmfs.c1: 2 * known_cmfs.c1 - 3})
+    assert cmf.subs(substitution) == CMF(
+        {axis: matrix.subs(substitution) for axis, matrix in cmf.matrices.items()}
+    )
+
+
+def test_subs_axes_throw():
+    cmf = known_cmfs.e()
+    substitution = Position({x: 2})
+    with raises(ValueError):
+        cmf.subs(substitution)
+
+
+def test_subs_non_linear_shift_throws():
+    cmf = known_cmfs.e()
+    substitution = Position({x: x**2})
+    with raises(ValueError):
+        cmf.subs(substitution)
+
+
 def test_trajectory_matrix_axis():
     cmf = known_cmfs.e()
     assert cmf.trajectory_matrix({x: 3, y: 0}, {x: x, y: y}).walk(

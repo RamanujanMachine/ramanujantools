@@ -64,7 +64,7 @@ class Matrix(sp.Matrix):
         """
         return self.subs(substitutions)
 
-    def subs(self, substitutions: dict) -> Matrix:
+    def subs(self, substitutions: Position) -> Matrix:
         """
         Substitutes symbols in the matrix.
 

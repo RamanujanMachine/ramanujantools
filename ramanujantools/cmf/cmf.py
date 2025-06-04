@@ -167,13 +167,33 @@ class CMF:
         random_matrix = list(self.matrices.values())[0]
         return random_matrix.rows
 
-    def subs(self, *args, **kwargs) -> CMF:
+    def _substitute_matrices(self, substitutions: Position) -> dict[sp.Symbol, Matrix]:
+        axes_substitutions = Position(
+            {key: value for key, value in substitutions.items() if key in self.axes()}
+        )
+        if not axes_substitutions.is_linear():
+            raise ValueError(
+                f"Axes can only be shifted linearly in the CMF, got: {axes_substitutions}"
+            )
+        return
+
+    def _validate_axes_substitutions(self, substitutions: Position) -> None:
+        if (
+            axes_substitutions := self.axes().intersection(substitutions.keys())
+            != set()
+        ):
+            raise ValueError(
+                f"Cannot substitute axis parameters! got: {axes_substitutions}"
+            )
+
+    def subs(self, substitutions: Position) -> CMF:
         """
         Returns a new CMF with substituted matrices.
         """
+        self._validate_axes_substitutions(substitutions)
         return CMF(
             matrices={
-                symbol: matrix.subs(*args, **kwargs)
+                symbol: matrix.subs(substitutions)
                 for symbol, matrix in self.matrices.items()
             },
             validate=False,
