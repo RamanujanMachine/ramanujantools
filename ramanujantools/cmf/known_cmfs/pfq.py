@@ -131,7 +131,7 @@ class pFq(CMF):
         3. The trajectory is padded with two zeros
         such that for any two choices of parameters $x_p, y_p$ such that $x_p - y_p \in \mathbb{Z}$,
         the ascended trajectory matrix contains all constants of the original,
-        and the ascended delta is the same as the original.
+        and the ascended delta is the same as the original (in a type-2 limit context).
         """
         ascended_cmf = pFq(
             self.p + 1,
