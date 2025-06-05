@@ -167,16 +167,6 @@ class CMF:
         random_matrix = list(self.matrices.values())[0]
         return random_matrix.rows
 
-    def _substitute_matrices(self, substitutions: Position) -> dict[sp.Symbol, Matrix]:
-        axes_substitutions = Position(
-            {key: value for key, value in substitutions.items() if key in self.axes()}
-        )
-        if not axes_substitutions.is_linear():
-            raise ValueError(
-                f"Axes can only be shifted linearly in the CMF, got: {axes_substitutions}"
-            )
-        return
-
     def _validate_axes_substitutions(self, substitutions: Position) -> None:
         if (
             axes_substitutions := self.axes().intersection(substitutions.keys())
