@@ -112,17 +112,6 @@ class CMF:
                     f"M({symbol}) is of dimension {matrix.rows}x{matrix.cols}, expected {expected_N}x{expected_N}"
                 )
 
-    @staticmethod
-    def walk_symbol() -> sp.Symbol:
-        return sp.Symbol("walk")
-
-    def ctx(self, start: Position | None) -> FlintContext:
-        start = Position(start) if start else Position()
-        free_symbols = (
-            self.free_symbols().union({CMF.walk_symbol()}).union(start.free_symbols())
-        )
-        return mpoly_ctx(free_symbols, fmpz=start.is_polynomial())
-
     def M(self, axis: sp.Symbol, sign: bool = True) -> Matrix:
         """
         Returns the axis matrix for a given axis.
@@ -134,6 +123,15 @@ class CMF:
             return self.matrices[axis]
         else:
             return self.matrices[axis].inverse()({axis: axis - 1})
+
+    def dual(self) -> CMF:
+        """
+        Returns the dual CMF which is defined with inverse-transpose matrices.
+        """
+        return CMF(
+            {axis: self.M(axis).inverse().transpose() for axis in self.axes()},
+            validate=False,
+        )
 
     def axes(self) -> set[sp.Symbol]:
         """
@@ -169,13 +167,23 @@ class CMF:
         random_matrix = list(self.matrices.values())[0]
         return random_matrix.rows
 
-    def subs(self, *args, **kwargs) -> CMF:
+    def _validate_axes_substitutions(self, substitutions: Position) -> None:
+        if (
+            axes_substitutions := self.axes().intersection(substitutions.keys())
+            != set()
+        ):
+            raise ValueError(
+                f"Cannot substitute axis parameters! got: {axes_substitutions}"
+            )
+
+    def subs(self, substitutions: Position) -> CMF:
         """
         Returns a new CMF with substituted matrices.
         """
+        self._validate_axes_substitutions(substitutions)
         return CMF(
             matrices={
-                symbol: matrix.subs(*args, **kwargs)
+                symbol: matrix.subs(substitutions)
                 for symbol, matrix in self.matrices.items()
             },
             validate=False,
@@ -190,6 +198,17 @@ class CMF:
                 symbol: simplify(matrix) for symbol, matrix in self.matrices.items()
             }
         )
+
+    @staticmethod
+    def walk_symbol() -> sp.Symbol:
+        return sp.Symbol("walk")
+
+    def ctx(self, start: Position | None) -> FlintContext:
+        start = Position(start) if start else Position()
+        free_symbols = (
+            self.free_symbols().union({CMF.walk_symbol()}).union(start.free_symbols())
+        )
+        return mpoly_ctx(free_symbols, fmpz=start.is_polynomial())
 
     def _calculate_diagonal_matrix_backtrack(
         self, trajectory: Position, start: Position, ctx: FlintContext

@@ -109,8 +109,11 @@ class Position(dict[sp.Symbol, sp.Expr]):
     def free_symbols(self) -> set:
         symbols = set()
         for value in self.values():
-            symbols = symbols.union((sp.simplify(0) + value).free_symbols)
+            symbols = symbols.union((sp.S(0) + value).free_symbols)
         return symbols
+
+    def sorted(self) -> Position:
+        return Position({key: self[key] for key in sorted(self.keys(), key=str)})
 
     @staticmethod
     def from_list(values: list[sp.Expr], symbol: str) -> Position:
