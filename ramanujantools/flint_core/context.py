@@ -22,19 +22,20 @@ def flint_from_sympy(poly: sp.Expr, ctx: FlintContext) -> FlintPoly:
     """
     Converts a sympy expression to a flint mpoly.
     """
+
+    def coeff_cast(c, fmpz):
+        if fmpz:
+            return flint.fmpz(c.numerator)
+        else:
+            return flint.fmpq(c.numerator, c.denominator)
+
     gens = tuple(sp.Symbol(str(gen)) for gen in ctx.gens())
     sp_poly = sp.Poly(poly, gens)
-    monoms = sp_poly.monoms()
-    coeffs = sp_poly.coeffs()
     mpoly_type = type(ctx.constant(0))
-    # Detect if context is integer or rational
-    if "fmpz" in mpoly_type.__name__:
-        monom_dict = {monom: int(coeff) for monom, coeff in zip(monoms, coeffs)}
-    else:
-        monom_dict = {
-            monom: flint.fmpq(coeff.numerator, coeff.denominator)
-            for monom, coeff in zip(monoms, coeffs)
-        }
+    monom_dict = {
+        monom: coeff_cast(coeff, isinstance(ctx, flint.fmpz_mpoly_ctx))
+        for monom, coeff in sp_poly.terms()
+    }
     return mpoly_type(monom_dict, ctx)
 
 
@@ -47,11 +48,9 @@ def flint_to_sympy(poly) -> sp.Expr:
     content, factors = poly.factor()
     p = sp.simplify(content)
     for factor, multiplicity in factors:
-        coeffs = factor.coeffs()
-        monoms = factor.monoms()
         expr = sum(
             coeff * sp.Mul(*[sym**exp for sym, exp in zip(symbols, monom) if exp])
-            for coeff, monom in zip(coeffs, monoms)
+            for monom, coeff in factor.terms()
         )
         p *= expr**multiplicity
     return p
