@@ -12,7 +12,7 @@ from ramanujantools.flint_core import (
     NumericMatrix,
     SymbolicMatrix,
     FlintContext,
-    mpoly_ctx,
+    flint_ctx,
 )
 
 
@@ -208,7 +208,7 @@ class CMF:
         free_symbols = (
             self.free_symbols().union({CMF.walk_symbol()}).union(start.free_symbols())
         )
-        return mpoly_ctx(free_symbols, fmpz=start.is_polynomial())
+        return flint_ctx(free_symbols, fmpz=start.is_polynomial())
 
     def _calculate_diagonal_matrix_backtrack(
         self, trajectory: Position, start: Position, ctx: FlintContext

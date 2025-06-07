@@ -11,7 +11,7 @@ import sympy as sp
 from sympy.abc import n
 
 from ramanujantools import Position
-from ramanujantools.flint_core import mpoly_ctx, SymbolicMatrix, NumericMatrix
+from ramanujantools.flint_core import flint_ctx, SymbolicMatrix, NumericMatrix
 
 
 class Matrix(sp.Matrix):
@@ -145,7 +145,7 @@ class Matrix(sp.Matrix):
 
     def factor(self) -> Matrix:
         return SymbolicMatrix.from_sympy(
-            self, mpoly_ctx(self.free_symbols, fmpz=True)
+            self, flint_ctx(self.free_symbols, fmpz=True)
         ).factor()
 
     def singular_points(self) -> list[dict]:
@@ -170,7 +170,7 @@ class Matrix(sp.Matrix):
             The coboundary relation as described above
         """
         free_symbols = self.free_symbols.union({symbol})
-        ctx = mpoly_ctx(free_symbols, fmpz=True)
+        ctx = flint_ctx(free_symbols, fmpz=True)
         return (
             SymbolicMatrix.from_sympy(U.inverse(), ctx)
             * SymbolicMatrix.from_sympy(self, ctx)
@@ -184,7 +184,7 @@ class Matrix(sp.Matrix):
         if not (self.is_square()):
             raise ValueError("Only square matrices can have a coboundary relation")
         N = self.rows
-        ctx = mpoly_ctx(self.free_symbols, fmpz=True)
+        ctx = flint_ctx(self.free_symbols, fmpz=True)
         flint_self = SymbolicMatrix.from_sympy(self, ctx)
         vectors = [SymbolicMatrix.from_sympy(Matrix(N, 1, [1] + (N - 1) * [0]), ctx)]
         for _ in range(1, N):
@@ -253,7 +253,7 @@ class Matrix(sp.Matrix):
         else:
             symbols = self.walk_free_symbols(start)
             as_flint = SymbolicMatrix.from_sympy(
-                self, mpoly_ctx(symbols, fmpz=start.is_polynomial())
+                self, flint_ctx(symbols, fmpz=start.is_polynomial())
             )
             results = as_flint.walk(trajectory, list(iterations), start)
             return [result.factor() for result in results]

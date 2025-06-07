@@ -2,11 +2,11 @@ import sympy as sp
 from sympy.abc import n
 
 from ramanujantools import Matrix
-from ramanujantools.flint_core import mpoly_ctx, SymbolicMatrix
+from ramanujantools.flint_core import flint_ctx, SymbolicMatrix
 
 
 def flintify(matrix: Matrix, fmpz=True) -> SymbolicMatrix:
-    ctx = mpoly_ctx(matrix.free_symbols, fmpz)
+    ctx = flint_ctx(matrix.free_symbols, fmpz)
     return SymbolicMatrix.from_sympy(matrix, ctx)
 
 

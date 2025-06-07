@@ -5,7 +5,12 @@ import flint
 import sympy as sp
 
 from ramanujantools import Position
-from ramanujantools.flint_core import FlintPoly, FlintContext
+from ramanujantools.flint_core import (
+    FlintPoly,
+    FlintContext,
+    flint_from_sympy,
+    flint_to_sympy,
+)
 
 
 class FlintRational:
@@ -27,14 +32,6 @@ class FlintRational:
         self.ctx = ctx
 
     @staticmethod
-    def mpoly_from_sympy(poly: sp.Expr, ctx: FlintContext) -> FlintPoly:
-        r"""
-        Converts a sympy expression to a flint mpoly.
-        """
-        mpoly_type = type(ctx.constant(0))
-        return mpoly_type(str(poly).replace("**", "^"), ctx)
-
-    @staticmethod
     def from_sympy(rational: sp.Expr, ctx: FlintContext) -> FlintRational:
         r"""
         Converts a rational function given as a sympy expression to a FlintRational.
@@ -46,8 +43,8 @@ class FlintRational:
         """
         numerator, denominator = rational.as_numer_denom()
         return FlintRational(
-            FlintRational.mpoly_from_sympy(numerator, ctx),
-            FlintRational.mpoly_from_sympy(denominator, ctx),
+            flint_from_sympy(numerator, ctx),
+            flint_from_sympy(denominator, ctx),
             ctx,
         )
 
@@ -125,9 +122,7 @@ class FlintRational:
         composition = []
         for gen in self.ctx.gens():
             if str(gen) in substitutions:
-                value = FlintRational.mpoly_from_sympy(
-                    substitutions[str(gen)], self.ctx
-                )
+                value = flint_from_sympy(substitutions[str(gen)], self.ctx)
             else:
                 value = gen
             composition.append(value)
@@ -142,25 +137,8 @@ class FlintRational:
             self.ctx,
         )
 
-    @staticmethod
-    def factor_poly(poly) -> sp.Expr:
-        """
-        Factors an mpoly polynomial and returns it as a sp.Expr
-        """
-        gens = poly.context().gens()
-        for gen in gens:
-            exec(f"{gen} = sp.Symbol('{gen}')")
-        content, factors = poly.factor()
-        p = sp.simplify(content)
-        for factor, multiplicity in factors:
-            factor = str(factor).replace("^", "**")  # from flint syntax back to python
-            p *= eval(f"({factor}) ** ({multiplicity})")
-        return p
-
     def factor(self) -> sp.Expr:
         """
         Factors self and returns it as a sp.Expr
         """
-        return FlintRational.factor_poly(self.numerator) / FlintRational.factor_poly(
-            self.denominator
-        )
+        return flint_to_sympy(self.numerator) / flint_to_sympy(self.denominator)

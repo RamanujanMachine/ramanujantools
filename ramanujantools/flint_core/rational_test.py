@@ -1,17 +1,17 @@
 import sympy as sp
 from sympy.abc import x, y
 
-from ramanujantools.flint_core import mpoly_ctx, FlintRational
+from ramanujantools.flint_core import flint_ctx, FlintRational
 
 
 def flintify(expr: sp.Expr, symbols: list = None, fmpz=True) -> FlintRational:
-    ctx = mpoly_ctx(symbols or list(expr.free_symbols), fmpz)
+    ctx = flint_ctx(symbols or list(expr.free_symbols), fmpz)
     return FlintRational.from_sympy(expr, ctx)
 
 
 def test_from_sympy():
     expression = (x + y - 3) / (x**2 - y)
-    ctx = mpoly_ctx(["x", "y"], fmpz=True)
+    ctx = flint_ctx(["x", "y"], fmpz=True)
     _x, _y = ctx.gens()
     expected = FlintRational(_x + _y - 3, _x**2 - _y, ctx)
     assert expected == flintify(expression)
