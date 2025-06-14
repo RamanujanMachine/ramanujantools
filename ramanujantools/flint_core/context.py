@@ -49,7 +49,7 @@ def flint_to_sympy(poly) -> sp.Expr:
     p = sp.simplify(content)
     for factor, multiplicity in factors:
         expr = sum(
-            coeff * sp.Mul(*[sym**exp for sym, exp in zip(symbols, monom) if exp])
+            coeff * sp.Mul(*[sym**exp for sym, exp in zip(symbols, monom)])
             for monom, coeff in factor.terms()
         )
         p *= expr**multiplicity
