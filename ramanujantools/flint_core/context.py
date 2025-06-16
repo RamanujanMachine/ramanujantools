@@ -20,7 +20,7 @@ def flint_ctx(symbols: list[sp.Symbol], fmpz: bool) -> FlintContext:
 
 def flint_from_sympy(poly: sp.Expr, ctx: FlintContext) -> FlintPoly:
     """
-    Converts a sympy expression to a flint mpoly.
+    Converts a sympy poly to a flint mpoly.
     """
 
     def coeff_cast(c, fmpz):
