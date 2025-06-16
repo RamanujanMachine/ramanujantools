@@ -43,8 +43,6 @@ class NumericMatrix(fmpq_mat):
                 return fmpq(int(expr))
             elif isinstance(expr, sp.Rational):
                 return fmpq(expr.p, expr.q)
-            elif isinstance(expr, sp.Float):
-                return fmpq(str(expr))
             elif isinstance(expr, sp.Symbol):
                 # Return a function that takes substitutions as a dict
                 return lambda subs: fmpq(subs[expr])
