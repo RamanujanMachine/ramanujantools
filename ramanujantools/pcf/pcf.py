@@ -214,8 +214,6 @@ class PCF:
         Args:
             depth: $n$
             limit: $L$
-            p_vectors: numerator extraction vectors for delta
-            q_vectors: denominator extraction vectors for delta
         Returns:
             the delta value as defined above.
         Raises:
@@ -243,8 +241,6 @@ class PCF:
         Args:
             depth: $n$
             limit: $L$
-            p_vectors: numerator extraction vectors for delta
-            q_vectors: denominator extraction vectors for delta
         Returns:
             the delta values for all depths up to `depth` as defined above.
         Raises:

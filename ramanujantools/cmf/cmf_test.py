@@ -174,14 +174,14 @@ def test_limit_vectors():
     trajectory = {x: 1, y: 3}
     depths = [12, 13, 17]
     start = {x: 2, y: 1}
-    p_vectors = [Matrix([[1, 2, 3]]), Matrix([4, 5, 6])]
-    q_vectors = [Matrix([[4, 5, 6]]), Matrix([1, 2, 3])]
-    expected = cmf.limit(trajectory, depths, start)
+    initial_values = Matrix([[1, 2, 3], [4, 5, 6]])
+    final_projection = Matrix([[1, 2], [3, 4], [5, 6]])
+    expected = cmf.limit(trajectory, depths, start, initial_values, final_projection)
     for lim in expected:
-        lim.p_vectors = p_vectors
-        lim.q_vectors = q_vectors
+        lim.initial_values = initial_values
+        lim.final_projection = final_projection
     assert expected == cmf.limit(
-        trajectory, depths, start, p_vectors=p_vectors, q_vectors=q_vectors
+        trajectory, depths, start, initial_values, final_projection
     )
 
 

@@ -5,7 +5,7 @@ from typing import Callable
 import sympy as sp
 import mpmath as mp
 
-from ramanujantools import IntegerRelation, Matrix
+from ramanujantools import Matrix
 
 
 def first_unmatch(a: str, b: str) -> int:
@@ -36,26 +36,29 @@ class Limit:
 
     Contains two matrices for the two last steps of calculation.
     Uses the last step to extract constants, and the previous one to determine precision.
+    Initial values are used to determine the rational $\frac{p}{q}$.
     """
 
     def __init__(
         self,
         current: Matrix,
         previous: Matrix,
-        p_vectors: list[Matrix] | None = None,
-        q_vectors: list[Matrix] | None = None,
+        initial_values: Matrix | None = None,
+        final_projection: Matrix | None = None,
     ):
         self.current = current
         self.previous = previous
-        self.p_vectors = p_vectors or [
-            Matrix.e(self.N(), 0, column=False),
-            Matrix.e(self.N(), self.N() - 1, column=True),
-        ]
-
-        self.q_vectors = q_vectors or [
-            Matrix.e(self.N(), 1, column=False),
-            Matrix.e(self.N(), self.N() - 1, column=True),
-        ]
+        self.initial_values = (
+            initial_values
+            or Matrix.hstack(
+                Matrix.e(self.N(), 0),
+                Matrix.e(self.N(), 1),
+            ).transpose()
+        )
+        self.final_projection = final_projection or Matrix.hstack(
+            Matrix.e(self.N(), -1),
+            Matrix.e(self.N(), -1),
+        )
 
     def __repr__(self) -> str:
         return f"Limit({self.current}, {self.previous})"
@@ -67,12 +70,27 @@ class Limit:
         return (
             self.current == other.current
             and self.previous == other.previous
-            and self.p_vectors == other.p_vectors
-            and self.q_vectors == other.q_vectors
+            and self.initial_values == other.initial_values
         )
 
     def N(self) -> int:
         return self.current.rows
+
+    def p_vectors(self) -> list[Matrix]:
+        return [self.initial_values.row(0), self.final_projection.col(0)]
+
+    def q_vectors(self) -> list[Matrix]:
+        return [self.initial_values.row(1), self.final_projection.col(1)]
+
+    def p(self, previous=False) -> sp.Rational:
+        matrix = self.previous if previous else self.current
+        row, col = self.p_vectors()
+        return (row * matrix * col)[0]
+
+    def q(self, previous=False) -> sp.Rational:
+        matrix = self.previous if previous else self.current
+        row, col = self.q_vectors()
+        return (row * matrix * col)[0]
 
     @property
     def mp(self):
@@ -84,8 +102,8 @@ class Limit:
     def walk_to_limit(
         iterations: list[int],
         walk_function: Callable[list[int], list[Limit]],
-        p_vectors: list[Matrix] | None = None,
-        q_vectors: list[Matrix] | None = None,
+        initial_values: Matrix | None = None,
+        final_projection: Matrix | None = None,
     ) -> list[Limit]:
         previous_values = [depth - 1 for depth in iterations]
         walk_iterations = sorted(list(set(iterations + previous_values)))
@@ -100,34 +118,20 @@ class Limit:
                 Limit(
                     walk_matrices[current_index],
                     walk_matrices[current_index - 1],
-                    p_vectors,
-                    q_vectors,
+                    initial_values,
+                    final_projection,
                 )
             )
         return limits
 
-    def as_rational(self, previous=False) -> list:
+    def as_rational(self, previous=False) -> sp.Rational:
         r"""
         Returns the limit as a rational number $\frac{p}{q}$.
 
-        The numbers p and q are extracted using matrix multiplication.
-        For each number, a row vector `v1` and a column vector `v2` are received.
-        We then extract a number using `v1 * M * v2`, where M is the limit matrix.
-
-        Researcher's note: rational representation of the limit is so far only well-defined for 2x2 matrices,
-        and we are still looking for a generalization of this representation for NxN matrices.
         Args:
             previous: Will use $M$ = `self.previous` if True, else `self.current`. False by default.
-        Returns:
-            A list of the form [p, q], representing the rational number.
         """
-        matrix = self.previous if previous else self.current
-        p = sp.Rational((self.p_vectors[0] * matrix * self.p_vectors[1])[0])
-        q = sp.Rational((self.q_vectors[0] * matrix * self.q_vectors[1])[0])
-        return [
-            sp.Integer(p.numerator * q.denominator),
-            sp.Integer(p.denominator * q.numerator),
-        ]
+        return sp.Rational(self.p(previous), self.q(previous))
 
     def precision(self, base: int = 10) -> int:
         """
@@ -136,24 +140,20 @@ class Limit:
         Args:
             base: The numerical base in which to return the precision (by default 10)
         """
-        p1, q1 = self.as_rational()
-        p2, q2 = self.as_rational(previous=True)
-        numerator = p1 * q2 - q1 * p2
-        denominator = q1 * q2
-        if denominator == 0:
+        diff = self.as_rational(previous=False) - self.as_rational(previous=True)
+        if not diff.is_rational:  # division by 0, etc
             return 0
-        if numerator == 0:
+        if diff == 0:
             return 100  # big enough, this should be infinity
         # extracting real because sometimes log returns a complex with tiny imaginary type due to precision
-        digits = -mp.re((mp.log(int(numerator), base) - mp.log(int(denominator), base)))
+        digits = -mp.re(mp.log(diff, base))
         return int(mp.floor(digits))
 
     def as_float(self) -> mp.mpf:
         r"""
         Returns the limit as a floating point number f, such that $m \cdot v = f$, where `m=self` and `v=vector`.
         """
-        p, q = self.as_rational()
-        return self.mp.mpf(p) / self.mp.mpf(q)
+        return self.mp.mpf(self.as_rational())
 
     def as_rounded_number(self) -> str:
         """
@@ -164,20 +164,18 @@ class Limit:
     def delta(self, L: mp.mpf) -> mp.mpf:
         r"""
         Calculates the irrationality measure $\delta$ defined, as:
-        $|\frac{p_n}{q_n} - L| = \frac{1}{{q_n}^{1+\delta}}$
+        $|\frac{p}{q} - L| = \frac{1}{{q}^{1+\delta}}$
         Args:
             L: $L$
         Returns:
             the delta value as defined above.
         """
-        p, q = self.as_rational()
-        gcd = sp.gcd(p, q)
-        reduced_q = self.mp.fabs(q // gcd)
+        p, q = self.as_rational().as_numer_denom()
         if q == 0:
             return self.mp.mpf("-inf")
-        if reduced_q == 1:
+        if q == 1:
             return self.mp.mpf("inf")
-        return -(1 + self.mp.log(self.mp.fabs(L - (p / q)), reduced_q))
+        return -(1 + self.mp.log(self.mp.fabs(L - (p / q)), q))
 
     def coefficients_from_pslq(self, pslq_results, active_indices):
         coefficients = [0] * self.N()
@@ -185,41 +183,32 @@ class Limit:
             coefficients[i] = pslq_results.pop(0)
         return coefficients
 
-    def identify_rational(
-        self, column_index=-1, maxcoeff=1000
-    ) -> IntegerRelation | None:
+    def identify_rational(self, column_index=-1, maxcoeff=1000) -> Matrix | None:
         r"""
-        Searches for constants $a_0, \dots, a_{N-1}
-        such that $0 \approx \prod_{i=0}^{N-1}a_i * p_i$,
-        Where $p_i$ a column of the Limit matrix.
+        Searches for a vector $c$ to match a column $p$ of the limit matrix,
+        such that $c \cdot p \approx 0$,
 
-        This is essentially the same as `self.identify(0, column_inde)`
-
+        This is essentially the same as `self.identify(0, column_index, maxcoeff)`
         Args:
-            column_index: The column to use in order to extract $p_i$. -1 by default.
+            column_index: The column index that defines $p$. -1 by default (rightmost column).
         Returns:
-            a string describing the integer relation, if exists. None otherwise.
+            A row matrix $c$ such that $c \cdot p \approx 0$.
         """
         pslq_result = self.mp.pslq(self.current.col(column_index), maxcoeff=maxcoeff)
         if pslq_result is None:
             return None
-        result = IntegerRelation(
-            [self.coefficients_from_pslq(pslq_result, range(self.N()))]
-        )
-        return result
+        return Matrix([self.coefficients_from_pslq(pslq_result, range(self.N()))])
 
-    def identify(
-        self, L: mp.mpf, column_index=-1, maxcoeff=1000
-    ) -> IntegerRelation | None:
+    def identify(self, L: mp.mpf, column_index=-1, maxcoeff=1000) -> Matrix | None:
         r"""
-        Given a constant $L$, searches for constants $a_0, \dots, a_{N-1}, b_0, \dots, b_{N-1}$
-        such that $0 \approx \prod_{i=0}^{N-1}a_i * p_i - L * \prod_{i=0}^{N-1}b_i * p_i$,
-        Where $p_i$ a column of the Limit matrix.
+        Given a constant $L$, searches for two vectors $a, b$
+        such that $\frac{a \cdot p}{b \cdot p} \approx L$,
+        Where $p$ a column of the limit matrix.
 
         Args:
-            column_index: The column to use in order to extract $p_i$. -1 by default.
+            column_index: The column index that defines $p$. -1 by default (rightmost column).
         Returns:
-            a string describing the integer relation, if exists. None otherwise.
+            A 2-row matrix $m$ (made from rows $a$ and $b$), such that $\frac{a \cdot p}{b \cdot p} \approx L$.
         """
         if L == 0:
             return self.identify_rational()
@@ -249,16 +238,15 @@ class Limit:
         pslq_result = self.mp.pslq(to_identify, maxcoeff=maxcoeff, maxsteps=maxcoeff)
         if pslq_result is None:
             return None
-        numerator = self.coefficients_from_pslq(
-            pslq_result[:total_indices], used_indices
+        # We normalize the sign so that the first coefficient is positive,
+        # to avoid ambiguity as results are equivalent up to the sign.
+        sign = sp.sign(pslq_result[0])
+        numerator = sign * Matrix(
+            self.coefficients_from_pslq(pslq_result[:total_indices], used_indices)
         )
-        denominator = self.coefficients_from_pslq(
-            pslq_result[total_indices:], used_indices
+        denominator = -sign * Matrix(
+            self.coefficients_from_pslq(pslq_result[total_indices:], used_indices)
         )
-        result = IntegerRelation([numerator, denominator])
-        self.set_vectors(result)
-        return result
-
-    def set_vectors(self, relation: IntegerRelation) -> None:
-        self.p_vectors = [Matrix([relation.coefficients[0]]), Matrix.e(self.N(), -1)]
-        self.q_vectors = [Matrix([relation.coefficients[1]]), -Matrix.e(self.N(), -1)]
+        initial_values = Matrix.hstack(numerator, denominator).transpose()
+        self.initial_values = initial_values
+        return initial_values

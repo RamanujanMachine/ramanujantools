@@ -1,5 +1,6 @@
 from pytest import approx
 
+import sympy as sp
 from mpmath import mp
 
 from ramanujantools import Matrix, Limit
@@ -14,14 +15,14 @@ def test_as_rational():
     p = 2
     q = 3
     limit = limit_for_tests(Matrix([[0, p], [1, q]]))
-    assert [p, q] == limit.as_rational()
+    assert sp.Rational(p, q) == limit.as_rational()
 
 
 def test_as_rational_higher_order():
     p = 2
     q = 3
     limit = limit_for_tests(Matrix([[1, 2, p], [3, 4, q], [5, 6, 7]]))
-    assert [p, q] == limit.as_rational()
+    assert sp.Rational(p, q) == limit.as_rational()
 
 
 def test_as_float():

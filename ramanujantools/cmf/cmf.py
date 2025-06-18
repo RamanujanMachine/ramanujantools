@@ -470,8 +470,8 @@ class CMF:
         trajectory: dict,
         iterations: list[int],
         start: dict,
-        p_vectors: list[Matrix] | None = None,
-        q_vectors: list[Matrix] | None = None,
+        initial_values: Matrix | None = None,
+        final_projection: Matrix | None = None,
     ) -> list[Limit]:
         r"""
         Returns a list of limits of trajectorial walk multiplication matrices in the desired depths.
@@ -483,6 +483,8 @@ class CMF:
             trajectory: A dict containing the amount of steps in each direction.
             iterations: The amount of trajectory matrix multiplications to perform, either an integer or a list.
             start: A dict representing the starting point of the multiplication.
+            initial_values: the initial values matrix for the limit calculation
+            final_projection: the final projection matrix for the limit calculation
         Returns:
             The limit of the walk multiplication as defined above.
             If `iterations` is a list, returns a list of limits.
@@ -491,7 +493,9 @@ class CMF:
         def walk_function(iterations):
             return self.walk(trajectory, iterations, start)
 
-        return Limit.walk_to_limit(iterations, walk_function, p_vectors, q_vectors)
+        return Limit.walk_to_limit(
+            iterations, walk_function, initial_values, final_projection
+        )
 
     @multimethod
     def limit(  # noqa: F811
@@ -499,10 +503,12 @@ class CMF:
         trajectory: dict,
         iterations: int,
         start: dict,
-        p_vectors: list[Matrix] | None = None,
-        q_vectors: list[Matrix] | None = None,
+        initial_values: Matrix | None = None,
+        final_projection: Matrix | None = None,
     ) -> Limit:
-        return self.limit(trajectory, [iterations], start, p_vectors, q_vectors)[0]
+        return self.limit(
+            trajectory, [iterations], start, initial_values, final_projection
+        )[0]
 
     def delta(
         self,
@@ -510,8 +516,8 @@ class CMF:
         depth: int,
         start: dict,
         limit: float = None,
-        p_vectors: list[Matrix] | None = None,
-        q_vectors: list[Matrix] | None = None,
+        initial_values: Matrix | None = None,
+        final_projection: Matrix | None = None,
     ):
         r"""
         Calculates the irrationality measure $\delta$ defined, as:
@@ -528,18 +534,18 @@ class CMF:
                 The $\ell_1$ distance walked from the start point is `depth * sum(trajectory.values())`.
             start: the starting point of the walk operation.
             limit: $L$
-            p_vectors: numerator extraction vectors for delta
-            q_vectors: denominator extraction vectors for delta
+            initial_values: the initial values matrix for the limit calculation
+            final_projection: the final projection matrix for the limit calculation
         Returns:
             the delta value as defined above.
         """
         if limit is None:
             m, mlim = self.limit(
-                trajectory, [depth, 2 * depth], start, p_vectors, q_vectors
+                trajectory, [depth, 2 * depth], start, initial_values, final_projection
             )
             limit = mlim.as_float()
         else:
-            m = self.limit(trajectory, depth, start, p_vectors, q_vectors)
+            m = self.limit(trajectory, depth, start, initial_values, final_projection)
         return m.delta(limit)
 
     def delta_sequence(
@@ -548,8 +554,8 @@ class CMF:
         depth: int,
         start: dict,
         limit: float = None,
-        p_vectors: list[Matrix] | None = None,
-        q_vectors: list[Matrix] | None = None,
+        initial_values: Matrix | None = None,
+        final_projection: Matrix | None = None,
     ):
         r"""
         Calculates delta values sequentially up to `depth`.
@@ -560,17 +566,21 @@ class CMF:
                 The $\ell_1$ distance walked from the start point is `depth * sum(trajectory.values())`.
             start: the starting point of the walk operation.
             limit: $L$
-            p_vectors: numerator extraction vectors for delta
-            q_vectors: denominator extraction vectors for delta
+            initial_values: the initial values matrix for the limit calculation
+            final_projection: the final projection matrix for the limit calculation
         Returns:
             the delta value as defined above.
         """
         depths = list(range(1, depth + 1))
         if limit is None:
             depths += [2 * depth]
-            approximants = self.limit(trajectory, depths, start)
+            approximants = self.limit(
+                trajectory, depths, start, initial_values, final_projection
+            )
             limit = approximants[-1].as_float()
             approximants = approximants[:-1]
         else:
-            approximants = self.limit(trajectory, depths, start)
+            approximants = self.limit(
+                trajectory, depths, start, initial_values, final_projection
+            )
         return [approximant.delta(limit) for approximant in approximants]
