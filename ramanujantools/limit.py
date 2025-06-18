@@ -30,13 +30,21 @@ def most_round_in_range(num: mp.mpf, err: mp.mpf) -> str:
     return min(round_attempt(num, num + err), round_attempt(num - err, num), key=len)
 
 
+def coefficients_from_pslq(pslq_results: list[int], active_indices: list[int], N: int):
+    coefficients = [0] * N
+    for i in active_indices:
+        coefficients[i] = pslq_results.pop(0)
+    return coefficients
+
+
 class Limit:
     r"""
     Represents a mathematical limit of a `walk` operation.
 
     Contains two matrices for the two last steps of calculation.
     Uses the last step to extract constants, and the previous one to determine precision.
-    Initial values are used to determine the rational $\frac{p}{q}$.
+    The diagonal of the 2x2 matrix calculated as $IV \cdot M \cdot FP$ consists of the p and q values
+    that define the limit as $p/q$.
     """
 
     def __init__(
@@ -61,7 +69,7 @@ class Limit:
         )
 
     def __repr__(self) -> str:
-        return f"Limit({self.current}, {self.previous})"
+        return f"Limit({self.current}, {self.previous}, {self.initial_values}, {self.final_projection})"
 
     def __str__(self) -> str:
         return repr(self)
@@ -71,29 +79,54 @@ class Limit:
             self.current == other.current
             and self.previous == other.previous
             and self.initial_values == other.initial_values
+            and self.final_projection == other.final_projection
         )
 
     def N(self) -> int:
+        """
+        Returns N, the dimension of the square limit matrix.
+        """
         return self.current.rows
 
     def p_vectors(self) -> list[Matrix]:
+        """
+        Returns the IV row vector and the FP column vector used to calculate p.
+        """
         return [self.initial_values.row(0), self.final_projection.col(0)]
 
     def q_vectors(self) -> list[Matrix]:
+        """
+        Returns the IV row vector and the FP column vector used to calculate q.
+        """
         return [self.initial_values.row(1), self.final_projection.col(1)]
 
     def p(self, previous=False) -> sp.Rational:
+        """
+        Returns p, the numerator of the rational limit.
+
+        Args:
+            previous: if True, will use `self.previous` matrix to calculate p, else `self.current`. False by default.
+        """
         matrix = self.previous if previous else self.current
         row, col = self.p_vectors()
         return (row * matrix * col)[0]
 
     def q(self, previous=False) -> sp.Rational:
+        """
+        Returns q, the numerator of the rational limit.
+
+        Args:
+            previous: if True, will use `self.previous` matrix to calculate q, else `self.current`. False by default.
+        """
         matrix = self.previous if previous else self.current
         row, col = self.q_vectors()
         return (row * matrix * col)[0]
 
     @property
     def mp(self):
+        """
+        Returns an mpmath context with the precision set to 15 digits.
+        """
         limit_ctx = mp.mp.clone()
         limit_ctx.dps = max(self.precision() * 1.1, 15)
         return limit_ctx
@@ -105,6 +138,16 @@ class Limit:
         initial_values: Matrix | None = None,
         final_projection: Matrix | None = None,
     ) -> list[Limit]:
+        """
+        Utility function that receives a walk function logic and a list of iterations,
+        and returns a list of Limit objects for these iterations
+
+        Args:
+            iterations: A list of the required iterations to calculate the limits for.
+            walk_function: The walk logic function.
+            initial_values: The initial values matrix, defaults to $e_1$ and $e_2$.
+            final_projection: The final projection matrix, defaults to $e_{-1}$ and $e_{-1}$.
+        """
         previous_values = [depth - 1 for depth in iterations]
         walk_iterations = sorted(list(set(iterations + previous_values)))
         walk_matrices = walk_function(walk_iterations)
@@ -177,12 +220,6 @@ class Limit:
             return self.mp.mpf("inf")
         return -(1 + self.mp.log(self.mp.fabs(L - (p / q)), q))
 
-    def coefficients_from_pslq(self, pslq_results, active_indices):
-        coefficients = [0] * self.N()
-        for i in active_indices:
-            coefficients[i] = pslq_results.pop(0)
-        return coefficients
-
     def identify_rational(self, column_index=-1, maxcoeff=1000) -> Matrix | None:
         r"""
         Searches for a vector $c$ to match a column $p$ of the limit matrix,
@@ -192,12 +229,12 @@ class Limit:
         Args:
             column_index: The column index that defines $p$. -1 by default (rightmost column).
         Returns:
-            A row matrix $c$ such that $c \cdot p \approx 0$.
+            A 1-row matrix $c$ such that $c \cdot p \approx 0$.
         """
         pslq_result = self.mp.pslq(self.current.col(column_index), maxcoeff=maxcoeff)
         if pslq_result is None:
             return None
-        return Matrix([self.coefficients_from_pslq(pslq_result, range(self.N()))])
+        return Matrix([coefficients_from_pslq(pslq_result, range(self.N()), self.N())])
 
     def identify(self, L: mp.mpf, column_index=-1, maxcoeff=1000) -> Matrix | None:
         r"""
@@ -208,7 +245,8 @@ class Limit:
         Args:
             column_index: The column index that defines $p$. -1 by default (rightmost column).
         Returns:
-            A 2-row matrix $m$ (made from rows $a$ and $b$), such that $\frac{a \cdot p}{b \cdot p} \approx L$.
+            A 2-row initial values matrix $m$ (made from rows $a$ and $b$),
+            such that $\frac{a \cdot p}{b \cdot p} \approx L$.
         """
         if L == 0:
             return self.identify_rational()
@@ -240,13 +278,19 @@ class Limit:
             return None
         # We normalize the sign so that the first coefficient is positive,
         # to avoid ambiguity as results are equivalent up to the sign.
-        sign = sp.sign(pslq_result[0])
-        numerator = sign * Matrix(
-            self.coefficients_from_pslq(pslq_result[:total_indices], used_indices)
+        numerator = Matrix(
+            coefficients_from_pslq(pslq_result[:total_indices], used_indices, self.N())
         )
-        denominator = -sign * Matrix(
-            self.coefficients_from_pslq(pslq_result[total_indices:], used_indices)
+        denominator = Matrix(
+            coefficients_from_pslq(pslq_result[total_indices:], used_indices, self.N())
         )
-        initial_values = Matrix.hstack(numerator, denominator).transpose()
+        sign = sp.sign(numerator[0])
+        initial_values = Matrix.hstack(
+            sign * numerator, -sign * denominator
+        ).transpose()
         self.initial_values = initial_values
+        self.final_projection = Matrix.hstack(
+            Matrix.e(self.N(), column_index),
+            Matrix.e(self.N(), column_index),
+        )
         return initial_values
