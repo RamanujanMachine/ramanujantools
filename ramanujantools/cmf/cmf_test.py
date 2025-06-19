@@ -71,10 +71,10 @@ def test_subs_non_linear_shift_throws():
 def test_trajectory_matrix_axis():
     cmf = known_cmfs.e()
     assert cmf.trajectory_matrix({x: 3, y: 0}, {x: x, y: y}).walk(
-        {n: 1}, 1, {n: 1}
+        {n: 1}, 1, {n: 0}
     ) == simplify(cmf.M(x).walk({x: 1, y: 0}, 3, {x: x, y: y}))
     assert cmf.trajectory_matrix({x: 0, y: 2}, {x: x, y: y}).walk(
-        {n: 1}, 1, {n: 1}
+        {n: 1}, 1, {n: 0}
     ) == simplify(cmf.M(y).walk({x: 0, y: 1}, 2, {x: x, y: y}))
 
 
@@ -121,7 +121,7 @@ def test_trajectory_matrix_negative():
         * cmf.M(c, sign=False).subs({a: a + 1, b: b - 2})
     )
     actual = cmf.trajectory_matrix({a: 1, b: -2, c: -1}, {a: a, b: b, c: c})
-    assert actual.walk({n: 1}, 1, {n: 1}).limit_equivalent(expected)
+    assert actual.walk({n: 1}, 1, {n: 0}).limit_equivalent(expected)
 
 
 def test_trajectory_matrix_rational():
@@ -158,7 +158,7 @@ def test_walk_diagonal():
     trajectory = {x: 1, y: 1}
     start = {x: 1, y: 1}
     Mxy = cmf.trajectory_matrix(trajectory, start)
-    assert cmf.walk(trajectory, 9, start) == Mxy.walk({n: 1}, 9, {n: 1})
+    assert cmf.walk(trajectory, 9, start) == Mxy.walk({n: 1}, 9, {n: 0})
 
 
 def test_limit_diagonal():
@@ -201,22 +201,23 @@ def test_trajectory_substitution_throws_on_collision():
     start = Position({x: n, y: 0})
     with raises(ValueError):
         cmf.trajectory_substitution(trajectory, start, n)
-    assert {x: n - 1 + a, y: 0} == cmf.trajectory_substitution(trajectory, start, a)
+    assert {x: n + a, y: 0} == cmf.trajectory_substitution(trajectory, start, a)
 
 
 def test_trajectory_substitution_axis():
     cmf = known_cmfs.e()
     x_axis = {x: 1, y: 0}
     y_axis = {x: 0, y: 1}
-    assert {x: n, y: 0} == cmf.trajectory_substitution(x_axis, x_axis, n)
-    assert {x: 0, y: n} == cmf.trajectory_substitution(y_axis, y_axis, n)
+    origin = {x: 0, y: 0}
+    assert {x: n, y: 0} == cmf.trajectory_substitution(x_axis, origin, n)
+    assert {x: 0, y: n} == cmf.trajectory_substitution(y_axis, origin, n)
 
 
 def test_trajectory_substitution_diagonal():
     cmf = known_cmfs.e()
     trajectory = {x: 1, y: 2}
     start = {x: 3, y: 5}
-    assert {x: n + 2, y: 2 * n + 3} == cmf.trajectory_substitution(trajectory, start, n)
+    assert {x: 3 + n, y: 5 + 2 * n} == cmf.trajectory_substitution(trajectory, start, n)
 
 
 def test_trajectory_matrix_walk_equivalence():
@@ -225,7 +226,7 @@ def test_trajectory_matrix_walk_equivalence():
     trajectory = {x: 1, y: 1}
     start = {x: 3, y: 5}
     trajectory_matrix = cmf.trajectory_matrix(trajectory, start)
-    assert trajectory_matrix.walk({n: 1}, iterations, {n: 1}) == cmf.walk(
+    assert trajectory_matrix.walk({n: 1}, iterations, {n: 0}) == cmf.walk(
         trajectory, iterations, start
     )
 

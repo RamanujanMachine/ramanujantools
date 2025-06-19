@@ -31,7 +31,7 @@ def test_ascend_symbolic():
 def test_ascend_zeta2():
     cmf = pFq(3, 2, 1)
     trajectory = Position({x0: 1, x1: 1, x2: 1, y0: 2, y1: 2})
-    start = 3 * Position({x0: 1, x1: 1, x2: 1, y0: 2, y1: 2})
+    start = 2 * Position({x0: 1, x1: 1, x2: 1, y0: 2, y1: 2})
 
     limit = cmf.trajectory_matrix(trajectory, start).limit({n: 1}, 200, {n: 1})
     assert limit.identify(limit.mp.zeta(2)) is not None
