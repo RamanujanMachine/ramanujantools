@@ -26,7 +26,7 @@ class Matrix(sp.Matrix):
         return super().__new__(cls, *args, **kwargs)
 
     @staticmethod
-    def e(N: int, index: int, column=True) -> Matrix:
+    def e(N: int, index: int) -> Matrix:
         """
         Returns a coordinate vector of size N for a given index, i.e,
         a vector of size N of zeroes with 1 in the corresponding index
@@ -34,16 +34,12 @@ class Matrix(sp.Matrix):
         Args:
             N: The vector size
             index: The index of the given axis
-            column: will return the vector in column form if true, in row form otherwise.
         Returns:
             The desired coordinate vector described above
         """
         if index >= N:
             raise ValueError(f"Cannot create {index}th axis vector of size {N}")
-        if column:
-            return Matrix.eye(N).col(index)
-        else:
-            return Matrix.eye(N).row(index)
+        return Matrix.eye(N).col(index)
 
     def __str__(self) -> str:
         return repr(self)
@@ -338,7 +334,7 @@ class Matrix(sp.Matrix):
         trajectory: dict,
         iterations: list[int],
         start: dict,
-    ):  # noqa: F811
+    ) -> list[Matrix]:  # noqa: F811
         from ramanujantools import Limit
 
         def walk_function(iterations):
@@ -450,9 +446,7 @@ class Matrix(sp.Matrix):
         q_reduced_list = []
         limits = self.limit({n: 1}, depths, {n: 1})
         for limit in limits:
-            p, q = limit.as_rational()
-            gcd = sp.gcd(p, q)
-            q_reduced_list.append(sp.log(abs(q // gcd)).evalf(30))
+            q_reduced_list.append(sp.log(limit.as_rational().q).evalf(30))
         fit = np.polyfit(
             np.array(depths), np.array(q_reduced_list, dtype=np.float64), 1
         )

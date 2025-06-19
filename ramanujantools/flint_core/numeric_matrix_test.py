@@ -28,4 +28,3 @@ def test_walk():
         m.walk({n: 2}, 100, {n: 3})
         == NumericMatrix.walk(m, Position({n: 2}), 100, Position({n: 3})).to_rt()
     )
-

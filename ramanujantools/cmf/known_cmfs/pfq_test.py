@@ -3,7 +3,7 @@ from sympy.abc import n, z
 
 from ramanujantools.cmf import CMF
 from ramanujantools.cmf.known_cmfs import pFq
-from ramanujantools import Matrix, IntegerRelation, Position
+from ramanujantools import Matrix, Position
 
 x0, x1, x2, x3 = sp.symbols("x:4")
 y0, y1, y2 = sp.symbols("y:3")
@@ -209,7 +209,7 @@ def test_gamma():
     trajectory = {x0: 1, x1: 1, y0: 1, y1: 0}
     start = {x0: 1, x1: 1, y0: 1, y1: 1}
     limit = cmf.limit(trajectory, 100, start)
-    assert IntegerRelation([[1, 3, 0], [-3, -5, 0]]) == limit.identify(limit.mp.euler)
+    assert Matrix([[1, 3, 0], [3, 5, 0]]) == limit.identify(limit.mp.euler)
 
 
 def test_pfq_conserving():
