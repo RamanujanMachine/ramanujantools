@@ -7,6 +7,27 @@ from ramanujantools import Position, Matrix, simplify
 from ramanujantools.cmf import CMF, known_cmfs
 
 
+def test_N():
+    cmf = known_cmfs.hypergeometric_derived_2F1()
+    assert 2 == cmf.N()
+
+
+def test_dim():
+    cmf = known_cmfs.hypergeometric_derived_2F1()
+    assert 3 == cmf.dim()
+
+
+def test_dual_conserving():
+    cmf = known_cmfs.cmf2()
+    dual_cmf = cmf.dual()
+    dual_cmf.assert_conserving
+
+
+def test_dual_inverible():
+    cmf = known_cmfs.cmf1()
+    assert cmf == cmf.dual().dual()
+
+
 def test_assert_conserving():
     m = Matrix([[x, x + 17], [y * x, y * 3 - x + 5]])
     cmf = CMF(matrices={x: m, y: m}, validate=False)
@@ -23,6 +44,28 @@ def test_symbols():
     assert expected_axes == cmf.axes()
     assert expected_parameters == cmf.parameters()
     assert set().union(expected_axes, expected_parameters) == cmf.free_symbols()
+
+
+def test_subs():
+    cmf = known_cmfs.var_root_cmf()
+    substitution = Position({known_cmfs.c0: 1, known_cmfs.c1: 2 * known_cmfs.c1 - 3})
+    assert cmf.subs(substitution) == CMF(
+        {axis: matrix.subs(substitution) for axis, matrix in cmf.matrices.items()}
+    )
+
+
+def test_subs_axes_throw():
+    cmf = known_cmfs.e()
+    substitution = Position({x: 2})
+    with raises(ValueError):
+        cmf.subs(substitution)
+
+
+def test_subs_non_linear_shift_throws():
+    cmf = known_cmfs.e()
+    substitution = Position({x: x**2})
+    with raises(ValueError):
+        cmf.subs(substitution)
 
 
 def test_trajectory_matrix_axis():
@@ -131,14 +174,14 @@ def test_limit_vectors():
     trajectory = {x: 1, y: 3}
     depths = [12, 13, 17]
     start = {x: 2, y: 1}
-    p_vectors = [Matrix([[1, 2, 3]]), Matrix([4, 5, 6])]
-    q_vectors = [Matrix([[4, 5, 6]]), Matrix([1, 2, 3])]
-    expected = cmf.limit(trajectory, depths, start)
+    initial_values = Matrix([[1, 2, 3], [4, 5, 6]])
+    final_projection = Matrix([[1, 2], [3, 4], [5, 6]])
+    expected = cmf.limit(trajectory, depths, start, initial_values, final_projection)
     for lim in expected:
-        lim.p_vectors = p_vectors
-        lim.q_vectors = q_vectors
+        lim.initial_values = initial_values
+        lim.final_projection = final_projection
     assert expected == cmf.limit(
-        trajectory, depths, start, p_vectors=p_vectors, q_vectors=q_vectors
+        trajectory, depths, start, initial_values, final_projection
     )
 
 
@@ -175,16 +218,6 @@ def test_trajectory_substitution_diagonal():
     trajectory = {x: 1, y: 2}
     start = {x: 3, y: 5}
     assert {x: 3 + n, y: 5 + 2 * n} == cmf.trajectory_substitution(trajectory, start, n)
-
-
-def test_N():
-    cmf = known_cmfs.hypergeometric_derived_2F1()
-    assert 2 == cmf.N()
-
-
-def test_dim():
-    cmf = known_cmfs.hypergeometric_derived_2F1()
-    assert 3 == cmf.dim()
 
 
 def test_trajectory_matrix_walk_equivalence():

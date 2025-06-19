@@ -11,7 +11,7 @@ import sympy as sp
 from sympy.abc import n
 
 from ramanujantools import Position
-from ramanujantools.flint_core import mpoly_ctx, SymbolicMatrix, NumericMatrix
+from ramanujantools.flint_core import flint_ctx, SymbolicMatrix, NumericMatrix
 
 
 class Matrix(sp.Matrix):
@@ -26,7 +26,7 @@ class Matrix(sp.Matrix):
         return super().__new__(cls, *args, **kwargs)
 
     @staticmethod
-    def e(N: int, index: int, column=True) -> Matrix:
+    def e(N: int, index: int) -> Matrix:
         """
         Returns a coordinate vector of size N for a given index, i.e,
         a vector of size N of zeroes with 1 in the corresponding index
@@ -34,16 +34,12 @@ class Matrix(sp.Matrix):
         Args:
             N: The vector size
             index: The index of the given axis
-            column: will return the vector in column form if true, in row form otherwise.
         Returns:
             The desired coordinate vector described above
         """
         if index >= N:
             raise ValueError(f"Cannot create {index}th axis vector of size {N}")
-        if column:
-            return Matrix.eye(N).col(index)
-        else:
-            return Matrix.eye(N).row(index)
+        return Matrix.eye(N).col(index)
 
     def __str__(self) -> str:
         return repr(self)
@@ -64,7 +60,7 @@ class Matrix(sp.Matrix):
         """
         return self.subs(substitutions)
 
-    def subs(self, substitutions: dict) -> Matrix:
+    def subs(self, substitutions: Position) -> Matrix:
         """
         Substitutes symbols in the matrix.
 
@@ -145,7 +141,7 @@ class Matrix(sp.Matrix):
 
     def factor(self) -> Matrix:
         return SymbolicMatrix.from_sympy(
-            self, mpoly_ctx(self.free_symbols, fmpz=True)
+            self, flint_ctx(self.free_symbols, fmpz=True)
         ).factor()
 
     def singular_points(self) -> list[dict]:
@@ -170,7 +166,7 @@ class Matrix(sp.Matrix):
             The coboundary relation as described above
         """
         free_symbols = self.free_symbols.union({symbol})
-        ctx = mpoly_ctx(free_symbols, fmpz=True)
+        ctx = flint_ctx(free_symbols, fmpz=True)
         return (
             SymbolicMatrix.from_sympy(U.inverse(), ctx)
             * SymbolicMatrix.from_sympy(self, ctx)
@@ -184,7 +180,7 @@ class Matrix(sp.Matrix):
         if not (self.is_square()):
             raise ValueError("Only square matrices can have a coboundary relation")
         N = self.rows
-        ctx = mpoly_ctx(self.free_symbols, fmpz=True)
+        ctx = flint_ctx(self.free_symbols, fmpz=True)
         flint_self = SymbolicMatrix.from_sympy(self, ctx)
         vectors = [SymbolicMatrix.from_sympy(Matrix(N, 1, [1] + (N - 1) * [0]), ctx)]
         for _ in range(1, N):
@@ -253,7 +249,7 @@ class Matrix(sp.Matrix):
         else:
             symbols = self.walk_free_symbols(start)
             as_flint = SymbolicMatrix.from_sympy(
-                self, mpoly_ctx(symbols, fmpz=start.is_polynomial())
+                self, flint_ctx(symbols, fmpz=start.is_polynomial())
             )
             results = as_flint.walk(trajectory, list(iterations), start)
             return [result.factor() for result in results]
@@ -338,7 +334,7 @@ class Matrix(sp.Matrix):
         trajectory: dict,
         iterations: list[int],
         start: dict,
-    ):  # noqa: F811
+    ) -> list[Matrix]:  # noqa: F811
         from ramanujantools import Limit
 
         def walk_function(iterations):
@@ -450,9 +446,7 @@ class Matrix(sp.Matrix):
         q_reduced_list = []
         limits = self.limit({n: 1}, depths, {n: 1})
         for limit in limits:
-            p, q = limit.as_rational()
-            gcd = sp.gcd(p, q)
-            q_reduced_list.append(sp.log(abs(q // gcd)).evalf(30))
+            q_reduced_list.append(sp.log(limit.as_rational().q).evalf(30))
         fit = np.polyfit(
             np.array(depths), np.array(q_reduced_list, dtype=np.float64), 1
         )

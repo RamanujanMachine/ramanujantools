@@ -72,12 +72,20 @@ class LinearRecurrence:
         return f"LinearRecurrence({self.relation})"
 
     def __str__(self) -> str:
-        p = sp.Function("p")(n)
-        lhs = f"{(self.relation[0]) * p.subs({n: n + 1})}"
-        rhs = " + ".join(
-            [f"{c * p.subs({n: n - i})}" for i, c in enumerate(self.relation[1:])]
-        )
-        return f"{lhs} = {rhs}"
+        return f"{self.lhs()} = {self.rhs()}"
+
+    def _latex(self, printer) -> str:
+        return f"{printer.doprint(self.lhs())} = {printer.doprint(self.rhs())}"
+
+    def lhs(self) -> sp.Expr:
+        return sp.Function("p")(n + 1) * self.relation[0]
+
+    def rhs(self) -> sp.Expr:
+        terms = [
+            self.relation[i] * sp.Function("p")(n + 1 - i)
+            for i in range(1, len(self.relation))
+        ]
+        return sp.Add(*terms)
 
     @cached_property
     def gcd(self) -> sp.Expr:

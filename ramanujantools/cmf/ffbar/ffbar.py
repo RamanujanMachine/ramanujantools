@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import sympy as sp
 from sympy.abc import x, y
 
-from ramanujantools import Matrix
+from ramanujantools import Matrix, Position
 from ramanujantools.cmf import CMF
 
 
@@ -79,6 +81,10 @@ class FFbar(CMF):
 
     def __repr__(self):
         return f"FFbar({self.f}, {self.fbar})"
+
+    def subs(self, substitutions: Position) -> FFbar:
+        self._validate_axes_substitutions(substitutions)
+        return FFbar(self.f.subs(substitutions), self.fbar.subs(substitutions))
 
     @staticmethod
     def A(f, fbar) -> sp.Expr:

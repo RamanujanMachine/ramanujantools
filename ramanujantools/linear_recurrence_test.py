@@ -1,7 +1,7 @@
 from sympy.abc import n
 import sympy as sp
 
-from ramanujantools import IntegerRelation, LinearRecurrence, Matrix
+from ramanujantools import LinearRecurrence, Matrix
 from ramanujantools.pcf import PCF
 
 
@@ -85,22 +85,22 @@ def test_unfold_deflate():
     assert actual_multiplier == sp.Poly(multiplier * inflation, n)
 
 
-def test_euler():
+def test_gamma():
     # from https://arxiv.org/abs/1010.1420
     m = Matrix([[0, -(n**2), 0], [1, 2 * n + 2, 0], [0, -(n - 1) / (n + 1), 1]])
     r = LinearRecurrence(m)
     assert [] == r.unfold()
     lim = r.limit(1000, 2)
-    assert IntegerRelation([[-3, -12, -59], [6, 21, 102]]) == lim.identify(lim.mp.euler)
-    assert IntegerRelation([[1, 4, 20], [-2, -7, -34]]) == lim.identify(
+    assert Matrix([[3, 12, 59], [6, 21, 102]]) == lim.identify(lim.mp.euler)
+    assert Matrix([[1, 4, 20], [2, 7, 34]]) == lim.identify(
         -lim.mp.e * lim.mp.ei(-1)  # Gompertz
     )
     inflated = r.inflate(2 - n)
 
     lim = inflated.limit(1000, 5)
-    assert IntegerRelation(
-        [[-3625, 26792, -461718], [6270, -46380, 799620]]
-    ) == lim.identify(lim.mp.euler, maxcoeff=10**6)
+    assert Matrix([[3625, -26792, 461718], [6270, -46380, 799620]]) == lim.identify(
+        lim.mp.euler, maxcoeff=10**6
+    )
 
     unfolded = inflated.unfold_poly(n)
     pcf = unfolded.recurrence_matrix.as_pcf().pcf

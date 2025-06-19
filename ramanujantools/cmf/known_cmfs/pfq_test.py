@@ -1,9 +1,52 @@
 import sympy as sp
-from sympy.abc import z
+from sympy.abc import n, z
 
 from ramanujantools.cmf import CMF
 from ramanujantools.cmf.known_cmfs import pFq
-from ramanujantools import Matrix, IntegerRelation
+from ramanujantools import Matrix, Position
+
+x0, x1, x2, x3 = sp.symbols("x:4")
+y0, y1, y2 = sp.symbols("y:3")
+
+
+def test_subs():
+    cmf = pFq(2, 1)
+    assert pFq(2, 1, -1) == cmf.subs({z: -1})
+
+
+def test_ascend_symbolic():
+    cmf = pFq(2, 1)
+    start = Position({x0: 1, x1: 2, y0: 3})
+    trajectory = Position({x0: 4, x1: 5, y0: 6})
+
+    expected_cmf = pFq(3, 2)
+    expected_start = start + Position({x2: x2, y1: y1})
+    expected_trajectory = trajectory + Position({x2: 0, y1: 0})
+
+    assert (expected_cmf, expected_trajectory, expected_start) == cmf.ascend(
+        trajectory, start
+    )
+
+
+def test_ascend_zeta2():
+    cmf = pFq(3, 2, 1)
+    trajectory = Position({x0: 1, x1: 1, x2: 1, y0: 2, y1: 2})
+    start = 3 * Position({x0: 1, x1: 1, x2: 1, y0: 2, y1: 2})
+
+    limit = cmf.trajectory_matrix(trajectory, start).limit({n: 1}, 200, {n: 1})
+    assert limit.identify(limit.mp.zeta(2)) is not None
+    delta = limit.delta(limit.mp.zeta(2))
+
+    a_cmf, a_trajectory, a_start = cmf.ascend(trajectory, start)
+    a_limit = (
+        a_cmf.trajectory_matrix(a_trajectory, a_start)
+        .subs({x3: 3, y2: 3})
+        .limit({n: 1}, 200, {n: 1})
+    )
+    assert a_limit.identify(a_limit.mp.zeta(2), maxcoeff=10**6) is not None
+    a_delta = a_limit.delta(a_limit.mp.zeta(2))
+
+    assert abs(delta - a_delta) < 0.01
 
 
 def test_2F1_theta_derivative():
@@ -166,7 +209,7 @@ def test_gamma():
     trajectory = {x0: 1, x1: 1, y0: 1, y1: 0}
     start = {x0: 1, x1: 1, y0: 1, y1: 1}
     limit = cmf.limit(trajectory, 100, start)
-    assert IntegerRelation([[1, 3, 0], [-3, -5, 0]]) == limit.identify(limit.mp.euler)
+    assert Matrix([[1, 3, 0], [3, 5, 0]]) == limit.identify(limit.mp.euler)
 
 
 def test_pfq_conserving():

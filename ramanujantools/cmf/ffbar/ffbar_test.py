@@ -1,6 +1,6 @@
 from sympy.abc import x, y
 
-from ramanujantools import Matrix
+from ramanujantools import Matrix, Position
 from ramanujantools.cmf import CMF, known_cmfs
 from ramanujantools.cmf.known_cmfs import c0, c1, c2, c3
 from ramanujantools.cmf.ffbar import FFbar
@@ -16,8 +16,15 @@ def test_quadratic_condition():
     assert FFbar.quadratic_condition(x**2 + x * y + y**2, x - y + 1) != 0
 
 
+def test_subs():
+    substitutions = Position({c0: c0**2, c1: 3 - c1, c2: 0})
+    cmf = known_cmfs.cmf1()
+    assert FFbar(cmf.f.subs(substitutions), cmf.fbar.subs(substitutions)) == cmf.subs(
+        substitutions
+    )
+
+
 def test_ffbar_construction():
-    c0, c1, c2,
     assert known_cmfs.cmf1() == CMF(
         matrices={
             x: Matrix(
