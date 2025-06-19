@@ -3,7 +3,7 @@ from pytest import approx
 import sympy as sp
 from sympy.abc import x, y, n
 
-from ramanujantools import Matrix, Limit, simplify, Position
+from ramanujantools import Matrix, Limit, simplify
 from ramanujantools.pcf import PCF
 from ramanujantools.cmf.known_cmfs import pFq
 
