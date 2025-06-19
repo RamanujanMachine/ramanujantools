@@ -264,7 +264,7 @@ class CMF:
         while depth > 0:
             diagonal = trajectory.signs()
             result *= self._trajectory_matrix_inner(diagonal, position, symbol).walk(
-                {symbol: 1}, int(depth), {symbol: 1}
+                {symbol: 1}, int(depth), {symbol: 0}
             )
             position += depth * diagonal
             trajectory -= depth * diagonal
@@ -295,7 +295,7 @@ class CMF:
                 self.trajectory_matrix(diagonal, position, symbol),
                 Position({symbol: 1}),
                 int(depth),
-                Position({symbol: 1}),
+                Position({symbol: 0}),
             )
             position += depth * diagonal
             trajectory -= depth * diagonal
@@ -385,7 +385,7 @@ class CMF:
         for axis in start:
             effective_start[axis] = start[axis]
 
-        return effective_start + symbol * Position(trajectory)
+        return effective_start + (symbol) * trajectory
 
     @multimethod
     def walk(  # noqa: F811
@@ -433,7 +433,7 @@ class CMF:
         trajectory = Position(trajectory)
         start = Position(start)
         return self.trajectory_matrix(trajectory, start).walk(
-            {n: 1}, iterations, {n: 1}
+            {n: 1}, iterations, {n: 0}
         )
 
     @multimethod

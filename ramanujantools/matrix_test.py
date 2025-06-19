@@ -3,7 +3,7 @@ from pytest import approx
 import sympy as sp
 from sympy.abc import x, y, n
 
-from ramanujantools import Matrix, Limit, simplify
+from ramanujantools import Matrix, Limit, simplify, Position
 from ramanujantools.pcf import PCF
 from ramanujantools.cmf.known_cmfs import pFq
 
@@ -323,7 +323,7 @@ def test_gcd_slope():
     x0, x1 = sp.symbols("x:2")
     (y0,) = sp.symbols("y:1")
     trajectory = {x0: 1, x1: 1, y0: 1}
-    start = trajectory
+    start = {x0: 0, x1: 0, y0: 0}
     m = pFq(2, 1, -1).trajectory_matrix(trajectory, start)
     assert m.gcd_slope(20) == approx(1.3962425331281643)
     assert m.gcd_slope(40) == approx(1.5535146470266243)
