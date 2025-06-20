@@ -1,32 +1,30 @@
-# Ramanujan Tools
+# ramanujantools
 
-The official and up-to-date research tools of the Ramanujan Machine research group.
+Official symbolic and numeric research tools developed by the Ramanujan Machine research group.
+
+## About ramanujantools
+
+`ramanujantools` is a research focused python library that provides symbolic and numeric tools for exploring Polynomial Continued Fractions (PCFs), Linear Recurrences and Conservative Matrix Fields (CMFs). These can be used to discover new conjectures converging sequences to constants of interest such as e, π, G (Catalan's constant), γ (Euler's constnat), δ (Gompertz constant) and specific values of the Riemann Zeta function ζ(s).
 
 ## Installation
 
-```commandline
-pip install git+https://github.com/RamanujanMachine/ramanujantools.git
+```bash
+pip install ramanujantools
 ```
 
-## The code
+## Contributing
+Contributions are welcome! Please open issues or pull requests on GitHub.
 
-### Overview
+## Citation
 
-The most relevant pieces of code of this library are:
+If you use this package in your research, please cite it using the metadata in [`CITATION.cff`](./CITATION.cff), or refer to the citation instructions on our [GitHub repository](https://github.com/RamanujanMachine/ramanujantools).
 
-- `Matrix` which inherits `sympy.Matrix` and adds the walk method,
-  which allows us to walk alongside a trajectory
-- `PCF` (Polynomial Continued Fraction) which can calculate the limit of a PCF
-- `CMF` (Conservative Matrix Field) which is made of multiple instances of `Matrix`
-  and methods such as walk and limit
-- `FFbar` which contains the conditions and logic for ffbar construction of CMFs
-- The `known_cmfs` module which contains most of our known CMFs
-- CMF to PCF transformation functions
+## License
 
-### Example: calculating the limit of zeta3 CMF alongside the diagonal
+This project is licensed under the terms of the [MIT License](./LICENSE).
 
-```python
-from ramanujantools.cmf import known_cmfs
+## Links
 
-known_cmfs.zeta3().limit([1,1], 100).as_float()
-```
+- Website: [https://www.ramanujanmachine.com](https://www.ramanujanmachine.com)
+- Repository: [https://github.com/RamanujanMachine/ramanujantools](https://github.com/RamanujanMachine/ramanujantools)
+- Citation file: [`CITATION.cff`](./CITATION.cff)
