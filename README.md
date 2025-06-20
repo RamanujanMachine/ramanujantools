@@ -2,9 +2,9 @@
 
 Official symbolic and numeric research tools developed by the Ramanujan Machine research group.
 
-## About ramanujantools
+## About
 
-`ramanujantools` is a research focused python library that provides symbolic and numeric tools for exploring Polynomial Continued Fractions (PCFs), Linear Recurrences and Conservative Matrix Fields (CMFs). These can be used to discover new conjectures converging sequences to constants of interest such as e, π, G (Catalan's constant), γ (Euler's constnat), δ (Gompertz constant) and specific values of the Riemann Zeta function ζ(s).
+`ramanujantools` is a research focused python library that provides symbolic and numeric tools for exploring Polynomial Continued Fractions (PCFs), Linear Recurrences and Conservative Matrix Fields (CMFs). These can be used to discover new conjectures converging sequences to constants of interest such as *e*, *π*, *G* (Catalan's constant), *γ* (Euler's constant), *δ* (Gompertz constant) and integer values of the Riemann Zeta function *ζ(s)*.
 
 ## Installation
 
