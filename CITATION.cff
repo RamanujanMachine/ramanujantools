@@ -1,18 +1,22 @@
-# This CITATION.cff file was generated with cffinit.
-# Visit https://bit.ly/cffinit to generate yours today!
-
 cff-version: 1.2.0
-title: Ramanujan Tools
+title: ramanujantools
 message: >-
   If you use this software, please cite it using the
   metadata from this file.
 type: software
+version: 0.0.1
+date-released: 2025-06-20
 authors:
-  - name: Ramanujan Machine Research Group
+  - name: Ramanujan Machine Team
+    affiliation: Technion – Israel Institute of Technology
 repository-code: 'https://github.com/RamanujanMachine/ramanujantools'
 url: 'https://www.ramanujanmachine.com/'
-abstract: Tools used to study polynomial continued fractions and conservative matrix fields.
+abstract: Official symbolic and numeric research tools developed by the Ramanujan Machine team
 keywords:
   - Ramanujan Machine
-  - Polynomial continued fractions
-  - Conservative matrix fields
+  - polynomial continued fractions
+  - conservative matrix fields
+  - diophantine approximations
+  - linear recurrences
+  - p-recursive sequences
+  - irrationality measure
