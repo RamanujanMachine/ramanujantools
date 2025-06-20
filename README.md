@@ -27,4 +27,4 @@ This project is licensed under the terms of the [MIT License](./LICENSE).
 
 - Website: [https://www.ramanujanmachine.com](https://www.ramanujanmachine.com)
 - Repository: [https://github.com/RamanujanMachine/ramanujantools](https://github.com/RamanujanMachine/ramanujantools)
-- Citation file: [`CITATION.cff`](./CITATION.cff)
+- Citation file: [`CITATION.cff`](https://github.com/RamanujanMachine/ramanujantools/blob/master/CITATION.cff)
