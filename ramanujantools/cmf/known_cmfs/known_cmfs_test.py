@@ -2,6 +2,7 @@ from pytest import approx
 
 import itertools
 
+import sympy as sp
 from sympy.abc import x, y, n
 
 from ramanujantools.pcf import PCF
@@ -42,7 +43,7 @@ def test_apery():
 
 
 def test_cmf1():
-    from ramanujantools.cmf.known_cmfs import c0, c1, c2, c3
+    c0, c1, c2, c3 = sp.symbols("c:4")
 
     cmf = known_cmfs.cmf1()
     for a, b in itertools.product(range(1, 10), range(1, 10)):

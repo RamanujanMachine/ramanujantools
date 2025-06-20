@@ -5,8 +5,7 @@ from .generic_polynomial import GenericPolynomial
 from .linear_recurrence import LinearRecurrence
 from .simplify_object import simplify
 
-from . import pcf
-from . import cmf
+__version__ = "0.0.1"
 
 __all__ = [
     "Position",
@@ -15,6 +14,4 @@ __all__ = [
     "GenericPolynomial",
     "LinearRecurrence",
     "simplify",
-    "pcf",
-    "cmf",
 ]

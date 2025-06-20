@@ -1,9 +1,11 @@
+import sympy as sp
 from sympy.abc import x, y
 
 from ramanujantools import Matrix, Position
 from ramanujantools.cmf import CMF, known_cmfs
-from ramanujantools.cmf.known_cmfs import c0, c1, c2, c3
 from ramanujantools.cmf.ffbar import FFbar
+
+c0, c1, c2, c3 = sp.symbols("c:4")
 
 
 def test_linear_condition():

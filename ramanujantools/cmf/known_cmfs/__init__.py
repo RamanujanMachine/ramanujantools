@@ -1,13 +1,4 @@
 from .known_cmfs import (
-    c0,
-    c1,
-    c2,
-    c3,
-    x0,
-    x1,
-    x2,
-    y0,
-    y1,
     e,
     pi,
     symmetric_pi,
@@ -25,15 +16,6 @@ from .known_cmfs import (
 from .pfq import pFq
 
 __all__ = [
-    "c0",
-    "c1",
-    "c2",
-    "c3",
-    "x0",
-    "x1",
-    "x2",
-    "y0",
-    "y1",
     "e",
     "pi",
     "symmetric_pi",
