@@ -7,7 +7,7 @@ type: software
 version: 0.0.1
 date-released: 2025-06-20
 authors:
-  - name: Ramanujan Machine Team
+  - name: Ramanujan Machine Group
     affiliation: Technion – Israel Institute of Technology
 repository-code: 'https://github.com/RamanujanMachine/ramanujantools'
 url: 'https://www.ramanujanmachine.com/'
