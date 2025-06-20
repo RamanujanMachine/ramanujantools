@@ -6,6 +6,8 @@ from sympy.abc import a, b, c, x, y, n
 from ramanujantools import Position, Matrix, simplify
 from ramanujantools.cmf import CMF, known_cmfs
 
+c0, c1, c2, c3 = sp.symbols("c:4")
+
 
 def test_N():
     cmf = known_cmfs.hypergeometric_derived_2F1()
@@ -40,7 +42,7 @@ def test_assert_conserving():
 def test_symbols():
     cmf = known_cmfs.cmf1()
     expected_axes = {x, y}
-    expected_parameters = {known_cmfs.c0, known_cmfs.c1, known_cmfs.c2, known_cmfs.c3}
+    expected_parameters = {c0, c1, c2, c3}
     assert expected_axes == cmf.axes()
     assert expected_parameters == cmf.parameters()
     assert set().union(expected_axes, expected_parameters) == cmf.free_symbols()
@@ -48,7 +50,7 @@ def test_symbols():
 
 def test_subs():
     cmf = known_cmfs.var_root_cmf()
-    substitution = Position({known_cmfs.c0: 1, known_cmfs.c1: 2 * known_cmfs.c1 - 3})
+    substitution = Position({c0: 1, c1: 2 * c1 - 3})
     assert cmf.subs(substitution) == CMF(
         {axis: matrix.subs(substitution) for axis, matrix in cmf.matrices.items()}
     )
