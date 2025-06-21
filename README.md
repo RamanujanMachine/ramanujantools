@@ -1,5 +1,9 @@
 # ramanujantools
 
+[![CI](https://github.com/RamanujanMachine/ramanujantools/actions/workflows/python-package.yml/badge.svg)](https://github.com/RamanujanMachine/ramanujantools/actions/workflows/python-package.yml)
+[![PyPI version](https://img.shields.io/pypi/v/ramanujantools.svg)](https://pypi.org/project/ramanujantools/)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15709906.svg)](https://doi.org/10.5281/zenodo.15709906)
+
 Official symbolic and numeric research tools developed by the Ramanujan Machine research group.
 
 ## About
