@@ -1,0 +1,125 @@
+name: Build and Deploy to PyPI
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  validate-tag:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Extract current tag
+        id: extract-tag
+        run: |
+          TAG_REF="${GITHUB_REF#refs/tags/}"
+          echo "tag=$TAG_REF" >> $GITHUB_OUTPUT
+
+      - name: Validate tag matches pyproject.toml version
+        run: |
+          TAG=${{ steps.extract-tag.outputs.tag }}
+          TAG_VERSION="${TAG#v}"  # Strip the leading 'v'
+          FILE_VERSION=$(sed -nE 's/^version *= *"(.*)"/\1/p' pyproject.toml | xargs)
+
+          echo "Tag version: $TAG_VERSION"
+          echo "File version: $FILE_VERSION"
+
+          if [ "$TAG_VERSION" != "$FILE_VERSION" ]; then
+            echo "Version mismatch: Tag is $TAG_VERSION but pyproject.toml has $FILE_VERSION"
+            exit 1
+          fi
+
+      - name: Validate tag format
+        run: |
+          TAG=${{ steps.extract-tag.outputs.tag }}
+          if ! [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([ab][0-9]+)?$ ]]; then
+            echo "Invalid tag format. Expected vX.Y.Z or vX.Y.Z[a|b]N"
+            exit 1
+          fi
+
+      - name: Fetch all tags
+        run: |
+          git fetch --prune --unshallow || echo "Already unshallowed or failed, continuing"
+          git fetch --tags --quiet || echo "Failed to fetch tags, continuing"
+
+      - name: Ensure tag is newer than latest (unless pre-release)
+        run: |
+          CURRENT="${{ steps.extract-tag.outputs.tag }}"
+          LATEST=$(git tag --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+([ab][0-9]+)?$' | head -n 1)
+
+          echo "Current tag: $CURRENT"
+          echo "Latest tag: $LATEST"
+
+          python .github/scripts/validate_tag.py "$CURRENT" "$LATEST"
+
+  build:
+    needs: validate-tag
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.12"
+
+      - name: Install build tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install build
+
+      - name: Build package
+        run: python -m build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  test-pypi:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.12"
+
+      - name: Download built package
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Upload to Test PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.TEST_PYPI_API_TOKEN }}
+          repository-url: https://test.pypi.org/legacy/
+
+  pypi:
+    needs: test-pypi
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.12"
+
+      - name: Download built package
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Upload to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}
+
