@@ -121,6 +121,9 @@ class pFq(CMF):
         matrices.update(y_matrices)
         return matrices
 
+    def __repr__(self) -> str:
+        return f"pFq({self.p, self.q, self.z, self.theta_derivative, self.negate_denominator_params})"
+
     def ascend(
         self, trajectory: Position, start: Position
     ) -> tuple[CMF, Position, Position]:
