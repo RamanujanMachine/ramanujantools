@@ -77,6 +77,9 @@ class LinearRecurrence:
     def _latex(self, printer) -> str:
         return f"{printer.doprint(self.lhs())} = {printer.doprint(self.rhs())}"
 
+    def _repr_latex_(self) -> str:
+        return rf"$${sp.latex(self)}$$"
+
     def lhs(self) -> sp.Expr:
         return sp.Function("p")(n + 1) * self.relation[0]
 

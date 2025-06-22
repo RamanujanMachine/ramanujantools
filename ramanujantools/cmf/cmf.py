@@ -57,6 +57,17 @@ class CMF:
     def __repr__(self) -> str:
         return f"CMF({self.matrices})"
 
+    def _latex(self, printer) -> str:
+        lines = []
+        for axis in sorted(self.axes(), key=str):
+            lines.append(
+                f"{printer.doprint(axis)} \\mapsto {printer.doprint(self.M(axis))}"
+            )
+        return r"$$\begin{array}{l}" + r"\\ ".join(lines) + r"\end{array}$$"
+
+    def _repr_latex_(self) -> str:
+        return rf"$${sp.latex(self)}$$"
+
     def __getstate__(self):
         return self.matrices
 

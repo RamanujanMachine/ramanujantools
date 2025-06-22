@@ -81,6 +81,26 @@ class PCF:
     def __repr__(self):
         return f"PCF({self.a_n}, {self.b_n})"
 
+    def _latex(self, printer) -> str:
+        DEPTH = 3
+
+        def recurse(i: int, depth: int):
+            if i == depth:
+                b_n_latex = printer.doprint(self.b_n)
+                a_n_latex = printer.doprint(self.a_n)
+                return rf"\ddots + \cfrac{{{b_n_latex}}}{{{a_n_latex}}}"
+            else:
+                a_i = printer.doprint(self.a_n.subs({n: i}))
+                b_i = printer.doprint(self.b_n.subs({n: i + 1}))
+                return rf"{a_i} + \cfrac{{{b_i}}}{{{recurse(i + 1, DEPTH)}}}"
+
+        a_0 = printer.doprint(self.a_n.subs({n: 0}))
+        b_1 = printer.doprint(self.b_n.subs({n: 1}))
+        return rf"{a_0} + \cfrac{{{b_1}}}{{{recurse(1, DEPTH)}}}"
+
+    def _repr_latex_(self) -> str:
+        return rf"$${sp.latex(self)}$$"
+
     def degree(self):
         """
         Returns the degrees of a_n and b_n as a tuple: $(deg(a_n), deg(b_n))$
