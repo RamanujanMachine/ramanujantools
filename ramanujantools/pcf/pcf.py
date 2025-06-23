@@ -2,7 +2,7 @@ import mpmath as mp
 import sympy as sp
 from sympy.abc import n
 
-from typing import Dict, List, Collection
+from typing import Collection
 from multimethod import multimethod
 
 from ramanujantools import Matrix, Limit
@@ -81,6 +81,26 @@ class PCF:
     def __repr__(self):
         return f"PCF({self.a_n}, {self.b_n})"
 
+    def _latex(self, printer) -> str:
+        DEPTH = 3
+
+        def recurse(i: int, depth: int):
+            if i == depth:
+                b_n_latex = printer.doprint(self.b_n)
+                a_n_latex = printer.doprint(self.a_n)
+                return rf"\ddots + \cfrac{{{b_n_latex}}}{{{a_n_latex}}}"
+            else:
+                a_i = printer.doprint(self.a_n.subs({n: i}))
+                b_i = printer.doprint(self.b_n.subs({n: i + 1}))
+                return rf"{a_i} + \cfrac{{{b_i}}}{{{recurse(i + 1, DEPTH)}}}"
+
+        a_0 = printer.doprint(self.a_n.subs({n: 0}))
+        b_1 = printer.doprint(self.b_n.subs({n: 1}))
+        return rf"{a_0} + \cfrac{{{b_1}}}{{{recurse(1, DEPTH)}}}"
+
+    def _repr_latex_(self) -> str:
+        return rf"$${sp.latex(self)}$$"
+
     def degree(self):
         """
         Returns the degrees of a_n and b_n as a tuple: $(deg(a_n), deg(b_n))$
@@ -136,7 +156,7 @@ class PCF:
         """Substitutes parameters in the PCF"""
         return PCF(self.a_n.subs(*args, **kwargs), self.b_n.subs(*args, **kwargs))
 
-    def singular_points(self) -> List[Dict]:
+    def singular_points(self) -> list[dict]:
         return [
             solution
             for solution in self.M().singular_points()
@@ -144,7 +164,7 @@ class PCF:
         ]
 
     @multimethod
-    def walk(self, iterations: Collection[int], start: int = 0) -> List[Matrix]:
+    def walk(self, iterations: Collection[int], start: int = 0) -> list[Matrix]:
         r"""
         Returns the matrix corresponding to calculating the PCF up to a certain depth, including $a_0$
 
@@ -180,7 +200,7 @@ class PCF:
         return self.walk([iterations], start)[0]
 
     @multimethod
-    def limit(self, iterations: Collection[int], start: int = 0) -> List[Limit]:
+    def limit(self, iterations: Collection[int], start: int = 0) -> list[Limit]:
         r"""
         Returns the limit corresponding to calculating the PCF up to a certain depth, including $a_0$
 
@@ -214,8 +234,6 @@ class PCF:
         Args:
             depth: $n$
             limit: $L$
-            p_vectors: numerator extraction vectors for delta
-            q_vectors: denominator extraction vectors for delta
         Returns:
             the delta value as defined above.
         Raises:
@@ -243,8 +261,6 @@ class PCF:
         Args:
             depth: $n$
             limit: $L$
-            p_vectors: numerator extraction vectors for delta
-            q_vectors: denominator extraction vectors for delta
         Returns:
             the delta values for all depths up to `depth` as defined above.
         Raises:

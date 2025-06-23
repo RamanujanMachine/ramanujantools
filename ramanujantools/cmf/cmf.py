@@ -1,5 +1,4 @@
 from __future__ import annotations
-from typing import Dict, List, Optional, Set
 from functools import lru_cache
 
 import itertools
@@ -13,7 +12,7 @@ from ramanujantools.flint_core import (
     NumericMatrix,
     SymbolicMatrix,
     FlintContext,
-    mpoly_ctx,
+    flint_ctx,
 )
 
 
@@ -27,7 +26,7 @@ class CMF:
 
     def __init__(
         self,
-        matrices: Dict[sp.Symbol, Matrix],
+        matrices: dict[sp.Symbol, Matrix],
         validate: bool = True,
     ):
         """
@@ -57,6 +56,17 @@ class CMF:
 
     def __repr__(self) -> str:
         return f"CMF({self.matrices})"
+
+    def _latex(self, printer) -> str:
+        lines = []
+        for axis in sorted(self.axes(), key=str):
+            lines.append(
+                f"{printer.doprint(axis)} \\mapsto {printer.doprint(self.M(axis))}"
+            )
+        return r"$$\begin{array}{l}" + r"\\ ".join(lines) + r"\end{array}$$"
+
+    def _repr_latex_(self) -> str:
+        return rf"$${sp.latex(self)}$$"
 
     def __getstate__(self):
         return self.matrices
@@ -113,17 +123,6 @@ class CMF:
                     f"M({symbol}) is of dimension {matrix.rows}x{matrix.cols}, expected {expected_N}x{expected_N}"
                 )
 
-    @staticmethod
-    def walk_symbol() -> sp.Symbol:
-        return sp.Symbol("walk")
-
-    def ctx(self, start: Optional[Position]) -> FlintContext:
-        start = Position(start) if start else Position()
-        free_symbols = (
-            self.free_symbols().union({CMF.walk_symbol()}).union(start.free_symbols())
-        )
-        return mpoly_ctx(free_symbols, fmpz=start.is_polynomial())
-
     def M(self, axis: sp.Symbol, sign: bool = True) -> Matrix:
         """
         Returns the axis matrix for a given axis.
@@ -136,19 +135,28 @@ class CMF:
         else:
             return self.matrices[axis].inverse()({axis: axis - 1})
 
-    def axes(self) -> Set[sp.Symbol]:
+    def dual(self) -> CMF:
+        """
+        Returns the dual CMF which is defined with inverse-transpose matrices.
+        """
+        return CMF(
+            {axis: self.M(axis).inverse().transpose() for axis in self.axes()},
+            validate=False,
+        )
+
+    def axes(self) -> set[sp.Symbol]:
         """
         Returns the symbols of all axes of the CMF.
         """
         return set(self.matrices.keys())
 
-    def parameters(self) -> Set[sp.Symbol]:
+    def parameters(self) -> set[sp.Symbol]:
         """
         Returns all (non-axis) symbolic parameters of the CMF.
         """
         return self.free_symbols() - self.axes()
 
-    def free_symbols(self) -> Set[sp.Symbol]:
+    def free_symbols(self) -> set[sp.Symbol]:
         """
         Returns all symbolic variables of the CMF, both axes and parameters.
         """
@@ -170,13 +178,23 @@ class CMF:
         random_matrix = list(self.matrices.values())[0]
         return random_matrix.rows
 
-    def subs(self, *args, **kwargs) -> CMF:
+    def _validate_axes_substitutions(self, substitutions: Position) -> None:
+        if (
+            axes_substitutions := self.axes().intersection(substitutions.keys())
+            != set()
+        ):
+            raise ValueError(
+                f"Cannot substitute axis parameters! got: {axes_substitutions}"
+            )
+
+    def subs(self, substitutions: Position) -> CMF:
         """
         Returns a new CMF with substituted matrices.
         """
+        self._validate_axes_substitutions(substitutions)
         return CMF(
             matrices={
-                symbol: matrix.subs(*args, **kwargs)
+                symbol: matrix.subs(substitutions)
                 for symbol, matrix in self.matrices.items()
             },
             validate=False,
@@ -191,6 +209,17 @@ class CMF:
                 symbol: simplify(matrix) for symbol, matrix in self.matrices.items()
             }
         )
+
+    @staticmethod
+    def walk_symbol() -> sp.Symbol:
+        return sp.Symbol("walk")
+
+    def ctx(self, start: Position | None) -> FlintContext:
+        start = Position(start) if start else Position()
+        free_symbols = (
+            self.free_symbols().union({CMF.walk_symbol()}).union(start.free_symbols())
+        )
+        return flint_ctx(free_symbols, fmpz=start.is_polynomial())
 
     def _calculate_diagonal_matrix_backtrack(
         self, trajectory: Position, start: Position, ctx: FlintContext
@@ -265,7 +294,7 @@ class CMF:
         while depth > 0:
             diagonal = trajectory.signs()
             result *= self._trajectory_matrix_inner(diagonal, position, symbol).walk(
-                {symbol: 1}, int(depth), {symbol: 1}
+                {symbol: 1}, int(depth), {symbol: 0}
             )
             position += depth * diagonal
             trajectory -= depth * diagonal
@@ -296,7 +325,7 @@ class CMF:
                 self.trajectory_matrix(diagonal, position, symbol),
                 Position({symbol: 1}),
                 int(depth),
-                Position({symbol: 1}),
+                Position({symbol: 0}),
             )
             position += depth * diagonal
             trajectory -= depth * diagonal
@@ -327,7 +356,7 @@ class CMF:
         return self._work_symbolic(trajectory, start)
 
     def trajectory_matrix(
-        self, trajectory: Dict, start: Dict, symbol: sp.Symbol = n
+        self, trajectory: dict, start: dict, symbol: sp.Symbol = n
     ) -> Matrix:
         """
         Returns a corresponding matrix for walking in a trajectory, up to a constant.
@@ -386,15 +415,15 @@ class CMF:
         for axis in start:
             effective_start[axis] = start[axis]
 
-        return effective_start + (symbol - 1) * Position(trajectory)
+        return effective_start + symbol * trajectory
 
     @multimethod
     def walk(  # noqa: F811
         self,
-        trajectory: Dict,
-        iterations: List[int],
-        start: Dict,
-    ) -> List[Matrix]:
+        trajectory: dict,
+        iterations: list[int],
+        start: dict,
+    ) -> list[Matrix]:
         r"""
         Returns a list of trajectorial walk multiplication matrices in the desired depths.
 
@@ -434,27 +463,27 @@ class CMF:
         trajectory = Position(trajectory)
         start = Position(start)
         return self.trajectory_matrix(trajectory, start).walk(
-            {n: 1}, iterations, {n: 1}
+            {n: 1}, iterations, {n: 0}
         )
 
     @multimethod
     def walk(  # noqa: F811
         self,
-        trajectory: Dict,
+        trajectory: dict,
         iterations: int,
-        start: Dict,
+        start: dict,
     ) -> Matrix:
         return self.walk(trajectory, [iterations], start)[0]
 
     @multimethod
     def limit(
         self,
-        trajectory: Dict,
-        iterations: List[int],
-        start: Dict,
-        p_vectors: Optional[List[Matrix]] = None,
-        q_vectors: Optional[List[Matrix]] = None,
-    ) -> List[Limit]:
+        trajectory: dict,
+        iterations: list[int],
+        start: dict,
+        initial_values: Matrix | None = None,
+        final_projection: Matrix | None = None,
+    ) -> list[Limit]:
         r"""
         Returns a list of limits of trajectorial walk multiplication matrices in the desired depths.
 
@@ -465,6 +494,8 @@ class CMF:
             trajectory: A dict containing the amount of steps in each direction.
             iterations: The amount of trajectory matrix multiplications to perform, either an integer or a list.
             start: A dict representing the starting point of the multiplication.
+            initial_values: the initial values matrix for the limit calculation
+            final_projection: the final projection matrix for the limit calculation
         Returns:
             The limit of the walk multiplication as defined above.
             If `iterations` is a list, returns a list of limits.
@@ -473,27 +504,31 @@ class CMF:
         def walk_function(iterations):
             return self.walk(trajectory, iterations, start)
 
-        return Limit.walk_to_limit(iterations, walk_function, p_vectors, q_vectors)
+        return Limit.walk_to_limit(
+            iterations, walk_function, initial_values, final_projection
+        )
 
     @multimethod
     def limit(  # noqa: F811
         self,
-        trajectory: Dict,
+        trajectory: dict,
         iterations: int,
-        start: Dict,
-        p_vectors: Optional[List[Matrix]] = None,
-        q_vectors: Optional[List[Matrix]] = None,
+        start: dict,
+        initial_values: Matrix | None = None,
+        final_projection: Matrix | None = None,
     ) -> Limit:
-        return self.limit(trajectory, [iterations], start, p_vectors, q_vectors)[0]
+        return self.limit(
+            trajectory, [iterations], start, initial_values, final_projection
+        )[0]
 
     def delta(
         self,
-        trajectory: Dict,
+        trajectory: dict,
         depth: int,
-        start: Dict,
+        start: dict,
         limit: float = None,
-        p_vectors: Optional[List[Matrix]] = None,
-        q_vectors: Optional[List[Matrix]] = None,
+        initial_values: Matrix | None = None,
+        final_projection: Matrix | None = None,
     ):
         r"""
         Calculates the irrationality measure $\delta$ defined, as:
@@ -510,28 +545,28 @@ class CMF:
                 The $\ell_1$ distance walked from the start point is `depth * sum(trajectory.values())`.
             start: the starting point of the walk operation.
             limit: $L$
-            p_vectors: numerator extraction vectors for delta
-            q_vectors: denominator extraction vectors for delta
+            initial_values: the initial values matrix for the limit calculation
+            final_projection: the final projection matrix for the limit calculation
         Returns:
             the delta value as defined above.
         """
         if limit is None:
             m, mlim = self.limit(
-                trajectory, [depth, 2 * depth], start, p_vectors, q_vectors
+                trajectory, [depth, 2 * depth], start, initial_values, final_projection
             )
             limit = mlim.as_float()
         else:
-            m = self.limit(trajectory, depth, start, p_vectors, q_vectors)
+            m = self.limit(trajectory, depth, start, initial_values, final_projection)
         return m.delta(limit)
 
     def delta_sequence(
         self,
-        trajectory: Dict,
+        trajectory: dict,
         depth: int,
-        start: Dict,
+        start: dict,
         limit: float = None,
-        p_vectors: Optional[List[Matrix]] = None,
-        q_vectors: Optional[List[Matrix]] = None,
+        initial_values: Matrix | None = None,
+        final_projection: Matrix | None = None,
     ):
         r"""
         Calculates delta values sequentially up to `depth`.
@@ -542,17 +577,21 @@ class CMF:
                 The $\ell_1$ distance walked from the start point is `depth * sum(trajectory.values())`.
             start: the starting point of the walk operation.
             limit: $L$
-            p_vectors: numerator extraction vectors for delta
-            q_vectors: denominator extraction vectors for delta
+            initial_values: the initial values matrix for the limit calculation
+            final_projection: the final projection matrix for the limit calculation
         Returns:
             the delta value as defined above.
         """
         depths = list(range(1, depth + 1))
         if limit is None:
             depths += [2 * depth]
-            approximants = self.limit(trajectory, depths, start)
+            approximants = self.limit(
+                trajectory, depths, start, initial_values, final_projection
+            )
             limit = approximants[-1].as_float()
             approximants = approximants[:-1]
         else:
-            approximants = self.limit(trajectory, depths, start)
+            approximants = self.limit(
+                trajectory, depths, start, initial_values, final_projection
+            )
         return [approximant.delta(limit) for approximant in approximants]

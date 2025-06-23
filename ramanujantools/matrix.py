@@ -1,5 +1,4 @@
 from __future__ import annotations
-from typing import Dict, List, Set, Tuple
 from functools import lru_cache, cached_property
 
 from multimethod import multimethod
@@ -12,7 +11,7 @@ import sympy as sp
 from sympy.abc import n
 
 from ramanujantools import Position
-from ramanujantools.flint_core import mpoly_ctx, SymbolicMatrix, NumericMatrix
+from ramanujantools.flint_core import flint_ctx, SymbolicMatrix, NumericMatrix
 
 
 class Matrix(sp.Matrix):
@@ -27,24 +26,20 @@ class Matrix(sp.Matrix):
         return super().__new__(cls, *args, **kwargs)
 
     @staticmethod
-    def e(N: int, index: int, column=True) -> Matrix:
-        r"""
+    def e(N: int, index: int) -> Matrix:
+        """
         Returns a coordinate vector of size N for a given index, i.e,
         a vector of size N of zeroes with 1 in the corresponding index
 
         Args:
             N: The vector size
             index: The index of the given axis
-            column: will return the vector in column form if true, in row form otherwise.
         Returns:
             The desired coordinate vector described above
         """
         if index >= N:
             raise ValueError(f"Cannot create {index}th axis vector of size {N}")
-        if column:
-            return Matrix.eye(N).col(index)
-        else:
-            return Matrix.eye(N).row(index)
+        return Matrix.eye(N).col(index)
 
     def __str__(self) -> str:
         return repr(self)
@@ -59,13 +54,13 @@ class Matrix(sp.Matrix):
     def __hash__(self) -> int:
         return hash(frozenset(self))
 
-    def __call__(self, substitutions: Dict) -> Matrix:
+    def __call__(self, substitutions: dict) -> Matrix:
         """
         Substitutes symbols in the matrix, in a more math-like syntax.
         """
         return self.subs(substitutions)
 
-    def subs(self, substitutions: Dict) -> Matrix:
+    def subs(self, substitutions: Position) -> Matrix:
         """
         Substitutes symbols in the matrix.
 
@@ -74,7 +69,7 @@ class Matrix(sp.Matrix):
         """
         return self.xreplace(substitutions)
 
-    def _is_numeric_walk(self, trajectory: Dict, start: Dict) -> bool:
+    def _is_numeric_walk(self, trajectory: dict, start: dict) -> bool:
         trajectory = Position(trajectory)
         start = Position(start)
 
@@ -123,10 +118,10 @@ class Matrix(sp.Matrix):
         # sp.gcd(t.simplify(), x) == 1
         return (self / self.gcd).simplify()
 
-    def limit_equivalent(self, other: Matrix) -> bool:
+    def equal_projectively(self, other: Matrix) -> bool:
         """
-        Returns true iff two matrices are limit equivalent.
-        Two matrices are limit equivalent iff self = c * other for some c.
+        Returns true iff two matrices are equal projectively.
+        Two matrices are equal projectively iff self = c * other for some c.
         """
         return self.as_polynomial().reduce() == other.as_polynomial().reduce()
 
@@ -145,11 +140,14 @@ class Matrix(sp.Matrix):
         return Matrix(sp.simplify(self))
 
     def factor(self) -> Matrix:
-        return SymbolicMatrix.from_sympy(
-            self, mpoly_ctx(self.free_symbols, fmpz=True)
-        ).factor()
+        if self.free_symbols:
+            return SymbolicMatrix.from_sympy(
+                self, flint_ctx(self.free_symbols, fmpz=True)
+            ).factor()
+        else:
+            return self
 
-    def singular_points(self) -> List[Dict]:
+    def singular_points(self) -> list[dict]:
         r"""
         Calculates the singular points of the matrix,
         i.e, points where $|m| = 0$
@@ -171,7 +169,7 @@ class Matrix(sp.Matrix):
             The coboundary relation as described above
         """
         free_symbols = self.free_symbols.union({symbol})
-        ctx = mpoly_ctx(free_symbols, fmpz=True)
+        ctx = flint_ctx(free_symbols, fmpz=True)
         return (
             SymbolicMatrix.from_sympy(U.inverse(), ctx)
             * SymbolicMatrix.from_sympy(self, ctx)
@@ -185,7 +183,7 @@ class Matrix(sp.Matrix):
         if not (self.is_square()):
             raise ValueError("Only square matrices can have a coboundary relation")
         N = self.rows
-        ctx = mpoly_ctx(self.free_symbols, fmpz=True)
+        ctx = flint_ctx(self.free_symbols, fmpz=True)
         flint_self = SymbolicMatrix.from_sympy(self, ctx)
         vectors = [SymbolicMatrix.from_sympy(Matrix(N, 1, [1] + (N - 1) * [0]), ctx)]
         for _ in range(1, N):
@@ -193,7 +191,7 @@ class Matrix(sp.Matrix):
         return Matrix.hstack(*[vector.factor() for vector in vectors]).factor()
 
     @staticmethod
-    def companion_form(values: List[sp.Expr]) -> Matrix:
+    def companion_form(values: list[sp.Expr]) -> Matrix:
         N = len(values)
         columns = []
         for i in range(N - 1):
@@ -242,9 +240,9 @@ class Matrix(sp.Matrix):
     def _walk_inner(
         self,
         trajectory: Position,
-        iterations: Tuple[int],
+        iterations: tuple[int],
         start: Position,
-    ) -> List[Matrix]:
+    ) -> list[Matrix]:
         """
         Internal walk function, used for type conversions and for caching. Do not use directly.
         """
@@ -254,7 +252,7 @@ class Matrix(sp.Matrix):
         else:
             symbols = self.walk_free_symbols(start)
             as_flint = SymbolicMatrix.from_sympy(
-                self, mpoly_ctx(symbols, fmpz=start.is_polynomial())
+                self, flint_ctx(symbols, fmpz=start.is_polynomial())
             )
             results = as_flint.walk(trajectory, list(iterations), start)
             return [result.factor() for result in results]
@@ -262,10 +260,10 @@ class Matrix(sp.Matrix):
     @multimethod
     def walk(  # noqa: F811
         self,
-        trajectory: Dict,
-        iterations: List[int],
-        start: Dict,
-    ) -> List[Matrix]:
+        trajectory: dict,
+        iterations: list[int],
+        start: dict,
+    ) -> list[Matrix]:
         r"""
         Returns the multiplication result of walking in a certain trajectory.
 
@@ -316,13 +314,13 @@ class Matrix(sp.Matrix):
     @multimethod
     def walk(  # noqa: F811
         self,
-        trajectory: Dict,
+        trajectory: dict,
         iterations: int,
-        start: Dict,
+        start: dict,
     ) -> Matrix:
         return self.walk(trajectory, [iterations], start)[0]
 
-    def walk_free_symbols(self, start: Dict) -> Set:
+    def walk_free_symbols(self, start: dict) -> set[sp.Symbol]:
         """
         Returns the expected free_symbols of the expression `self.walk(trajectory, iterations, start)`
         """
@@ -336,25 +334,33 @@ class Matrix(sp.Matrix):
     @multimethod
     def limit(
         self,
-        trajectory: Dict,
-        iterations: List[int],
-        start: Dict,
-    ):  # noqa: F811
+        trajectory: dict,
+        iterations: list[int],
+        start: dict,
+        initial_values: Matrix | None = None,
+        final_projection: Matrix | None = None,
+    ) -> list[Matrix]:  # noqa: F811
         from ramanujantools import Limit
 
         def walk_function(iterations):
             return self.walk(trajectory, iterations, start)
 
-        return Limit.walk_to_limit(iterations, walk_function)
+        return Limit.walk_to_limit(
+            iterations, walk_function, initial_values, final_projection
+        )
 
     @multimethod
     def limit(  # noqa: F811
         self,
-        trajectory: Dict,
+        trajectory: dict,
         iterations: int,
-        start: Dict,
+        start: dict,
+        initial_values: Matrix | None = None,
+        final_projection: Matrix | None = None,
     ):
-        return self.limit(trajectory, [iterations], start)[0]
+        return self.limit(
+            trajectory, [iterations], start, initial_values, final_projection
+        )[0]
 
     def as_pcf(self, deflate_all=True):
         """
@@ -405,7 +411,7 @@ class Matrix(sp.Matrix):
             poly = Matrix.poincare_poly(poly)
         return poly
 
-    def eigenvals(self, poincare=False) -> Dict:
+    def eigenvals(self, poincare=False) -> dict:
         """
         Returns the eigenvalues of the matrix, which are the roots of the characteristic polynomials.
 
@@ -416,7 +422,7 @@ class Matrix(sp.Matrix):
         charpoly = self.charpoly(poincare)
         return sp.roots(charpoly)
 
-    def sorted_eigenvals(self) -> List:
+    def sorted_eigenvals(self) -> list:
         """
         Returns the eigenvalues of the matrix in Poincare form, sorted by absolute value in descending order.
         """
@@ -428,7 +434,7 @@ class Matrix(sp.Matrix):
             retval, key=lambda value: abs(value).evalf(chop=True), reverse=True
         )
 
-    def errors(self) -> List:
+    def errors(self) -> list:
         """
         Approximate the possible errors of integer recurrence approximations using this Matrix.
         """
@@ -451,15 +457,13 @@ class Matrix(sp.Matrix):
         q_reduced_list = []
         limits = self.limit({n: 1}, depths, {n: 1})
         for limit in limits:
-            p, q = limit.as_rational()
-            gcd = sp.gcd(p, q)
-            q_reduced_list.append(sp.log(abs(q // gcd)).evalf(30))
+            q_reduced_list.append(sp.log(limit.as_rational().q).evalf(30))
         fit = np.polyfit(
             np.array(depths), np.array(q_reduced_list, dtype=np.float64), 1
         )
         return mp.mpf(fit[0])
 
-    def kamidelta(self, depth=20):
+    def kamidelta(self, depth=20) -> list[mp.mpf]:
         r"""
         Predicts the possible delta values of the integer sequence approximation that the matrix generates.
 

@@ -1,7 +1,6 @@
 import sympy
 from sympy import Poly, Symbol
 from sympy.abc import x
-from typing import Dict, List, Optional, Tuple
 
 from ramanujantools.generic_polynomial import GenericPolynomial
 from ramanujantools.matrix import Matrix
@@ -17,8 +16,8 @@ class CoboundarySolver:
 
     @staticmethod
     def solve_polynomial_matrix(
-        matrix: Matrix, symbol: Symbol, variables: List[Symbol]
-    ) -> Dict:
+        matrix: Matrix, symbol: Symbol, variables: list[Symbol]
+    ) -> dict:
         r"""
         Given a polynomial matrix in symbol, such that the coefficients are over 'variables',
         try to find an assignment for this variables so that matrix(assignment) == 0.
@@ -39,7 +38,7 @@ class CoboundarySolver:
     @staticmethod
     def find_coboundary(
         m1: Matrix, m2: Matrix, max_deg: int, symbol: Symbol = x
-    ) -> Optional[Tuple[Matrix, List[Symbol]]]:
+    ) -> tuple[Matrix, list[Symbol]] | None:
         r"""
         Given two parametrized matrices $m_1(s), m_2(s)$ over the given symbol,
         look for a parametrized polynomial matrix m(s) such that
@@ -80,8 +79,8 @@ class CoboundarySolver:
 
     @staticmethod
     def check_unique_solution(
-        matrix: Matrix, variables: List[Symbol]
-    ) -> Tuple[Matrix, List[Symbol]]:
+        matrix: Matrix, variables: list[Symbol]
+    ) -> tuple[Matrix, list[Symbol]]:
         r"""
         Assuming matrix is linearly dependent on the given variables, in case there is only 1 variable v in vars,
         check if matrix = v*matrix' and if so return (matrix', []).

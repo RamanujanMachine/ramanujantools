@@ -1,5 +1,6 @@
 from __future__ import annotations
-from typing import List, Dict, Set, Tuple
+from multimethod import multimethod
+
 from functools import cached_property
 import copy
 import itertools
@@ -11,7 +12,7 @@ from sympy.abc import n
 from ramanujantools import Matrix, Limit, GenericPolynomial
 
 
-def trim_trailing_zeros(sequence: List[int]) -> List[int]:
+def trim_trailing_zeros(sequence: list[int]) -> list[int]:
     ending = len(sequence)
     while sequence[ending - 1] == 0:
         ending -= 1
@@ -29,7 +30,7 @@ class LinearRecurrence:
     for all integers $s$.
     """
 
-    def __init__(self, recurrence: Matrix | List[sp.Expr]):
+    def __init__(self, recurrence: Matrix | list[sp.Expr]):
         r"""
         Construct the recurrence.
 
@@ -72,12 +73,23 @@ class LinearRecurrence:
         return f"LinearRecurrence({self.relation})"
 
     def __str__(self) -> str:
-        p = sp.Function("p")(n)
-        lhs = f"{(self.relation[0]) * p.subs({n: n + 1})}"
-        rhs = " + ".join(
-            [f"{c * p.subs({n: n - i})}" for i, c in enumerate(self.relation[1:])]
-        )
-        return f"{lhs} = {rhs}"
+        return f"{self.lhs()} = {self.rhs()}"
+
+    def _latex(self, printer) -> str:
+        return f"{printer.doprint(self.lhs())} = {printer.doprint(self.rhs())}"
+
+    def _repr_latex_(self) -> str:
+        return rf"$${sp.latex(self)}$$"
+
+    def lhs(self) -> sp.Expr:
+        return sp.Function("p")(n + 1) * self.relation[0]
+
+    def rhs(self) -> sp.Expr:
+        terms = [
+            self.relation[i] * sp.Function("p")(n + 1 - i)
+            for i in range(1, len(self.relation))
+        ]
+        return sp.Add(*terms)
 
     @cached_property
     def gcd(self) -> sp.Expr:
@@ -105,25 +117,25 @@ class LinearRecurrence:
         """
         return len(self.relation) - 1
 
-    def degrees(self) -> List[int]:
+    def degrees(self) -> list[int]:
         """
         Returns a list of the degrees of all coefficients
         """
         return [sp.Poly(p, n).degree() for p in self.relation]
 
-    def subs(self, substitutions: Dict) -> LinearRecurrence:
+    def subs(self, substitutions: dict[sp.Symbol, sp.Expr]) -> LinearRecurrence:
         """
         Substitutes symbols in the recurrence.
         """
         return LinearRecurrence([p.subs(substitutions) for p in self.relation])
 
-    def free_symbols(self) -> Set[sp.Symbol]:
+    def free_symbols(self) -> set[sp.Symbol]:
         """
         Returns all free symbols of the recurrence (including `n`)
         """
         return set.union(*[p.free_symbols for p in self.relation])
 
-    def parameters(self) -> Set[sp.Symbol]:
+    def parameters(self) -> set[sp.Symbol]:
         """
         Returns all symbolic parameters of the recurrence (excluding `n`)
         """
@@ -143,41 +155,53 @@ class LinearRecurrence:
         relation = [p * self.denominator_lcm / self.gcd for p in self.relation]
         return LinearRecurrence([sp.factor(p.simplify()) for p in relation])
 
-    def walk(self, iterations: int | List[int], start=1) -> Matrix | List[Matrix]:
+    def limit(
+        self, iterations: int | list[int], start=0, initial_values: Matrix = None
+    ) -> Limit:
         r"""
         Returns the Limit matrix of the recursion up to a certain depth
         """
-        return self.recurrence_matrix.walk({n: 1}, iterations, {n: start})
+        return self.recurrence_matrix.limit(
+            {n: 1}, iterations, {n: start}, initial_values
+        )
 
-    def limit(self, iterations: int | List[int], start=1) -> Limit | List[Limit]:
-        r"""
-        Returns the Limit matrix of the recursion up to a certain depth
-        """
-        return self.recurrence_matrix.limit({n: 1}, iterations, {n: start})
-
-    def evaluate_solution(
-        self, initial_values: List[int], iterations: int, start: int = 1
-    ) -> List[sp.Rational]:
+    @multimethod
+    def evaluate_solution(  # noqa: F811
+        self, initial_values: Matrix, indices: list[int], given_index: int = 0
+    ) -> list[sp.Rational]:
         """
         Returns an evaluation of a specific solution of the recurrence.
         A specific solution is uniquely defined by initial values.
         Args:
-            initial_values: The initial values of the recurrence
-            iterations: The amount of solution points to evaluate.
-            start: The first index of the solution to be evaluated.
+            initial_values: A row matrix (1xN) of the initial values of the solution.
+            inidices: The solution indices required to evaluate.
+            given_index: The highest index of the inital values.
         Returns:
             A list of evaluated points of the specific recurrence
         """
         if self.depth() != len(initial_values):
             raise ValueError(
-                "Initial values of a recursion must be of the recurrence's order"
+                "Initial values of a recursion must be of the recurrence's depth"
+            )
+        if min(indices) <= given_index:
+            raise ValueError(
+                "Requested to evaluate indices that are less than the given index:"
+                f"Got index {min(indices)} while given index is {given_index}"
             )
         retval = []
-        initial_values = Matrix(initial_values).transpose()
-        matrices = self.walk(list(range(0, iterations)), start)
-        for matrix in matrices:
-            retval.append((initial_values * matrix.col(-1))[0])
+        iterations = [index - given_index for index in indices]
+        limits = self.limit(
+            iterations, given_index, Matrix.vstack(initial_values, initial_values)
+        )
+        for limit in limits:
+            retval.append(limit.p())
         return retval
+
+    @multimethod
+    def evaluate_solution(  # noqa: F811
+        self, initial_values: Matrix, indices: int, given_index: int = 0
+    ) -> sp.Rational:
+        return self.evaluate_solution(initial_values, [indices], given_index)[0]
 
     def fold(self, multiplier: sp.Expr) -> LinearRecurrence:
         r"""
@@ -210,7 +234,7 @@ class LinearRecurrence:
         return LinearRecurrence(relation)
 
     @staticmethod
-    def all_divisors(p: sp.Poly) -> List[sp.Poly]:
+    def all_divisors(p: sp.Poly) -> list[sp.Poly]:
         r"""
         Returns all divisors of polynomial `p`.
         Assumes p is polynomial in `n`.
@@ -218,18 +242,18 @@ class LinearRecurrence:
         p = sp.Poly(p, n)
         content, factors_list = p.factor_list()
         factors = []
-        for factor, order in factors_list:
-            factors.append([factor**d for d in range(order + 1)])
+        for factor, depth in factors_list:
+            factors.append([factor**d for d in range(depth + 1)])
         if len(content.free_symbols) == 0:
-            for root, order in content.factors().items():
-                factors.append([root**d for d in range(order + 1)])
+            for root, depth in content.factors().items():
+                factors.append([root**d for d in range(depth + 1)])
         combinations = itertools.product(*factors)
         divisors = []
         for combination in combinations:
             divisors.append(sp.prod(combination))
         return divisors
 
-    def possible_multipliers(self) -> List[sp.Poly]:
+    def possible_multipliers(self) -> list[sp.Poly]:
         r"""
         Returns all candidates for a multiplier rational $d(n)$
         that could have been used to fold a lesser depth recursion into this one.
@@ -261,7 +285,7 @@ class LinearRecurrence:
                 return LinearRecurrence(unfolded)
         return None
 
-    def unfold(self, inflation_degree=0) -> Tuple[LinearRecurrence, sp.Poly]:
+    def unfold(self, inflation_degree=0) -> tuple[LinearRecurrence, sp.Poly]:
         r"""
         Attempts to unfold this recursion by enumerating over all possible
         multiplier candidates and attempting to unfold using them.

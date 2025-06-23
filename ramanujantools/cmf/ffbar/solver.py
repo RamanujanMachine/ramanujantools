@@ -1,14 +1,14 @@
 import sympy as sp
 from sympy.abc import x, y, n
 
-from typing import Collection, List
+from typing import Collection
 
 from ramanujantools import GenericPolynomial
 from ramanujantools.pcf import PCF
 from ramanujantools.cmf.ffbar import FFbar
 
 
-def polynomial_coefficients(poly, variables: Collection[sp.Symbol] = (x, y)) -> List:
+def polynomial_coefficients(poly, variables: Collection[sp.Symbol] = (x, y)) -> list:
     r"""
     Returns the coefficients of all monomials of `poly` in `variables`.
     By default assumes variables are $(x, y)$.
@@ -16,7 +16,7 @@ def polynomial_coefficients(poly, variables: Collection[sp.Symbol] = (x, y)) -> 
     return sp.Poly(poly, *variables).coeffs()
 
 
-def solve(expressions: sp.Expr) -> List:
+def solve(expressions: sp.Expr) -> list:
     r"""
     Returns a list of solutions that solve `expressions`.
 
@@ -25,7 +25,7 @@ def solve(expressions: sp.Expr) -> List:
     return sp.solve(expressions, dict=True, manual=True)
 
 
-def from_pcf(pcf: PCF) -> List[FFbar]:
+def from_pcf(pcf: PCF) -> list[FFbar]:
     r"""
     Attempts to construct a 2d FFbar CMF,
     such that Mx is the matrix representation of `pcf`,
@@ -53,7 +53,7 @@ def from_pcf(pcf: PCF) -> List[FFbar]:
         return solve_ffbar(f, fbar)
 
 
-def solve_ffbar(f, fbar) -> List[FFbar]:
+def solve_ffbar(f, fbar) -> list[FFbar]:
     r"""
     Returns all pairs of subsets of the input $f(x, y), \bar{f}(x, y)$ such that
     each one is a valid solution of the linear condition and the quadratic condition.

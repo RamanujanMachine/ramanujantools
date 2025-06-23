@@ -3,7 +3,6 @@ import math
 import sympy
 from sympy import Poly
 from sympy.abc import x
-from typing import Dict, List, Optional
 
 from ramanujantools.generic_polynomial import GenericPolynomial
 
@@ -149,7 +148,7 @@ class EulerSolver:
     """
 
     @staticmethod
-    def solve_for(a: Poly, b: Poly) -> List[EulerSolution]:
+    def solve_for(a: Poly, b: Poly) -> list[EulerSolution]:
         r"""
         Given two polynomials, $a(x),b(x)$, searches for all solutions to
                 $b(x)=-h_1(x)h_2(x)$,
@@ -181,8 +180,8 @@ class EulerSolver:
 
     @staticmethod
     def solve_for_monic_decomposition(
-        a: Poly, b_roots: Dict[int, int], leading_coefficient_b: int
-    ) -> List[EulerSolution]:
+        a: Poly, b_roots: dict[int, int], leading_coefficient_b: int
+    ) -> list[EulerSolution]:
         r"""
         Given $b(x)=leading_coefficient * \prod (x-root)$, finds all the solutions to
                 $b(x)=-h_1(x)*h_2(x)$
@@ -272,7 +271,7 @@ class EulerSolver:
         return solutions
 
     @staticmethod
-    def solve_for_decomposition(a: Poly, h_1: Poly, h_2: Poly) -> List[EulerSolution]:
+    def solve_for_decomposition(a: Poly, h_1: Poly, h_2: Poly) -> list[EulerSolution]:
         """
         Tries to find a polynomial f solving the equation
                 f(x)a(x) = f(x-1)h_1(x) + f(x+1)h_2(x+1)
@@ -291,7 +290,7 @@ class EulerSolver:
         return solutions
 
     @staticmethod
-    def find_possible_degrees(a: Poly, h_1: Poly, h_2: Poly) -> List[int]:
+    def find_possible_degrees(a: Poly, h_1: Poly, h_2: Poly) -> list[int]:
         """
         Looking for the at most two possible degrees of a polynomial f which solves
                 f(x)a(x) = f(x-1)h_1(x) + f(x+1)h_2(x+1)
@@ -347,7 +346,7 @@ class EulerSolver:
     @staticmethod
     def solve_for_decomposition_with_degree(
         a: Poly, h_1: Poly, h_2: Poly, d_f: int
-    ) -> Optional[EulerSolution]:
+    ) -> EulerSolution | None:
         """
         Tries to find a polynomial f of degree d_f solving the equation
                 f(x)a(x) = f(x-1)h_1(x) + f(x+1)h_2(x+1)

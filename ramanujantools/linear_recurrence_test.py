@@ -1,7 +1,7 @@
 from sympy.abc import n
 import sympy as sp
 
-from ramanujantools import IntegerRelation, LinearRecurrence, Matrix
+from ramanujantools import LinearRecurrence, Matrix
 from ramanujantools.pcf import PCF
 
 
@@ -26,48 +26,60 @@ def test_matrix():
 
 
 def test_limit():
-    r = LinearRecurrence([1, n, n**2])
+    initial_values = Matrix([[2, 3, 5], [7, 11, 13]])
+    r = LinearRecurrence([1, n + 1, n**2])
     depths = [2, 3, 19, 101]
-    assert r.limit(depths) == r.recurrence_matrix.limit({n: 1}, depths, {n: 1})
+    assert r.limit(depths, 0, initial_values) == r.recurrence_matrix.limit(
+        {n: 1}, depths, {n: 0}, initial_values
+    )
 
 
-def test_evaluate_solution_basis():
+def test_evaluate_solution_fibonacci():
+    r = LinearRecurrence([1, 1, 1])
+    given_index = 0  # i.e, the initial values are at indices -1 and 0.
+    indices = list(range(given_index + 1, given_index + 6))
+    initial_values = Matrix([[1, 1]])
+    assert r.evaluate_solution(initial_values, indices, given_index) == [2, 3, 5, 8, 13]
+
+
+def test_evaluate_solution_basis_single():
     r = LinearRecurrence([1, n, n**2, 3])
-    iterations = 100
-    initial_values = [0, 1, 0]
-    points = list(range(0, iterations))
-    matrices = r.walk(points)
-    evaluations = r.evaluate_solution(initial_values, iterations)
-    assert len(matrices) == len(evaluations)
-    for i in range(len(evaluations)):
-        assert matrices[i].col(-1)[1] == evaluations[i]
+    indices = 100
+    initial_values = Matrix([[0, 1, 0]])
+    matrix = r.recurrence_matrix.walk({n: 1}, indices, {n: 0})
+    evaluation = r.evaluate_solution(initial_values, indices)
+    assert initial_values.dot(matrix.col(-1)) == evaluation
 
 
-def test_evaluate_solution_basis_with_start():
+def test_evaluate_solution_basis_list_with_given_index():
     r = LinearRecurrence([n, -n, 5, n**2 + n + 1])
-    start = 3
-    iterations = 100
-    initial_values = [0, 0, 1]
-    points = list(range(0, iterations))
-    matrices = r.walk(points, start)
-    evaluations = r.evaluate_solution(initial_values, iterations, start)
+    given_index = 3
+    max_index = 100
+    initial_values = Matrix([[0, 0, 1]])
+    indices = list(range(given_index + 1, 100))
+    matrices = r.recurrence_matrix.walk(
+        {n: 1}, list(range(1, max_index - given_index)), {n: given_index}
+    )
+    evaluations = r.evaluate_solution(initial_values, indices, given_index)
     assert len(matrices) == len(evaluations)
     for i in range(len(evaluations)):
-        assert matrices[i].col(-1)[2] == evaluations[i]
+        print(i)
+        assert initial_values.dot(matrices[i].col(-1)) == evaluations[i]
 
 
 def test_evaluate_solution_generic():
     r = LinearRecurrence([2, -n + 1, n**3 + n, 14])
-    start = 17
-    iterations = 100
-    initial_values = [5, -4, 2]
-    points = list(range(0, iterations))
-    matrices = r.walk(points, start)
-    evaluations = r.evaluate_solution(initial_values, iterations, start)
+    given_index = 17
+    max_index = 123
+    initial_values = Matrix([[5, -4, 2]])
+    indices = list(range(given_index + 1, max_index))
+    matrices = r.recurrence_matrix.walk(
+        {n: 1}, list(range(1, max_index - given_index)), {n: given_index}
+    )
+    evaluations = r.evaluate_solution(initial_values, indices, given_index)
     assert len(matrices) == len(evaluations)
     for i in range(len(evaluations)):
-        expected = (Matrix(initial_values).transpose() * matrices[i].col(-1))[0]
-        assert expected == evaluations[i]
+        assert initial_values.dot(matrices[i].col(-1)) == evaluations[i]
 
 
 def test_inflate():
@@ -124,22 +136,22 @@ def test_unfold_deflate():
     assert actual_multiplier == sp.Poly(multiplier * inflation, n)
 
 
-def test_euler():
+def test_gamma():
     # from https://arxiv.org/abs/1010.1420
     m = Matrix([[0, -(n**2), 0], [1, 2 * n + 2, 0], [0, -(n - 1) / (n + 1), 1]])
     r = LinearRecurrence(m)
     assert [] == r.unfold()
     lim = r.limit(1000, 2)
-    assert IntegerRelation([[-3, -12, -59], [6, 21, 102]]) == lim.identify(lim.mp.euler)
-    assert IntegerRelation([[1, 4, 20], [-2, -7, -34]]) == lim.identify(
+    assert Matrix([[3, 12, 59], [6, 21, 102]]) == lim.identify(lim.mp.euler)
+    assert Matrix([[1, 4, 20], [2, 7, 34]]) == lim.identify(
         -lim.mp.e * lim.mp.ei(-1)  # Gompertz
     )
     inflated = r.inflate(2 - n)
 
     lim = inflated.limit(1000, 5)
-    assert IntegerRelation(
-        [[-3625, 26792, -461718], [6270, -46380, 799620]]
-    ) == lim.identify(lim.mp.euler, maxcoeff=10**6)
+    assert Matrix([[3625, -26792, 461718], [6270, -46380, 799620]]) == lim.identify(
+        lim.mp.euler, maxcoeff=10**6
+    )
 
     unfolded = inflated.unfold_poly(n)
     pcf = unfolded.recurrence_matrix.as_pcf().pcf

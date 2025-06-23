@@ -74,6 +74,23 @@ def test_as_polynomial():
     assert polynomial_m == m.as_polynomial()
 
 
+def test_factor_symbolic():
+    matrix = Matrix(
+        [
+            [x**3 + 3 * x**2 + 3 * x + 1, x**100 - x**90 + x**80],
+            [(x + 1) ** 2, 3 / (x**2 - x)],
+        ]
+    )
+    assert matrix.applyfunc(sp.factor) == matrix.factor()
+
+
+def test_factor_numeric():
+    matrix = Matrix(
+        [[0, -1, 2, -3], [-4, 5, -6, 7], [-8, 9, 10, -11], [12, -13, -14, 15]]
+    )
+    assert matrix.applyfunc(sp.factor) == matrix.factor()
+
+
 def test_inverse():
     a = 5
     b = 2
@@ -271,6 +288,17 @@ def test_limit_list():
         )
 
 
+def test_limit_initial_values():
+    trajectory = {x: 2, y: 3}
+    start = {x: 5, y: 7}
+    iterations = 10
+    m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
+    initial_values = Matrix([[2, 3, 5], [7, 11, 13]])
+    limit = m.limit(trajectory, iterations, start, initial_values)
+    assert initial_values == limit.initial_values
+    assert limit != m.limit(trajectory, iterations, start)
+
+
 def test_charpoly():
     m = Matrix([[0, -(n**2)], [1, (3 * n + 1)]])
     assert sp.Matrix(m).charpoly() == m.charpoly(poincare=False)
@@ -323,7 +351,7 @@ def test_gcd_slope():
     x0, x1 = sp.symbols("x:2")
     (y0,) = sp.symbols("y:1")
     trajectory = {x0: 1, x1: 1, y0: 1}
-    start = trajectory
+    start = {x0: 0, x1: 0, y0: 0}
     m = pFq(2, 1, -1).trajectory_matrix(trajectory, start)
     assert m.gcd_slope(20) == approx(1.3962425331281643)
     assert m.gcd_slope(40) == approx(1.5535146470266243)
