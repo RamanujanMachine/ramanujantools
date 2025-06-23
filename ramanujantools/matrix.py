@@ -140,9 +140,12 @@ class Matrix(sp.Matrix):
         return Matrix(sp.simplify(self))
 
     def factor(self) -> Matrix:
-        return SymbolicMatrix.from_sympy(
-            self, flint_ctx(self.free_symbols, fmpz=True)
-        ).factor()
+        if self.free_symbols:
+            return SymbolicMatrix.from_sympy(
+                self, flint_ctx(self.free_symbols, fmpz=True)
+            ).factor()
+        else:
+            return self
 
     def singular_points(self) -> list[dict]:
         r"""
