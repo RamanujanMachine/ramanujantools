@@ -271,6 +271,17 @@ def test_limit_list():
         )
 
 
+def test_limit_initial_values():
+    trajectory = {x: 2, y: 3}
+    start = {x: 5, y: 7}
+    iterations = 10
+    m = Matrix([[x, 3 * x + 5 * y], [y**7 + x - 3, x**5]])
+    initial_values = Matrix([[2, 3, 5], [7, 11, 13]])
+    limit = m.limit(trajectory, iterations, start, initial_values)
+    assert initial_values == limit.initial_values
+    assert limit != m.limit(trajectory, iterations, start)
+
+
 def test_charpoly():
     m = Matrix([[0, -(n**2)], [1, (3 * n + 1)]])
     assert sp.Matrix(m).charpoly() == m.charpoly(poincare=False)
