@@ -334,13 +334,17 @@ class Matrix(sp.Matrix):
         trajectory: dict,
         iterations: list[int],
         start: dict,
+        initial_values: Matrix | None = None,
+        final_projection: Matrix | None = None,
     ) -> list[Matrix]:  # noqa: F811
         from ramanujantools import Limit
 
         def walk_function(iterations):
             return self.walk(trajectory, iterations, start)
 
-        return Limit.walk_to_limit(iterations, walk_function)
+        return Limit.walk_to_limit(
+            iterations, walk_function, initial_values, final_projection
+        )
 
     @multimethod
     def limit(  # noqa: F811
@@ -348,8 +352,12 @@ class Matrix(sp.Matrix):
         trajectory: dict,
         iterations: int,
         start: dict,
+        initial_values: Matrix | None = None,
+        final_projection: Matrix | None = None,
     ):
-        return self.limit(trajectory, [iterations], start)[0]
+        return self.limit(
+            trajectory, [iterations], start, initial_values, final_projection
+        )[0]
 
     def as_pcf(self, deflate_all=True):
         """
