@@ -154,11 +154,15 @@ class LinearRecurrence:
         relation = [p * self.denominator_lcm / self.gcd for p in self.relation]
         return LinearRecurrence([sp.factor(p.simplify()) for p in relation])
 
-    def limit(self, iterations: int | list[int], start=1) -> Limit:
+    def limit(
+        self, iterations: int | list[int], start=0, initial_values: Matrix = None
+    ) -> Limit:
         r"""
         Returns the Limit matrix of the recursion up to a certain depth
         """
-        return self.recurrence_matrix.limit({n: 1}, iterations, {n: start})
+        return self.recurrence_matrix.limit(
+            {n: 1}, iterations, {n: start}, initial_values
+        )
 
     def fold(self, multiplier: sp.Expr) -> LinearRecurrence:
         r"""

@@ -26,9 +26,12 @@ def test_matrix():
 
 
 def test_limit():
-    r = LinearRecurrence([1, n, n**2])
+    initial_values = Matrix([[2, 3, 5], [7, 11, 13]])
+    r = LinearRecurrence([1, n + 1, n**2])
     depths = [2, 3, 19, 101]
-    assert r.limit(depths) == r.recurrence_matrix.limit({n: 1}, depths, {n: 1})
+    assert r.limit(depths, 0, initial_values) == r.recurrence_matrix.limit(
+        {n: 1}, depths, {n: 0}, initial_values
+    )
 
 
 def test_inflate():

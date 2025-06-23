@@ -102,12 +102,12 @@ def test_back_negates_forward():
 def test_trajectory_matrix_negative_axis():
     cmf = known_cmfs.e()
     start = {x: x, y: y}
-    assert cmf.trajectory_matrix({x: -3, y: 0}, start).limit_equivalent(
+    assert cmf.trajectory_matrix({x: -3, y: 0}, start).equal_projectively(
         cmf.M(x, False).walk(
             {x: -1, y: 0}, 3, cmf.trajectory_substitution({x: -3, y: 0}, start, n)
         )
     )
-    assert cmf.trajectory_matrix({x: 0, y: -2}, start).limit_equivalent(
+    assert cmf.trajectory_matrix({x: 0, y: -2}, start).equal_projectively(
         cmf.M(y, False).walk(
             {x: 0, y: -1}, 2, cmf.trajectory_substitution({x: 0, y: -2}, start, n)
         )
@@ -123,7 +123,7 @@ def test_trajectory_matrix_negative():
         * cmf.M(c, sign=False).subs({a: a + 1, b: b - 2})
     )
     actual = cmf.trajectory_matrix({a: 1, b: -2, c: -1}, {a: a, b: b, c: c})
-    assert actual.walk({n: 1}, 1, {n: 0}).limit_equivalent(expected)
+    assert actual.walk({n: 1}, 1, {n: 0}).equal_projectively(expected)
 
 
 def test_trajectory_matrix_rational():
