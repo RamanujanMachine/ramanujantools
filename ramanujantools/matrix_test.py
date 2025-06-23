@@ -74,6 +74,23 @@ def test_as_polynomial():
     assert polynomial_m == m.as_polynomial()
 
 
+def test_factor_symbolic():
+    matrix = Matrix(
+        [
+            [x**3 + 3 * x**2 + 3 * x + 1, x**100 - x**90 + x**80],
+            [(x + 1) ** 2, 3 / (x**2 - x)],
+        ]
+    )
+    assert matrix.applyfunc(sp.factor) == matrix.factor()
+
+
+def test_factor_numeric():
+    matrix = Matrix(
+        [[0, -1, 2, -3], [-4, 5, -6, 7], [-8, 9, 10, -11], [12, -13, -14, 15]]
+    )
+    assert matrix.applyfunc(sp.factor) == matrix.factor()
+
+
 def test_inverse():
     a = 5
     b = 2
