@@ -118,10 +118,10 @@ class Matrix(sp.Matrix):
         # sp.gcd(t.simplify(), x) == 1
         return (self / self.gcd).simplify()
 
-    def limit_equivalent(self, other: Matrix) -> bool:
+    def equal_projectively(self, other: Matrix) -> bool:
         """
-        Returns true iff two matrices are limit equivalent.
-        Two matrices are limit equivalent iff self = c * other for some c.
+        Returns true iff two matrices are equal projectively.
+        Two matrices are equal projectively iff self = c * other for some c.
         """
         return self.as_polynomial().reduce() == other.as_polynomial().reduce()
 
