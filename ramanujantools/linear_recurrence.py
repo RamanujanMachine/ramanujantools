@@ -111,9 +111,9 @@ class LinearRecurrence:
         column = [c / denominator for c in self.relation[1:]]
         return Matrix.companion_form(list(reversed(column)))
 
-    def depth(self) -> int:
+    def order(self) -> int:
         """
-        Returns the depth of the recurrence
+        Returns the order of the recurrence
         """
         return len(self.relation) - 1
 
@@ -179,9 +179,9 @@ class LinearRecurrence:
         Returns:
             A list of evaluated points of the specific recurrence
         """
-        if self.depth() != len(initial_values):
+        if self.order() != len(initial_values):
             raise ValueError(
-                "Initial values of a recursion must be of the recurrence's depth"
+                "Initial values of a recursion must be of the recurrence's order"
             )
         if min(indices) <= given_index:
             raise ValueError(
@@ -205,7 +205,7 @@ class LinearRecurrence:
 
     def fold(self, multiplier: sp.Expr) -> LinearRecurrence:
         r"""
-        Folds the recurrence into a higher depth recurrence.
+        Folds the recurrence into a higher order recurrence.
 
         Given a recurrence
         $a_0(n) p(n + 1) = \sum_{i=1}^{N}a_i(n) p(n + 1 - i)$
@@ -242,11 +242,11 @@ class LinearRecurrence:
         p = sp.Poly(p, n)
         content, factors_list = p.factor_list()
         factors = []
-        for factor, depth in factors_list:
-            factors.append([factor**d for d in range(depth + 1)])
+        for factor, order in factors_list:
+            factors.append([factor**d for d in range(order + 1)])
         if len(content.free_symbols) == 0:
-            for root, depth in content.factors().items():
-                factors.append([root**d for d in range(depth + 1)])
+            for root, order in content.factors().items():
+                factors.append([root**d for d in range(order + 1)])
         combinations = itertools.product(*factors)
         divisors = []
         for combination in combinations:
@@ -256,7 +256,7 @@ class LinearRecurrence:
     def possible_multipliers(self) -> list[sp.Poly]:
         r"""
         Returns all candidates for a multiplier rational $d(n)$
-        that could have been used to fold a lesser depth recursion into this one.
+        that could have been used to fold a lesser order recursion into this one.
         """
         return LinearRecurrence.all_divisors(self.relation[-1])
 
@@ -335,9 +335,9 @@ class LinearRecurrence:
         return recurrence
 
     def apteshuffle(self) -> LinearRecurrence:
-        if self.depth() != 3:
+        if self.order() != 3:
             raise ValueError(
-                "apteshuffle is only supported for depth 3 recursions for now"
+                "apteshuffle is only supported for order 3 recursions for now"
             )
         c, b, a = self.recurrence_matrix.col(-1)
         return (
