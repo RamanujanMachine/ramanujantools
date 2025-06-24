@@ -13,8 +13,6 @@ from .known_cmfs import (
     hypergeometric_derived_3F2,
 )
 
-from .pfq import pFq
-
 __all__ = [
     "e",
     "pi",
@@ -28,5 +26,4 @@ __all__ = [
     "cmf3_3",
     "hypergeometric_derived_2F1",
     "hypergeometric_derived_3F2",
-    "pFq",
 ]

@@ -2,7 +2,7 @@ import sympy as sp
 from sympy.abc import n, z
 
 from ramanujantools.cmf import CMF
-from ramanujantools.cmf.known_cmfs import pFq
+from ramanujantools.cmf import pFq
 from ramanujantools import Matrix, Position
 
 x0, x1, x2, x3 = sp.symbols("x:4")
@@ -223,6 +223,22 @@ def test_predict_N():
         for q in range(1, 5):
             for z_eval in [-1, 1]:
                 assert pFq(p, q, z_eval=z_eval).N() == pFq.predict_N(p, q, z_eval)
+
+
+def test_work_numeric_3f2():
+    cmf = pFq(3, 2, -1)
+    x0, x1, x2 = sp.symbols("x:3")
+    y0, y1 = sp.symbols("y:2")
+    start = Position(
+        {x0: 1, x1: -sp.Rational(1, 2), x2: 0, y0: sp.Rational(5, 3), y1: -1}
+    )
+    end = Position(
+        {x0: 17, x1: -sp.Rational(13, 2), x2: 0, y0: sp.Rational(20, 3), y1: -4}
+    )
+    trajectory = end - start
+    expected = cmf.walk(trajectory, 1, start)
+    actual = cmf.work(start, end)
+    assert expected == actual
 
 
 def test_state_vector():

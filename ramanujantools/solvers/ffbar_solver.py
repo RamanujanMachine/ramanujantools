@@ -5,7 +5,7 @@ from typing import Collection
 
 from ramanujantools import GenericPolynomial
 from ramanujantools.pcf import PCF
-from ramanujantools.cmf.ffbar import FFbar
+from ramanujantools.cmf import FFbar
 
 
 class FFbarSolver:
