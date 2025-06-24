@@ -1,10 +1,9 @@
 from dataclasses import dataclass
 import math
-import sympy
-from sympy import Poly
+import sympy as sp
 from sympy.abc import x
 
-from ramanujantools.generic_polynomial import GenericPolynomial
+from ramanujantools import GenericPolynomial
 
 
 r"""
@@ -59,19 +58,19 @@ class EulerSolution:
         $f(x)a(x) = f(x-1)h_1(x) + f(x+1)h_2(x+1)$
     """
 
-    h_1: Poly
-    h_2: Poly
-    a: Poly
-    b: Poly
-    f: Poly
+    h_1: sp.Poly
+    h_2: sp.Poly
+    a: sp.Poly
+    b: sp.Poly
+    f: sp.Poly
 
     def __post_init__(self):
         # make sure that all the parameters are actually polynomials
-        self.h_1 = Poly(self.h_1, x)
-        self.h_2 = Poly(self.h_2, x)
-        self.a = Poly(self.a, x)
-        self.b = Poly(self.b, x)
-        self.f = Poly(self.f, x)
+        self.h_1 = sp.Poly(self.h_1, x)
+        self.h_2 = sp.Poly(self.h_2, x)
+        self.a = sp.Poly(self.a, x)
+        self.b = sp.Poly(self.b, x)
+        self.f = sp.Poly(self.f, x)
 
     def __hash__(self):
         return hash(
@@ -85,12 +84,12 @@ class EulerSolution:
         )
 
     @staticmethod
-    def _poly_eq(poly1: Poly, poly2: Poly):
+    def _poly_eq(poly1: sp.Poly, poly2: sp.Poly):
         """
         Use this equality in case the polynomials have non integer algebraic coefficients
         """
-        coeffs1 = [sympy.simplify(c) for c in poly1.all_coeffs()]
-        coeffs2 = [sympy.simplify(c) for c in poly2.all_coeffs()]
+        coeffs1 = [sp.simplify(c) for c in poly1.all_coeffs()]
+        coeffs2 = [sp.simplify(c) for c in poly2.all_coeffs()]
         if len(coeffs1) != len(coeffs2):
             return False
         return all(c1 == c2 for c1, c2 in zip(coeffs1, coeffs2))
@@ -124,7 +123,7 @@ class Coefficients:
     For all other indices, the returned coefficient value will be zero.
     """
 
-    def __init__(self, p: Poly):
+    def __init__(self, p: sp.Poly):
         self.coef = list(reversed(p.all_coeffs()))
 
     def __repr__(self):
@@ -148,7 +147,7 @@ class EulerSolver:
     """
 
     @staticmethod
-    def solve_for(a: Poly, b: Poly) -> list[EulerSolution]:
+    def solve_for(a: sp.Poly, b: sp.Poly) -> list[EulerSolution]:
         r"""
         Given two polynomials, $a(x),b(x)$, searches for all solutions to
                 $b(x)=-h_1(x)h_2(x)$,
@@ -157,8 +156,8 @@ class EulerSolver:
         Returns a list of all possible solutions.
         """
         # Make sure that the parameters are actually polynomials
-        a = Poly(a, x)
-        b = Poly(b, x)
+        a = sp.Poly(a, x)
+        b = sp.Poly(b, x)
 
         roots = b.all_roots()
         if len(roots) < b.degree():
@@ -180,7 +179,7 @@ class EulerSolver:
 
     @staticmethod
     def solve_for_monic_decomposition(
-        a: Poly, b_roots: dict[int, int], leading_coefficient_b: int
+        a: sp.Poly, b_roots: dict[int, int], leading_coefficient_b: int
     ) -> list[EulerSolution]:
         r"""
         Given $b(x)=leading_coefficient * \prod (x-root)$, finds all the solutions to
@@ -195,7 +194,7 @@ class EulerSolver:
             # s1 and s2 are the decomposition of the roots of b(x) to two polynomials.
             # In particular, len(s1), len(s2) is going to be their degrees.
 
-            deg_a = sympy.degree(a)
+            deg_a = sp.degree(a)
             deg_h1 = sum(s1.values())
             deg_h2 = sum(s2.values())
             d = max(deg_a, deg_h1, deg_h2)
@@ -203,10 +202,10 @@ class EulerSolver:
                 # At least two of the degrees should be maximal, otherwise there is no solution
                 continue
 
-            monic_poly_1 = Poly(
+            monic_poly_1 = sp.Poly(
                 math.prod((x - root) ** power for root, power in s1.items()), x
             )
-            monic_poly_2 = Poly(
+            monic_poly_2 = sp.Poly(
                 math.prod((x - root) ** power for root, power in s2.items()), x
             )
 
@@ -222,7 +221,7 @@ class EulerSolver:
                 # then c1 + c2 = 0, and c1*c2 = -c1*c1 = -leading_coefficient
                 if leading_coefficient_b < 0:
                     continue  # TODO: add support to non integer solutions
-                c = sympy.sqrt(leading_coefficient_b)
+                c = sp.sqrt(leading_coefficient_b)
 
                 solutions += EulerSolver.solve_for_decomposition(
                     a, c * monic_poly_1, -c * monic_poly_2
@@ -256,7 +255,7 @@ class EulerSolver:
             # c1 * c2 = - leading_coefficient_b
             # so that they are solutions to
             # (c - c1)*(c - c2) = c^2 - leading_coefficient_a * c - leading_coefficient_b
-            disc = sympy.sqrt(leading_coefficient_a**2 + 4 * leading_coefficient_b)
+            disc = sp.sqrt(leading_coefficient_a**2 + 4 * leading_coefficient_b)
             c1 = (leading_coefficient_a + disc) / 2
             c2 = (leading_coefficient_a - disc) / 2
 
@@ -271,7 +270,9 @@ class EulerSolver:
         return solutions
 
     @staticmethod
-    def solve_for_decomposition(a: Poly, h_1: Poly, h_2: Poly) -> list[EulerSolution]:
+    def solve_for_decomposition(
+        a: sp.Poly, h_1: sp.Poly, h_2: sp.Poly
+    ) -> list[EulerSolution]:
         """
         Tries to find a polynomial f solving the equation
                 f(x)a(x) = f(x-1)h_1(x) + f(x+1)h_2(x+1)
@@ -290,19 +291,19 @@ class EulerSolver:
         return solutions
 
     @staticmethod
-    def find_possible_degrees(a: Poly, h_1: Poly, h_2: Poly) -> list[int]:
+    def find_possible_degrees(a: sp.Poly, h_1: sp.Poly, h_2: sp.Poly) -> list[int]:
         """
         Looking for the at most two possible degrees of a polynomial f which solves
                 f(x)a(x) = f(x-1)h_1(x) + f(x+1)h_2(x+1)
         return these degrees in a list (which has size 0, 1, or 2).
         """
 
-        d = max(sympy.degree(a), sympy.degree(h_1), sympy.degree(h_2))
+        d = max(sp.degree(a), sp.degree(h_1), sp.degree(h_2))
 
         # Create lists of the coefficients of size d+1, such that p[i] will be the i-th coefficient of the polynomial p.
         a_coef = Coefficients(a)
         h_1_coef = Coefficients(h_1)
-        h_2_plus_coef = Coefficients(Poly(h_2.subs(x, x + 1), x))
+        h_2_plus_coef = Coefficients(sp.Poly(h_2.subs(x, x + 1), x))
 
         # Condition 1: Leading coefficients are equal.
         if a_coef[d] != h_1_coef[d] + h_2_plus_coef[d]:
@@ -313,7 +314,7 @@ class EulerSolver:
         num = a_coef[d - 1] - h_1_coef[d - 1] - h_2_plus_coef[d - 1]
         denom = h_2_plus_coef[d] - h_1_coef[d]
         if denom != 0:
-            deg = float(sympy.simplify(num / denom))
+            deg = float(sp.simplify(num / denom))
             if deg.is_integer() and int(deg) >= 0:
                 return [int(deg)]
             return []
@@ -337,15 +338,15 @@ class EulerSolver:
             return []
         disc = math.sqrt(coef1**2 - 4 * coef2 * coef0)
         roots = [
-            sympy.simplify((-coef1 + disc) / (2 * coef2)),
-            sympy.simplify((-coef1 - disc) / (2 * coef2)),
+            sp.simplify((-coef1 + disc) / (2 * coef2)),
+            sp.simplify((-coef1 - disc) / (2 * coef2)),
         ]
 
         return [int(root) for root in roots if float(root).is_integer() and root >= 0]
 
     @staticmethod
     def solve_for_decomposition_with_degree(
-        a: Poly, h_1: Poly, h_2: Poly, d_f: int
+        a: sp.Poly, h_1: sp.Poly, h_2: sp.Poly, d_f: int
     ) -> EulerSolution | None:
         """
         Tries to find a polynomial f of degree d_f solving the equation
@@ -354,36 +355,36 @@ class EulerSolver:
         """
 
         b = -h_1 * h_2
-        h_2_plus = Poly(h_2.subs(x, x + 1), x)
+        h_2_plus = sp.Poly(h_2.subs(x, x + 1), x)
 
         if d_f == 0:
             if a - (h_1 + h_2_plus) == 0:  # The only solution for constant polynomials
                 return EulerSolution(
-                    h_1=Poly(h_1, x), h_2=Poly(h_2, x), a=a, b=b, f=Poly(1, x)
+                    h_1=sp.Poly(h_1, x), h_2=sp.Poly(h_2, x), a=a, b=b, f=sp.Poly(1, x)
                 )
             return None
 
         # Create the polynomial f, and the recursion it needs to solve, namely
         #    f(x)a(x) = f(x-1)h_1(x) + f(x+1)h_2(x+1)
         f, f_ = GenericPolynomial.of_degree(deg=d_f, var_name="f_", s=x, monic=True)
-        f_plus = Poly(f.subs(x, x + 1), x)
-        f_minus = Poly(f.subs(x, x - 1), x)
+        f_plus = sp.Poly(f.subs(x, x + 1), x)
+        f_minus = sp.Poly(f.subs(x, x - 1), x)
 
         p = f * a - f_minus * h_1 - f_plus * h_2_plus
 
-        system = [sympy.simplify(coefficient) for coefficient in p.all_coeffs()]
+        system = [sp.simplify(coefficient) for coefficient in p.all_coeffs()]
         system = [equation for equation in system if equation != 0]
         if len(system) == 0:  # no conditions on f_
             return EulerSolution(
-                h_1=Poly(h_1, x), h_2=Poly(h_2, x), a=a, b=b, f=Poly(f, x)
+                h_1=sp.Poly(h_1, x), h_2=sp.Poly(h_2, x), a=a, b=b, f=sp.Poly(f, x)
             )
 
-        assignment = sympy.solve(p.all_coeffs(), f_)
+        assignment = sp.solve(p.all_coeffs(), f_)
         if len(assignment) == 0:
             return None
 
         # TODO: If there is a solution, does it have to be unique?
         f_solved = f.subs(assignment)
         return EulerSolution(
-            h_1=Poly(h_1, x), h_2=Poly(h_2, x), a=a, b=b, f=Poly(f_solved, x)
+            h_1=sp.Poly(h_1, x), h_2=sp.Poly(h_2, x), a=a, b=b, f=sp.Poly(f_solved, x)
         )

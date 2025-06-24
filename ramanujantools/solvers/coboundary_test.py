@@ -2,13 +2,13 @@ import pytest
 import random
 from sympy.abc import x, y
 
-from ramanujantools.cmf.cmf import CMF
-from ramanujantools.cmf import known_cmfs
-from ramanujantools.cmf.coboundary import CoboundarySolver
-from ramanujantools.matrix import Matrix
+from ramanujantools import Matrix
+from ramanujantools.cmf import CMF
+from ramanujantools.cmf.known_cmfs import e, pi, zeta3
+from ramanujantools.solvers import CoboundarySolver
 
 
-known_cmf_list = [known_cmfs.e(), known_cmfs.pi(), known_cmfs.zeta3()]
+known_cmf_list = [e(), pi(), zeta3()]
 
 
 def verify_solution(mx1: Matrix, mx2: Matrix, solution: Matrix, deg: int):

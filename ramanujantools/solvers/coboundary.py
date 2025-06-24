@@ -2,9 +2,7 @@ import sympy
 from sympy import Poly, Symbol
 from sympy.abc import x
 
-from ramanujantools.generic_polynomial import GenericPolynomial
-from ramanujantools.matrix import Matrix
-from ramanujantools.simplify_object import simplify
+from ramanujantools import Matrix, GenericPolynomial, simplify
 
 
 class CoboundarySolver:
