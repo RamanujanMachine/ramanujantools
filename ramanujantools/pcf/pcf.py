@@ -2,10 +2,8 @@ import mpmath as mp
 import sympy as sp
 from sympy.abc import n
 
-from typing import Collection
-from multimethod import multimethod
-
 from ramanujantools import Matrix, Limit
+from ramanujantools.utils import batched, Batchable
 
 
 def is_deflatable(a_factors, b_factors, factor):
@@ -163,8 +161,8 @@ class PCF:
             if solution[n].is_integer and solution[n] > 0
         ]
 
-    @multimethod
-    def walk(self, iterations: Collection[int], start: int = 0) -> list[Matrix]:
+    @batched("iterations")
+    def walk(self, iterations: Batchable[int], start: int = 0) -> Batchable[Matrix]:
         r"""
         Returns the matrix corresponding to calculating the PCF up to a certain depth, including $a_0$
 
@@ -195,12 +193,8 @@ class PCF:
             walk_results += self.M().walk({n: 1}, iterations, {n: start})
         return walk_results
 
-    @multimethod
-    def walk(self, iterations: int, start: int = 0) -> Matrix:  # noqa: F811
-        return self.walk([iterations], start)[0]
-
-    @multimethod
-    def limit(self, iterations: Collection[int], start: int = 0) -> list[Limit]:
+    @batched("iterations")
+    def limit(self, iterations: Batchable[int], start: int = 0) -> list[Limit]:
         r"""
         Returns the limit corresponding to calculating the PCF up to a certain depth, including $a_0$
 
@@ -218,10 +212,6 @@ class PCF:
             return self.walk(iterations, start)
 
         return Limit.walk_to_limit(iterations, walk_function)
-
-    @multimethod
-    def limit(self, iterations: int, start: int = 0) -> Limit:  # noqa: F811
-        return self.limit([iterations], start)[0]
 
     def delta(self, depth, limit=None):
         r"""

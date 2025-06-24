@@ -2,7 +2,6 @@ from __future__ import annotations
 from functools import lru_cache
 
 import itertools
-from multimethod import multimethod
 
 import sympy as sp
 from sympy.abc import n
@@ -14,6 +13,8 @@ from ramanujantools.flint_core import (
     FlintContext,
     flint_ctx,
 )
+
+from ramanujantools.utils import batched, Batchable
 
 
 class CMF:
@@ -417,13 +418,13 @@ class CMF:
 
         return effective_start + symbol * trajectory
 
-    @multimethod
+    @batched("iterations")
     def walk(  # noqa: F811
         self,
         trajectory: dict,
-        iterations: list[int],
+        iterations: Batchable[int],
         start: dict,
-    ) -> list[Matrix]:
+    ) -> Batchable[Matrix]:
         r"""
         Returns a list of trajectorial walk multiplication matrices in the desired depths.
 
@@ -466,24 +467,15 @@ class CMF:
             {n: 1}, iterations, {n: 0}
         )
 
-    @multimethod
-    def walk(  # noqa: F811
-        self,
-        trajectory: dict,
-        iterations: int,
-        start: dict,
-    ) -> Matrix:
-        return self.walk(trajectory, [iterations], start)[0]
-
-    @multimethod
+    @batched("iterations")
     def limit(
         self,
         trajectory: dict,
-        iterations: list[int],
+        iterations: Batchable[int],
         start: dict,
         initial_values: Matrix | None = None,
         final_projection: Matrix | None = None,
-    ) -> list[Limit]:
+    ) -> Batchable[Limit]:
         r"""
         Returns a list of limits of trajectorial walk multiplication matrices in the desired depths.
 
@@ -507,19 +499,6 @@ class CMF:
         return Limit.walk_to_limit(
             iterations, walk_function, initial_values, final_projection
         )
-
-    @multimethod
-    def limit(  # noqa: F811
-        self,
-        trajectory: dict,
-        iterations: int,
-        start: dict,
-        initial_values: Matrix | None = None,
-        final_projection: Matrix | None = None,
-    ) -> Limit:
-        return self.limit(
-            trajectory, [iterations], start, initial_values, final_projection
-        )[0]
 
     def delta(
         self,
