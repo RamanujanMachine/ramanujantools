@@ -31,7 +31,7 @@ To find if a polynomial continued fraction is in the Euler family, use `ramanuja
 
 > `EulerSolver.solve_for(a,b)`
 
-See the `euler_family_test.py` file for more examples, or go to the [python notebook here](https://colab.research.google.com/drive/10aJ22X9LMhP_NNJCrcpDe0YLxXmTEfz3?usp=sharing).
+See the `euler_pcf_test.py` file for more examples, or go to the [python notebook here](https://colab.research.google.com/drive/10aJ22X9LMhP_NNJCrcpDe0YLxXmTEfz3?usp=sharing).
 
 ## Coboundary Equivalence
 
@@ -52,3 +52,29 @@ $M(x,y), U(x,y)$ form a conservative matrix field.
 
 To see examples how to use this solver, see the `coboundary_test.py` file, and also you can
 check the [python notebook here](https://colab.research.google.com/drive/1SO0KPax6dYo7OD27I5TECCBx5uWIZXDi?usp=sharing)
+
+## FFbar Solver
+
+The FFbar is a CMF construction involving two functions $f(x, y), \bar{f}(x, y)$.
+
+If $f(x, y), \bar{f}(x, y)$ satisfy the following conditions:
+- linear condition: $f(x+1, y-1) - \bar{f}(x, y-1) + \bar{f}(x+1, y) - f(x, y) = 0$
+- quadratic condition: $f\bar{f}(x, y) - f\bar{f}(x, 0) -f\bar{f}(0, y) + f\bar{f}(0, 0) = 0$, where $f\bar{f}(x, y) = f(x, y) \cdot \bar{f}(x, y)$
+
+Then the following matrices form a CMF:
+    $$Mx = \begin{pmatrix} 0, b(x) \cr 1, a(x, y) \end{pmatrix}$$
+    $$My = \begin{pmatrix} \bar{f}(x, y), b(x) \cr 1, f(x, y) \end{pmatrix}$$
+
+Where $a(x, y) = f(x, y) - \bar{f}(x+1, y) = f(x+1, y-1) - \bar{f}(x, y-1)$, and $b(x) = f\bar{f}(x, 0) - f\bar{f}(0, 0) = f\bar{f}(x, y) - f\bar{f}(0, y)$,
+
+The `FFBarSolver` supports two functionalities:
+
+```python
+FFbarSolver.solve_ffbar(f: sp.Expr, fbar: sp.Expr) -> list[FFbar]
+```
+Given two functions with symbolic parameters $f(x, y), \bar{f}(x, y)$, it returns a list of FFbar for all parameterizations that satisfy the conditions above.
+
+```python
+FFbarSolver.from_pcf(pcf: PCF) -> list[FFbar]
+```
+Given a PCF, attempts to find FFbar constructions such that the M(x) matrix of the FFbar is the matrix representation of the PCF.

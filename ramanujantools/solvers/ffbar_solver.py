@@ -59,7 +59,7 @@ class FFbarSolver:
             return FFbarSolver.solve_ffbar(f, fbar)
 
     @staticmethod
-    def solve_ffbar(f, fbar) -> list[FFbar]:
+    def solve_ffbar(f: sp.Expr, fbar: sp.Expr) -> list[FFbar]:
         r"""
         Returns all pairs of subsets of the input $f(x, y), \bar{f}(x, y)$ such that
         each one is a valid solution of the linear condition and the quadratic condition.

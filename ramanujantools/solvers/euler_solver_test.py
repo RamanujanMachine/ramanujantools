@@ -4,7 +4,7 @@ import sympy
 from sympy import Poly
 from sympy.abc import x
 
-from ramanujantools.solvers.euler_pcf import EulerSolver, EulerSolution
+from ramanujantools.solvers import EulerSolver, EulerSolution
 
 """
 Looking for Euler solutions of the form
