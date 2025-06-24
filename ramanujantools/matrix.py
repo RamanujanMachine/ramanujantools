@@ -1,9 +1,7 @@
 from __future__ import annotations
+
+from typing import TYPE_CHECKING
 from functools import lru_cache, cached_property
-
-from multimethod import multimethod
-
-from flint import fmpq, fmpq_mat  # noqa: F401
 
 import numpy as np
 import mpmath as mp
@@ -11,7 +9,11 @@ import sympy as sp
 from sympy.abc import n
 
 from ramanujantools import Position
+from ramanujantools.utils import batched, Batchable
 from ramanujantools.flint_core import flint_ctx, SymbolicMatrix, NumericMatrix
+
+if TYPE_CHECKING:
+    from ramanujantools import Limit
 
 
 class Matrix(sp.Matrix):
@@ -257,13 +259,13 @@ class Matrix(sp.Matrix):
             results = as_flint.walk(trajectory, list(iterations), start)
             return [result.factor() for result in results]
 
-    @multimethod
-    def walk(  # noqa: F811
+    @batched("iterations")
+    def walk(
         self,
         trajectory: dict,
-        iterations: list[int],
+        iterations: Batchable[int],
         start: dict,
-    ) -> list[Matrix]:
+    ) -> Batchable[Matrix]:
         r"""
         Returns the multiplication result of walking in a certain trajectory.
 
@@ -311,15 +313,6 @@ class Matrix(sp.Matrix):
             Position(trajectory), tuple(iterations), Position(start)
         )
 
-    @multimethod
-    def walk(  # noqa: F811
-        self,
-        trajectory: dict,
-        iterations: int,
-        start: dict,
-    ) -> Matrix:
-        return self.walk(trajectory, [iterations], start)[0]
-
     def walk_free_symbols(self, start: dict) -> set[sp.Symbol]:
         """
         Returns the expected free_symbols of the expression `self.walk(trajectory, iterations, start)`
@@ -331,15 +324,15 @@ class Matrix(sp.Matrix):
             free_symbols = free_symbols.union(set(sp.simplify(value).free_symbols))
         return free_symbols
 
-    @multimethod
+    @batched("iterations")
     def limit(
         self,
         trajectory: dict,
-        iterations: list[int],
+        iterations: Batchable[int],
         start: dict,
         initial_values: Matrix | None = None,
         final_projection: Matrix | None = None,
-    ) -> list[Matrix]:  # noqa: F811
+    ) -> Batchable[Limit]:
         from ramanujantools import Limit
 
         def walk_function(iterations):
@@ -348,19 +341,6 @@ class Matrix(sp.Matrix):
         return Limit.walk_to_limit(
             iterations, walk_function, initial_values, final_projection
         )
-
-    @multimethod
-    def limit(  # noqa: F811
-        self,
-        trajectory: dict,
-        iterations: int,
-        start: dict,
-        initial_values: Matrix | None = None,
-        final_projection: Matrix | None = None,
-    ):
-        return self.limit(
-            trajectory, [iterations], start, initial_values, final_projection
-        )[0]
 
     def as_pcf(self, deflate_all=True):
         """

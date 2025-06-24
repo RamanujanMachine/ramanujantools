@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from multimethod import multimethod
-
 import sympy as sp
 
 import ramanujantools as rt
 from ramanujantools import Position
 from ramanujantools.flint_core import FlintRational, FlintContext
+from ramanujantools.utils import batched, Batchable
 
 
 class SymbolicMatrix:
@@ -174,10 +173,10 @@ class SymbolicMatrix:
         values = [value.factor() for value in self.values]
         return rt.Matrix(self.rows(), self.cols(), values)
 
-    @multimethod
+    @batched("iterations")
     def walk(
-        self, trajectory: dict, iterations: list[int], start: dict
-    ) -> SymbolicMatrix:
+        self, trajectory: dict, iterations: Batchable[int], start: dict
+    ) -> Batchable[SymbolicMatrix]:
         r"""
         Returns the multiplication result of walking in a certain trajectory.
 
@@ -210,12 +209,3 @@ class SymbolicMatrix:
             position += trajectory
         results.append(matrix)  # Last matrix, for iterations[-1]
         return results
-
-    @multimethod
-    def walk(  # noqa: F811
-        self,
-        trajectory: dict,
-        iterations: int,
-        start: dict,
-    ) -> rt.Matrix:
-        return self.walk(trajectory, [iterations], start)[0]

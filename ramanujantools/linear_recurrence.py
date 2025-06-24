@@ -1,5 +1,4 @@
 from __future__ import annotations
-from multimethod import multimethod
 
 from functools import cached_property
 import copy
@@ -10,6 +9,7 @@ import sympy as sp
 from sympy.abc import n
 
 from ramanujantools import Matrix, Limit, GenericPolynomial
+from ramanujantools.utils import batched, Batchable
 
 
 def trim_trailing_zeros(sequence: list[int]) -> list[int]:
@@ -165,10 +165,10 @@ class LinearRecurrence:
             {n: 1}, iterations, {n: start}, initial_values
         )
 
-    @multimethod
+    @batched("indices")
     def evaluate_solution(  # noqa: F811
-        self, initial_values: Matrix, indices: list[int], given_index: int = 0
-    ) -> list[sp.Rational]:
+        self, initial_values: Matrix, indices: Batchable[int], given_index: int = 0
+    ) -> Batchable[sp.Rational]:
         """
         Returns an evaluation of a specific solution of the recurrence.
         A specific solution is uniquely defined by initial values.
@@ -196,12 +196,6 @@ class LinearRecurrence:
         for limit in limits:
             retval.append(limit.p())
         return retval
-
-    @multimethod
-    def evaluate_solution(  # noqa: F811
-        self, initial_values: Matrix, indices: int, given_index: int = 0
-    ) -> sp.Rational:
-        return self.evaluate_solution(initial_values, [indices], given_index)[0]
 
     def fold(self, multiplier: sp.Expr) -> LinearRecurrence:
         r"""
