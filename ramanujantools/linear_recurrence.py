@@ -1,4 +1,5 @@
 from __future__ import annotations
+from multimethod import multimethod
 
 from functools import cached_property
 import copy
@@ -110,9 +111,9 @@ class LinearRecurrence:
         column = [c / denominator for c in self.relation[1:]]
         return Matrix.companion_form(list(reversed(column)))
 
-    def depth(self) -> int:
+    def order(self) -> int:
         """
-        Returns the depth of the recurrence
+        Returns the order of the recurrence
         """
         return len(self.relation) - 1
 
@@ -164,9 +165,47 @@ class LinearRecurrence:
             {n: 1}, iterations, {n: start}, initial_values
         )
 
+    @multimethod
+    def evaluate_solution(  # noqa: F811
+        self, initial_values: Matrix, indices: list[int], given_index: int = 0
+    ) -> list[sp.Rational]:
+        """
+        Returns an evaluation of a specific solution of the recurrence.
+        A specific solution is uniquely defined by initial values.
+        Args:
+            initial_values: A row matrix (1xN) of the initial values of the solution.
+            inidices: The solution indices required to evaluate.
+            given_index: The highest index of the inital values.
+        Returns:
+            A list of evaluated points of the specific recurrence
+        """
+        if self.order() != len(initial_values):
+            raise ValueError(
+                "Initial values of a recursion must be of the recurrence's order"
+            )
+        if min(indices) <= given_index:
+            raise ValueError(
+                "Requested to evaluate indices that are less than the given index:"
+                f"Got index {min(indices)} while given index is {given_index}"
+            )
+        retval = []
+        iterations = [index - given_index for index in indices]
+        limits = self.limit(
+            iterations, given_index, Matrix.vstack(initial_values, initial_values)
+        )
+        for limit in limits:
+            retval.append(limit.p())
+        return retval
+
+    @multimethod
+    def evaluate_solution(  # noqa: F811
+        self, initial_values: Matrix, indices: int, given_index: int = 0
+    ) -> sp.Rational:
+        return self.evaluate_solution(initial_values, [indices], given_index)[0]
+
     def fold(self, multiplier: sp.Expr) -> LinearRecurrence:
         r"""
-        Folds the recurrence into a higher depth recurrence.
+        Folds the recurrence into a higher order recurrence.
 
         Given a recurrence
         $a_0(n) p(n + 1) = \sum_{i=1}^{N}a_i(n) p(n + 1 - i)$
@@ -217,7 +256,7 @@ class LinearRecurrence:
     def possible_multipliers(self) -> list[sp.Poly]:
         r"""
         Returns all candidates for a multiplier rational $d(n)$
-        that could have been used to fold a lesser depth recursion into this one.
+        that could have been used to fold a lesser order recursion into this one.
         """
         return LinearRecurrence.all_divisors(self.relation[-1])
 
@@ -296,9 +335,9 @@ class LinearRecurrence:
         return recurrence
 
     def apteshuffle(self) -> LinearRecurrence:
-        if self.depth() != 3:
+        if self.order() != 3:
             raise ValueError(
-                "apteshuffle is only supported for depth 3 recursions for now"
+                "apteshuffle is only supported for order 3 recursions for now"
             )
         c, b, a = self.recurrence_matrix.col(-1)
         return (

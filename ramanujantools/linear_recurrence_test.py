@@ -34,6 +34,54 @@ def test_limit():
     )
 
 
+def test_evaluate_solution_fibonacci():
+    r = LinearRecurrence([1, 1, 1])
+    given_index = 0  # i.e, the initial values are at indices -1 and 0.
+    indices = list(range(given_index + 1, given_index + 6))
+    initial_values = Matrix([[1, 1]])
+    assert r.evaluate_solution(initial_values, indices, given_index) == [2, 3, 5, 8, 13]
+
+
+def test_evaluate_solution_basis_single():
+    r = LinearRecurrence([1, n, n**2, 3])
+    indices = 100
+    initial_values = Matrix([[0, 1, 0]])
+    matrix = r.recurrence_matrix.walk({n: 1}, indices, {n: 0})
+    evaluation = r.evaluate_solution(initial_values, indices)
+    assert initial_values.dot(matrix.col(-1)) == evaluation
+
+
+def test_evaluate_solution_basis_list_with_given_index():
+    r = LinearRecurrence([n, -n, 5, n**2 + n + 1])
+    given_index = 3
+    max_index = 100
+    initial_values = Matrix([[0, 0, 1]])
+    indices = list(range(given_index + 1, 100))
+    matrices = r.recurrence_matrix.walk(
+        {n: 1}, list(range(1, max_index - given_index)), {n: given_index}
+    )
+    evaluations = r.evaluate_solution(initial_values, indices, given_index)
+    assert len(matrices) == len(evaluations)
+    for i in range(len(evaluations)):
+        print(i)
+        assert initial_values.dot(matrices[i].col(-1)) == evaluations[i]
+
+
+def test_evaluate_solution_generic():
+    r = LinearRecurrence([2, -n + 1, n**3 + n, 14])
+    given_index = 17
+    max_index = 123
+    initial_values = Matrix([[5, -4, 2]])
+    indices = list(range(given_index + 1, max_index))
+    matrices = r.recurrence_matrix.walk(
+        {n: 1}, list(range(1, max_index - given_index)), {n: given_index}
+    )
+    evaluations = r.evaluate_solution(initial_values, indices, given_index)
+    assert len(matrices) == len(evaluations)
+    for i in range(len(evaluations)):
+        assert initial_values.dot(matrices[i].col(-1)) == evaluations[i]
+
+
 def test_inflate():
     r = LinearRecurrence([f("a"), f("b"), f("c"), f("d")])
     assert LinearRecurrence(
