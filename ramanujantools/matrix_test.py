@@ -5,7 +5,7 @@ from sympy.abc import x, y, n
 
 from ramanujantools import Matrix, Limit, simplify
 from ramanujantools.pcf import PCF
-from ramanujantools.cmf.known_cmfs import pFq
+from ramanujantools.cmf import pFq
 
 
 def test_is_square():

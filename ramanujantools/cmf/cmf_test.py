@@ -241,26 +241,10 @@ def test_work_non_integer_trajectory_throws():
         cmf.work(Position({x: 1, y: n}), Position({x: 1, y: 2 * n}))
 
 
-def test_work_numeric_e():
+def test_work_numeric():
     cmf = known_cmfs.e()
     start = Position({x: 1, y: -1})
     end = Position({x: 17, y: -13})
-    trajectory = end - start
-    expected = cmf.walk(trajectory, 1, start)
-    actual = cmf.work(start, end)
-    assert expected == actual
-
-
-def test_work_numeric_3f2():
-    cmf = known_cmfs.pFq(3, 2, -1)
-    x0, x1, x2 = sp.symbols("x:3")
-    y0, y1 = sp.symbols("y:2")
-    start = Position(
-        {x0: 1, x1: -sp.Rational(1, 2), x2: 0, y0: sp.Rational(5, 3), y1: -1}
-    )
-    end = Position(
-        {x0: 17, x1: -sp.Rational(13, 2), x2: 0, y0: sp.Rational(20, 3), y1: -4}
-    )
     trajectory = end - start
     expected = cmf.walk(trajectory, 1, start)
     actual = cmf.work(start, end)

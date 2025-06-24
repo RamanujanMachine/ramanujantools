@@ -2,8 +2,7 @@ import sympy as sp
 from sympy.abc import x, y
 
 from ramanujantools import Matrix, Position
-from ramanujantools.cmf import CMF, known_cmfs
-from ramanujantools.cmf.ffbar import FFbar
+from ramanujantools.cmf import CMF, FFbar, known_cmfs
 
 c0, c1, c2, c3 = sp.symbols("c:4")
 
