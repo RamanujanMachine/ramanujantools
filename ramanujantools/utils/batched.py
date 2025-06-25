@@ -75,15 +75,15 @@ def batched(
             if isinstance(val, list):
                 if not all(isinstance(el, scalar_type) for el in val):
                     raise TypeError(
-                        f"All elements of argument '{arg_name}' must be instances of {scalar_type.__name__} "
-                        f"to conform to Batchable[{scalar_type.__name__}]"
+                        f"All elements of argument '{arg_name}' must be of type Batchable[{scalar_type.__name__}] "
+                        f"(i.e., {scalar_type.__name__} or list[{scalar_type.__name__}]), not {type(val).__name__}"
                     )
                 return func(*args, **kwargs)
             else:
                 if not isinstance(val, scalar_type):
                     raise TypeError(
                         f"Argument '{arg_name}' must be of type Batchable[{scalar_type.__name__}] "
-                        f"(i.e., {scalar_type.__name__} or list[{scalar_type.__name__}])"
+                        f"(i.e., {scalar_type.__name__} or list[{scalar_type.__name__}]), not {type(val).__name__}"
                     )
 
                 new_args = list(bound_args.args)

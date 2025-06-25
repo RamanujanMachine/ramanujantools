@@ -248,15 +248,16 @@ class Matrix(sp.Matrix):
         """
         Internal walk function, used for type conversions and for caching. Do not use directly.
         """
+        iterations = list(iterations)
         if self._is_numeric_walk(trajectory, start):
-            results = NumericMatrix.walk_list(self, trajectory, iterations, start)
+            results = NumericMatrix.walk(self, trajectory, iterations, start)
             return [result.to_rt() for result in results]
         else:
             symbols = self.walk_free_symbols(start)
             as_flint = SymbolicMatrix.from_sympy(
                 self, flint_ctx(symbols, fmpz=start.is_polynomial())
             )
-            results = as_flint.walk(trajectory, list(iterations), start)
+            results = as_flint.walk(trajectory, iterations, start)
             return [result.factor() for result in results]
 
     @batched("iterations")
