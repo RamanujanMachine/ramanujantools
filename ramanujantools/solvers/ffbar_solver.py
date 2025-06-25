@@ -35,7 +35,7 @@ class FFbarSolver:
         such that Mx is the matrix representation of `pcf`,
         and My is as generic as possible.
         """
-        a_deg, b_deg = pcf.degree()
+        a_deg, b_deg = pcf.degrees()
         deg = max(a_deg, (b_deg + 1) // 2)
         f, _ = GenericPolynomial.of_combined_degree(
             deg=deg, var_name="c", variables=[x, y]

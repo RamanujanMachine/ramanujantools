@@ -26,7 +26,7 @@ def test_from_ffbar_gauss():
 
 def test_ffbar_from_cmf1():
     cmf = cmf1()
-    pcf = cmf.trajectory_matrix({x: 1, y: 0}, {x: 1, y: 1}).as_pcf().pcf
+    pcf = PCF(cmf.trajectory_matrix({x: 1, y: 0}, {x: 1, y: 1}))
     solutions = FFbarSolver.from_pcf(pcf)
     for ffbar in solutions:
         assert (

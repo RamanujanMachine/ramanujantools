@@ -178,7 +178,7 @@ def test_as_companion_smaller_recursion():
     assert companion.is_companion()
     assert 2 == companion.rows
     # This is Apery's PCF
-    assert companion.as_pcf().pcf == PCF(34 * n**3 + 51 * n**2 + 27 * n + 5, -(n**6))
+    assert PCF(34 * n**3 + 51 * n**2 + 27 * n + 5, -(n**6)) == PCF(companion)
 
 
 def test_companion_coboundary_two_variables():

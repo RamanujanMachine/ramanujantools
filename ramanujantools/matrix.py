@@ -343,20 +343,6 @@ class Matrix(sp.Matrix):
             iterations, walk_function, initial_values, final_projection
         )
 
-    def as_pcf(self, deflate_all=True):
-        """
-        Converts a `Matrix` to an equivalent `PCF`
-
-        Args:
-            deflate_all: if `True`, the function will also deflate the returned PCF to the fullest.
-        Returns:
-            a `PCFFRomMatrix` object, containing a `PCF` whose limit is equal to
-            a mobius transform of the original `Matrix`.
-        """
-        from ramanujantools.pcf import PCFFromMatrix
-
-        return PCFFromMatrix(self.as_polynomial(), deflate_all)
-
     @staticmethod
     def poincare_poly(poly: sp.PurePoly) -> sp.PurePoly:
         """

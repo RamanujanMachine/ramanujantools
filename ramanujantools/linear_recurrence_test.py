@@ -154,7 +154,7 @@ def test_gamma():
     )
 
     unfolded = inflated.unfold_poly(n)
-    pcf = unfolded.recurrence_matrix.as_pcf().pcf
+    pcf = PCF(unfolded.recurrence_matrix).deflate_all()
     assert PCF(-2 * (n + 2), -((n + 1) ** 2)) == pcf
 
 
