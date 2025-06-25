@@ -137,7 +137,7 @@ class PCF:
         """
         return self.recurrence.recurrence_matrix
 
-    def initial_values(self) -> Matrix:
+    def A(self) -> Matrix:
         r"""
         Returns the matrix that represents the $a_0$ part:
 
@@ -185,7 +185,7 @@ class PCF:
         r"""
         Returns the limit corresponding to calculating the PCF up to a certain depth, including $a_0$
 
-        This is essentially $\text{IV} \cdot \prod_{i=0}^{n-1}M(s + i)$ where `n=iterations`, `s=start` and `IV=self.initial_values()`
+        This is essentially $\A \cdot \prod_{i=0}^{n-1}M(s + i)$ where `n=iterations` and `s=start`.
 
         Args:
             iterations: The amount of multiplications to perform. Can be an integer value or a list of values.
@@ -194,9 +194,7 @@ class PCF:
             The pcf convergence limit as defined above.
             If iterations is a list, returns a list of limits.
         """
-        return self.recurrence.limit(
-            iterations, start=start, initial_values=self.initial_values()
-        )
+        return self.recurrence.limit(iterations, start=start, initial_values=self.A())
 
     def delta(self, depth: int, L=None) -> mp.mpf:
         r"""
