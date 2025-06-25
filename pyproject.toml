@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "ramanujantools"
-version = "0.0.1"
+version = "0.0.2"
 description = "Official symbolic and numeric research tools developed by the Ramanujan Machine team"
 readme = "README.md"
 requires-python = ">=3.11"
