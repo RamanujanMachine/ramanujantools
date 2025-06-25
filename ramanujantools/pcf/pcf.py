@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import mpmath as mp
 import sympy as sp
 from sympy.abc import n
 
-from ramanujantools import Matrix, Limit
+from ramanujantools import Matrix, Limit, LinearRecurrence
 from ramanujantools.utils import batched, Batchable
 
 
@@ -59,30 +61,52 @@ class PCF:
     Represents a Polynomial Continued Fraction (PCF).
     """
 
-    def __init__(self, a_n, b_n):
+    def __init__(self, *args, **kwargs):
         """
-        Initializes a PCF with `a_n` and `b_n` polynomials, for example:
-        `pcf = PCF(5 + 10 * n, 1 - 9 * n**2)`
+        Initializes a PCF. Accepts one of:
+        - a_n: sp.Expr, b_n: sp.Expr
+        - recurrence: LinearRecurrence
+        - matrix: Matrix.
         """
-        self.a_n = sp.simplify(a_n)
-        """The a_n polynomial"""
+        if len(args) == 2 and all(isinstance(arg, (int, sp.Expr)) for arg in args):
+            a_n, b_n = args
+            if b_n == 0:
+                raise ValueError("b_n cannot be zero in a PCF!")
+            self.recurrence = LinearRecurrence([1, a_n, b_n])
+        elif len(args) == 1 and isinstance(recurrence := args[0], LinearRecurrence):
+            self.recurrence = recurrence.normalize()
+        elif len(args) == 1 and isinstance(matrix := args[0], Matrix):
+            if not matrix.is_square() or matrix.rows != 2:
+                raise ValueError(
+                    "Only a 2x2 matrix can be converted to a PCF, got {obj.rows}x{obj.cols}"
+                )
+            self.recurrence = LinearRecurrence(matrix).normalize()
+        else:
+            raise ValueError(
+                f"Invalid PCF arguments: got {', '.join(type(arg).__name__ for arg in args)}"
+            )
 
-        self.b_n = sp.simplify(b_n)
-        """The b_n polynomial"""
+    def __str__(self) -> str:
+        return repr(self)
 
-    def __eq__(self, other):
-        return (
-            sp.simplify(self.a_n - other.a_n) == 0
-            and sp.simplify(self.b_n - other.b_n) == 0
-        )
-
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"PCF({self.a_n}, {self.b_n})"
+
+    def __eq__(self, other: PCF) -> bool:
+        return self.recurrence == other.recurrence
+
+    @property
+    def a_n(self) -> sp.Expr:
+        return self.recurrence.relation[1]
+
+    @property
+    def b_n(self) -> sp.Expr:
+        return self.recurrence.relation[2]
 
     def _latex(self, printer) -> str:
         DEPTH = 3
 
-        def recurse(i: int, depth: int):
+        def recurse(i: int, depth: int) -> str:
             if i == depth:
                 b_n_latex = printer.doprint(self.b_n)
                 a_n_latex = printer.doprint(self.a_n)
@@ -99,21 +123,21 @@ class PCF:
     def _repr_latex_(self) -> str:
         return rf"$${sp.latex(self)}$$"
 
-    def degree(self):
+    def degrees(self) -> tuple[int, int]:
         """
         Returns the degrees of a_n and b_n as a tuple: $(deg(a_n), deg(b_n))$
         """
         return tuple(map(lambda p: sp.Poly(p, n).degree(), [self.a_n, self.b_n]))
 
-    def M(self):
+    def M(self) -> Matrix:
         r"""
         Returns the matrix that represents the PCF recurrence:
 
         $M = \begin{pmatrix} 0, b_n \cr 1, a_n \end{pmatrix}$
         """
-        return Matrix([[0, self.b_n], [1, self.a_n]])
+        return self.recurrence.recurrence_matrix
 
-    def A(self):
+    def A(self) -> Matrix:
         r"""
         Returns the matrix that represents the $a_0$ part:
 
@@ -121,36 +145,31 @@ class PCF:
         """
         return Matrix([[1, self.a_n.subs({n: 0})], [0, 1]])
 
-    def inflate(self, c_n):
+    def inflate(self, c_n: sp.Expr) -> PCF:
+        r"""
+        Inflates the PCF by a polynomial c.
+        See LinearRecurrence.inflate for more details.
         """
-        Inflates the PCF by $c_n$.
+        return PCF(self.recurrence.inflate(c_n))
 
-        Inflation is the process of creating an almost equivalent PCF,
-        such that $a_n' = a_n * c_n, b_n' = b_n * c_n * c_{n-1}$
+    def deflate(self, c_n: sp.Expr) -> PCF:
+        r"""
+        Deflates the PCF by a polynomial c.
+        See LinearRecurrence.deflate for more details.
         """
-        c_n = sp.simplify(c_n)
-        return PCF(self.a_n * c_n, self.b_n * c_n.subs({n: n - 1}) * c_n).simplify()
+        return PCF(self.recurrence.deflate(c_n))
 
-    def deflate(self, c_n):
-        """
-        Deflates the PCF by $c_n$
-
-        Deflation is the opposite process of inflation - or inflating by $c_n^{-1}$
-        """
-        c_n = sp.simplify(c_n)
-        return self.inflate(1 / c_n)
-
-    def deflate_all(self):
+    def deflate_all(self) -> PCF:
         """
         Deflates the PCF to the fullest extent, by calculating the biggest $c_n$ possibly deflated
         """
         return self.deflate(content(self.a_n, self.b_n, [n]))
 
-    def simplify(self):
+    def simplify(self) -> PCF:
         """Simplifies the PCF (i.e, simplifies (a, b))"""
-        return PCF(self.a_n.cancel().simplify(), self.b_n.cancel().simplify())
+        return PCF(self.a_n.factor().simplify(), self.b_n.factor().simplify())
 
-    def subs(self, *args, **kwargs):
+    def subs(self, *args, **kwargs) -> PCF:
         """Substitutes parameters in the PCF"""
         return PCF(self.a_n.subs(*args, **kwargs), self.b_n.subs(*args, **kwargs))
 
@@ -162,43 +181,11 @@ class PCF:
         ]
 
     @batched("iterations")
-    def walk(self, iterations: Batchable[int], start: int = 0) -> Batchable[Matrix]:
-        r"""
-        Returns the matrix corresponding to calculating the PCF up to a certain depth, including $a_0$
-
-        This is essentially $A \cdot \prod_{i=1}^{n-1}M(i)$ where `n=iterations` if `start==0`,
-        $\prod_{i=s}^{s+n-1}M(i)$ where `n=iterations` and `s = start` otherwise.
-
-        Args:
-            iterations: The amount of multiplications to perform. Can be an integer value or a list of values.
-            start: The n value of the first matrix to be multiplied (1 by default)
-        Returns:
-            The pcf convergence limit as defined above.
-            If iterations is a list, returns a list of limits.
-        """
-        if not all(depth >= 0 for depth in iterations):
-            raise ValueError(
-                f"iterations must contain only non-negative values, got {iterations}"
-            )
-        iterations = sorted(list(set(iterations)))
-        walk_results = []
-        if start == 0:
-            if iterations[0] == 0:
-                iterations = iterations[1:]
-                walk_results.append(Matrix.eye(2))
-            actual_iterations = sorted([depth - 1 for depth in iterations])
-            current_results = self.M().walk({n: 1}, actual_iterations, {n: 1})
-            walk_results += [self.A() * result for result in current_results]
-        else:
-            walk_results += self.M().walk({n: 1}, iterations, {n: start})
-        return walk_results
-
-    @batched("iterations")
-    def limit(self, iterations: Batchable[int], start: int = 0) -> list[Limit]:
+    def limit(self, iterations: Batchable[int], start: int = 1) -> list[Limit]:
         r"""
         Returns the limit corresponding to calculating the PCF up to a certain depth, including $a_0$
 
-        This is essentially $A \cdot \prod_{i=0}^{n-1}M(s + i)$ where `n=iterations` and `s=start`
+        This is essentially $\A \cdot \prod_{i=0}^{n-1}M(s + i)$ where `n=iterations` and `s=start`.
 
         Args:
             iterations: The amount of multiplications to perform. Can be an integer value or a list of values.
@@ -207,19 +194,15 @@ class PCF:
             The pcf convergence limit as defined above.
             If iterations is a list, returns a list of limits.
         """
+        return self.recurrence.limit(iterations, start=start, initial_values=self.A())
 
-        def walk_function(iterations):
-            return self.walk(iterations, start)
-
-        return Limit.walk_to_limit(iterations, walk_function)
-
-    def delta(self, depth, limit=None):
+    def delta(self, depth: int, L=None) -> mp.mpf:
         r"""
         Calculates the irrationality measure $\delta$ defined, as:
         $|\frac{p_n}{q_n} - L| = \frac{1}{q_n}^{1+\delta}$
 
-        If limit is not specified (i.e, limit is None),
-        then limit is approximated as limit = self.limit(2 * depth)
+        If the limit is not specified (`L` is None),
+        then `L` is approximated as `self.limit(2 * depth).as_float()`.
 
         Args:
             depth: $n$
@@ -233,20 +216,20 @@ class PCF:
         if depth <= 0:
             raise ValueError("Cannot calculate delta up to a non-positive depth")
 
-        if limit is None:
-            m, mlim = self.limit([depth, 2 * depth])
-            limit = mlim.as_float()
+        if L is None:
+            limit_and_L = self.limit([depth, 2 * depth])
+            limit, L = limit_and_L[0], limit_and_L[1].as_float()
         else:
-            m = self.limit(depth)
-        return m.delta(limit)
+            limit = self.limit(depth)
+        return limit.delta(L)
 
-    def delta_sequence(self, depth: int, limit: float = None):
+    def delta_sequence(self, depth: int, L: float = None) -> list[mp.mpf]:
         r"""
         Calculates the irrationality measure $\delta$ defined, as:
         $|\frac{p_n}{q_n} - L| = \frac{1}{q_n}^{1+\delta}$
 
-        If limit is not specified (i.e, limit is None),
-        then limit is approximated as the limit at 2*depth.
+        If the limit is not specified (`L` is None),
+        then `L` is approximated as `self.limit(2 * depth).as_float()`.
 
         Args:
             depth: $n$
@@ -259,20 +242,13 @@ class PCF:
 
         if depth <= 0:
             raise ValueError("Cannot calculate delta up to a non-positive depth")
-
-        if limit is None:
-            limit = self.limit(2 * depth).as_float()
-
-        deltas = []
-        prev = Matrix.eye(2)
-        m = self.A()
-        deltas.append(Limit(m, prev).delta(limit))
-
-        for i in range(1, depth):
-            prev = m
-            m *= self.M()({n: i})
-            deltas.append(Limit(m, prev).delta(limit))
-
+        iterations = list(range(1, depth))
+        if L is None:
+            limits_and_L = self.limit(iterations + [depth * 2])
+            limits, L = limits_and_L[:-1], limits_and_L[-1].as_float()
+        else:
+            limits = self.limit(iterations)
+        deltas = [limit.delta(L) for limit in limits]
         return deltas
 
     def kamidelta(self, depth: int = 20) -> mp.mpf:

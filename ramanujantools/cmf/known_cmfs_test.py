@@ -29,7 +29,7 @@ def test_cmf_zeta3():
 
 def test_apery():
     cmf = known_cmfs.zeta3()
-    pcf = cmf.trajectory_matrix({x: 1, y: 1}, {x: 0, y: 0}).as_pcf().pcf
+    pcf = PCF(cmf.trajectory_matrix({x: 1, y: 1}, {x: 0, y: 0})).deflate_all()
     # This is Apery's PCF
     assert pcf == PCF(34 * n**3 + 51 * n**2 + 27 * n + 5, -(n**6))
 

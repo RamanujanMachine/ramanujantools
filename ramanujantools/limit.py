@@ -148,7 +148,7 @@ class Limit:
             initial_values: The initial values matrix, defaults to $e_1$ and $e_2$.
             final_projection: The final projection matrix, defaults to $e_{-1}$ and $e_{-1}$.
         """
-        previous_values = [depth - 1 for depth in iterations]
+        previous_values = [max(depth - 1, 0) for depth in iterations]
         walk_iterations = sorted(list(set(iterations + previous_values)))
         walk_matrices = walk_function(walk_iterations)
 

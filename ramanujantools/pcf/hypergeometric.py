@@ -15,14 +15,14 @@ def HypergeometricLimit(pcf: PCF):
         (1, 1): Hypergeometric1F1Limit,
         (1, 2): Hypergeometric2F1Limit,
     }
-    if pcf.degree() not in supported_degrees:
+    if pcf.degrees() not in supported_degrees:
         raise ValueError(
             (
-                "Attempted to evaluate hypergeometric limit of {} of degree {}. "
+                "Attempted to evaluate hypergeometric limit of {} of degrees {}. "
                 "Supported degrees are {}"
-            ).format(pcf, pcf.degree(), supported_degrees.keys())
+            ).format(pcf, pcf.degrees(), supported_degrees.keys())
         )
-    return supported_degrees[pcf.degree()](pcf)
+    return supported_degrees[pcf.degrees()](pcf)
 
 
 class HypLimitInterface:

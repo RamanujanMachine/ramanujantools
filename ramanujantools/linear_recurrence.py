@@ -143,10 +143,9 @@ class LinearRecurrence:
 
     def normalize(self) -> LinearRecurrence:
         """
-        Normalizes the recurrence
+        Normalizes the recurrence, setting the leading coefficient to 1 by inflating it.
         """
-        relation = [p * self.denominator_lcm / self.gcd for p in self.relation]
-        return LinearRecurrence(relation).simplify()
+        return self.inflate(self.relation[0]).simplify()
 
     def simplify(self) -> LinearRecurrence:
         """
@@ -155,9 +154,10 @@ class LinearRecurrence:
         relation = [p * self.denominator_lcm / self.gcd for p in self.relation]
         return LinearRecurrence([sp.factor(p.simplify()) for p in relation])
 
+    @batched("iterations")
     def limit(
-        self, iterations: int | list[int], start=0, initial_values: Matrix = None
-    ) -> Limit:
+        self, iterations: Batchable[int], start=0, initial_values: Matrix = None
+    ) -> Batchable[Limit]:
         r"""
         Returns the Limit matrix of the recursion up to a certain depth
         """

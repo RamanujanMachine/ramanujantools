@@ -428,8 +428,8 @@ class CMF:
         r"""
         Returns a list of trajectorial walk multiplication matrices in the desired depths.
 
-        The walk operation is defined as $\prod_{i=0}^{n-1}M(s_0 + i \cdot t_0, ..., s_k + i \cdot t_k)$,
-        where `M=trajectory_matrix(trajectory, start)`, and `n / size(trajectory)` (L1 size - total amount of steps)
+        The walk operation is defined as $\prod_{i=0}^{n-1}M_{s, t}(n)$,
+        where M is `trajectory_matrix(trajectory, start)`, s is `start` and t is `trajectory`.
 
         Args:
             trajectory: A dict containing the amount of steps in each direction.
