@@ -7,6 +7,7 @@ from flint import fmpq_mat, fmpq  # noqa: F401
 
 import ramanujantools as rt
 from ramanujantools import Position
+from ramanujantools.utils import batched, Batchable
 
 
 class NumericMatrix(fmpq_mat):
@@ -90,15 +91,13 @@ class NumericMatrix(fmpq_mat):
         return flint_lambdify(matrix)
 
     @staticmethod
+    @batched("iterations")
     def walk(
-        matrix: rt.Matrix, trajectory: Position, iterations: int, start: Position
-    ) -> NumericMatrix:
-        return NumericMatrix.walk_list(matrix, trajectory, [iterations], start)[0]
-
-    @staticmethod
-    def walk_list(
-        matrix: rt.Matrix, trajectory: Position, iterations: list[int], start: Position
-    ) -> list[NumericMatrix]:
+        matrix: rt.Matrix,
+        trajectory: Position,
+        iterations: Batchable[int],
+        start: Position,
+    ) -> Batchable[NumericMatrix]:
         results = []
         position = start.copy()
         fast_subs = NumericMatrix.lambda_from_rt(matrix)
