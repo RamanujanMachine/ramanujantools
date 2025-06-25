@@ -85,6 +85,6 @@ def test_scalar_wrong_type_raises():
 def test_list_element_wrong_type_raises():
     d = Dummy()
     with pytest.raises(
-        TypeError, match="All elements of argument 'x' must be instances"
+        TypeError, match="All elements of argument 'x' must be of type Batchable"
     ):
         d.process([1, "bad", 3])
