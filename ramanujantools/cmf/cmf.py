@@ -64,10 +64,10 @@ class CMF:
             lines.append(
                 f"{printer.doprint(axis)} \\mapsto {printer.doprint(self.M(axis))}"
             )
-        return r"$$\begin{array}{l}" + r"\\ ".join(lines) + r"\end{array}$$"
+        return r"\begin{array}{l}" + r"\\ ".join(lines) + r"\end{array}"
 
     def _repr_latex_(self) -> str:
-        return rf"$${sp.latex(self)}$$"
+        return rf"{sp.latex(self)}"
 
     def __getstate__(self):
         return self.matrices
