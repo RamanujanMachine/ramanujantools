@@ -121,7 +121,7 @@ class PCF:
         return rf"{a_0} + \cfrac{{{b_1}}}{{{recurse(1, DEPTH)}}}"
 
     def _repr_latex_(self) -> str:
-        return rf"$${sp.latex(self)}$$"
+        return rf"{sp.latex(self)}"
 
     def degrees(self) -> tuple[int, int]:
         """
