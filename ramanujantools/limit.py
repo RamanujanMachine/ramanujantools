@@ -204,7 +204,7 @@ class Limit:
         """
         return most_round_in_range(self.as_float(), 10 ** -self.precision())
 
-    def delta(self, L: mp.mpf) -> mp.mpf:
+    def delta(self, L: mp.mpf) -> float:
         r"""
         Calculates the irrationality measure $\delta$ defined, as:
         $|\frac{p}{q} - L| = \frac{1}{{q}^{1+\delta}}$
@@ -218,7 +218,7 @@ class Limit:
             return self.mp.mpf("-inf")
         if q == 1:
             return self.mp.mpf("inf")
-        return -(1 + self.mp.log(self.mp.fabs(L - (p / q)), q))
+        return float(-(1 + self.mp.log(self.mp.fabs(L - (p / q)), q)))
 
     def identify_rational(self, column_index=-1, maxcoeff=1000) -> Matrix | None:
         r"""
