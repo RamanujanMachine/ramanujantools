@@ -158,6 +158,27 @@ def test_gamma():
     assert PCF(-2 * (n + 2), -((n + 1) ** 2)) == pcf
 
 
+def test_euler_gompertz_independent():
+    # from https://arxiv.org/abs/0902.1768
+    r = LinearRecurrence(
+        [
+            (16 * n + 1) * (16 * n - 15),
+            (16 * n - 15) * (256 * n**3 + 528 * n**2 + 352 * n + 73),
+            -(16 * n + 17) * (128 * n**3 + 40 * n**2 - 82 * n - 45),
+            n**2 * (16 * n + 17) * (16 * n + 1),
+        ]
+    )
+
+    def gompertz(mp):
+        return -mp.e * mp.ei(-1)
+
+    def constant(mp):
+        return mp.e * mp.euler + gompertz(mp)
+
+    limit = r.limit(200, 1)
+    assert Matrix([[0, 0, 17], [-3, -2, 7]]) == limit.identify(constant(limit.mp))
+
+
 def test_apteshuffle():
     expected = LinearRecurrence(  # from the paper
         [
