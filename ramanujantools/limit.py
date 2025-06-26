@@ -30,7 +30,9 @@ def most_round_in_range(num: mp.mpf, err: mp.mpf) -> str:
     return min(round_attempt(num, num + err), round_attempt(num - err, num), key=len)
 
 
-def coefficients_from_pslq(pslq_results: list[int], active_indices: list[int], N: int):
+def coefficients_from_pslq(
+    pslq_results: list[int], active_indices: list[int], N: int
+) -> list[int]:
     coefficients = [0] * N
     for i in active_indices:
         coefficients[i] = pslq_results.pop(0)
@@ -278,16 +280,16 @@ class Limit:
             return None
         # We normalize the sign so that the first coefficient is positive,
         # to avoid ambiguity as results are equivalent up to the sign.
-        numerator = Matrix(
-            coefficients_from_pslq(pslq_result[:total_indices], used_indices, self.N())
+        numerator_coeffs = coefficients_from_pslq(
+            pslq_result[:total_indices], used_indices, self.N()
         )
-        denominator = Matrix(
-            coefficients_from_pslq(pslq_result[total_indices:], used_indices, self.N())
+        numerator = Matrix([numerator_coeffs])
+        denominator_coeffs = coefficients_from_pslq(
+            pslq_result[total_indices:], used_indices, self.N()
         )
-        sign = sp.sign(numerator[0])
-        initial_values = Matrix.hstack(
-            sign * numerator, -sign * denominator
-        ).transpose()
+        denominator = Matrix([denominator_coeffs])
+        sign = sp.sign(numerator[0]) or 1
+        initial_values = Matrix.vstack(sign * numerator, -sign * denominator)
         self.initial_values = initial_values
         self.final_projection = Matrix.hstack(
             Matrix.e(self.N(), column_index),
