@@ -128,19 +128,19 @@ class Matrix(sp.Matrix):
         return self.as_polynomial().reduce() == other.as_polynomial().reduce()
 
     @cached_property
-    def inverse(self) -> Matrix:
+    def _inverse(self) -> Matrix:
         """
         Inverts the matrix.
         """
         inv = super().inv()
-        object.__setattr__(inv, "inverse", self)
+        object.__setattr__(inv, "_inverse", self)
         return inv
 
     def inv(self) -> Matrix:
         """
         Override sympy's inv to use the cached inverse property.
         """
-        return self.inverse
+        return self._inverse
 
     @lru_cache
     def simplify(self) -> Matrix:
