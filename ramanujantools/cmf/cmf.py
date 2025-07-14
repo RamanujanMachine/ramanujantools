@@ -134,14 +134,14 @@ class CMF:
         if sign:
             return self.matrices[axis]
         else:
-            return self.matrices[axis].inverse()({axis: axis - 1})
+            return self.matrices[axis].inv()({axis: axis - 1})
 
     def dual(self) -> CMF:
         """
         Returns the dual CMF which is defined with inverse-transpose matrices.
         """
         return CMF(
-            {axis: self.M(axis).inverse().transpose() for axis in self.axes()},
+            {axis: self.M(axis).inv().transpose() for axis in self.axes()},
             validate=False,
         )
 

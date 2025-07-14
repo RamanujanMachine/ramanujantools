@@ -127,12 +127,20 @@ class Matrix(sp.Matrix):
         """
         return self.as_polynomial().reduce() == other.as_polynomial().reduce()
 
-    @lru_cache
+    @cached_property
     def inverse(self) -> Matrix:
         """
         Inverts the matrix.
         """
-        return self.inv()
+        inv = super().inv()
+        object.__setattr__(inv, "inverse", self)
+        return inv
+
+    def inv(self) -> Matrix:
+        """
+        Override sympy's inv to use the cached inverse property.
+        """
+        return self.inverse
 
     @lru_cache
     def simplify(self) -> Matrix:
@@ -173,7 +181,7 @@ class Matrix(sp.Matrix):
         free_symbols = self.free_symbols.union({symbol})
         ctx = flint_ctx(free_symbols, fmpz=True)
         return (
-            SymbolicMatrix.from_sympy(U.inverse(), ctx)
+            SymbolicMatrix.from_sympy(U.inv(), ctx)
             * SymbolicMatrix.from_sympy(self, ctx)
             * SymbolicMatrix.from_sympy(U.subs({symbol: symbol + 1}), ctx)
         ).factor()

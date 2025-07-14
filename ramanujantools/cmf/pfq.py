@@ -95,16 +95,14 @@ class pFq(CMF):
                 lambda i, j: sp.functions.combinatorial.numbers.stirling(j, i)
                 * (z_eval**i),
             )
-            M = (
-                basis_transition_matrix * M * (basis_transition_matrix.inverse())
-            ).factor()
+            M = (basis_transition_matrix * M * (basis_transition_matrix.inv())).factor()
 
         if negate_denominator_params:
             y_matrices = {
                 y[i]: Matrix(
                     M.subs({y[i]: y[i] + 1}) / y[i] + Matrix.eye(equation_size)
                 )
-                .inverse()
+                .inv()
                 .factor()
                 for i in range(q)
             }

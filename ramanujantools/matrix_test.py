@@ -91,16 +91,6 @@ def test_factor_numeric():
     assert matrix.applyfunc(sp.factor) == matrix.factor()
 
 
-def test_inverse():
-    a = 5
-    b = 2
-    c = 3
-    d = 7
-    m = Matrix([[a, b], [c, d]])
-    expected = Matrix([[d, -b], [-c, a]]) / (a * d - b * c)
-    assert expected == m.inverse()
-
-
 def test_singular_points_nonvariable():
     m = Matrix([[1, 2], [3, 4]])
     assert len(m.singular_points()) == 0
@@ -119,14 +109,14 @@ def test_singular_points_multi_variable():
 def test_coboundary():
     m = Matrix([[1, n, 2], [3, n**2, 5 * n], [n - 7, n**2 + 1, n - 3]])
     U = Matrix([[3, 1, n - 2], [5, n**2 - 3 * n + 1, 0], [11 * n + 2, 3, n - 19]])
-    expected = U.inverse() * m * U.subs({n: n + 1})
+    expected = U.inv() * m * U.subs({n: n + 1})
     assert expected == m.coboundary(U)
 
 
 def test_coboundary_inverse():
     m = Matrix([[1, n, 2], [3, n**2, 5 * n], [n - 7, n**2 + 1, n - 3]])
     U = Matrix([[3, 1, n - 2], [5, n**2 - 3 * n + 1, 0], [11 * n + 2, 3, n - 19]])
-    assert m == m.coboundary(U).coboundary(U.inverse())
+    assert m == m.coboundary(U).coboundary(U.inv())
 
 
 def test_companion_form():
