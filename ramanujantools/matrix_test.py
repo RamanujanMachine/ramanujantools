@@ -31,6 +31,29 @@ def test_reduce():
     assert m.reduce() == initial
 
 
+def test_inverse_cache():
+    m = Matrix(
+        [
+            [n**2 + 3 * n - 2, 15, 0],
+            [3 * n - 2, n**3 + 9, 15 - n],
+            [17 * n, n**3 + 3 * n**2 + 3 * n + 1, -1],
+        ]
+    )
+    mi = m.inv()
+    assert hash(m) == m._hash_cache
+    assert mi == m._inverse_cache
+    assert m == m.inv().inv()
+
+    assert hash(mi) == mi._hash_cache
+    assert m == mi._inverse_cache
+
+    m[0, 0] -= 1
+    assert hash(m) != m._hash_cache
+    mi2 = m.inv()
+    assert mi != mi2
+    assert hash(m) == m._hash_cache
+
+
 def test_is_numeric_walk():
     m = Matrix([[x, 1], [y, 2]])
 
