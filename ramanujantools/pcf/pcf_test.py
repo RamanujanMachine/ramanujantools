@@ -1,7 +1,6 @@
 from pytest import approx
 
 import mpmath as mp
-import sympy as sp
 from sympy.abc import c, n
 
 from ramanujantools import Matrix, LinearRecurrence

@@ -1,6 +1,7 @@
 from .cmf import CMF
 from .ffbar import FFbar
 from .pfq import pFq
+from .meijer_g import MeijerG
 
 from .known_cmfs import (
     e,
@@ -21,6 +22,7 @@ __all__ = [
     "CMF",
     "FFbar",
     "pFq",
+    "MeijerG",
     "e",
     "pi",
     "symmetric_pi",
