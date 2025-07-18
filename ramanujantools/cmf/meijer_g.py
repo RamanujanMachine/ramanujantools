@@ -8,6 +8,8 @@ from ramanujantools.cmf import CMF
 
 from functools import lru_cache
 
+theta = sp.symbols("theta")
+
 
 class MeijerG(CMF):
     r"""
@@ -28,6 +30,25 @@ class MeijerG(CMF):
             validate=False,
         )
 
+    @staticmethod
+    def a_symbols(p) -> list[sp.Symbol]:
+        return sp.symbols(f"a:{p}")
+
+    @staticmethod
+    def b_symbols(q) -> list[sp.Symbol]:
+        return sp.symbols(f"b:{q}")
+
+    @staticmethod
+    def differential_equation(m, n, p, q, z) -> sp.Poly:
+        coeff = (-sp.Integer(1)) ** (p - m - n)
+        return sp.Poly(
+            sp.expand(
+                coeff * z * sp.prod(theta - a_i + 1 for a_i in MeijerG.a_symbols(p))
+                - sp.prod(theta - b_j for b_j in MeijerG.b_symbols(q))
+            ),
+            theta,
+        )
+
     @lru_cache
     @staticmethod
     def construct_matrices(
@@ -37,39 +58,26 @@ class MeijerG(CMF):
             raise ValueError(
                 "Meijer G must satisfy p > 0, 0 <= n <= p and q > 0, 0 <= m <= q"
             )
-        X = sp.symbols("X")
-        a = sp.symbols(f"a:{p}")
-        b = sp.symbols(f"b:{q}")
+        diff_eq = MeijerG.differential_equation(m, n, p, q, z)
+        diff_eq_normalized = sp.Poly(diff_eq / sp.LC(diff_eq), theta)
+        theta_matrix = Matrix.companion(diff_eq_normalized)
 
-        # Construct the polynomial expression from the differential equation
-        diff_eq_a = sp.prod([X - a_i + 1 for a_i in a])
-        diff_eq_b = sp.prod([X - b_j for b_j in b])
-        diff_eq = (-sp.Integer(1)) ** (p - m - n) * z * diff_eq_a - diff_eq_b
-        diff_eq_coeffs = sp.Poly(diff_eq, X).all_coeffs()
-
-        # Compute the recurrence coefficients T0, T1, ..., Tr
-        r = len(diff_eq_coeffs) - 1
+        r = theta_matrix.rows
         eye = Matrix.eye(r)
 
-        # Construct the Mtheta matrix (r x r with T as last column)
-        T = [-diff_eq_coeffs[-(i + 1)] / diff_eq_coeffs[0] for i in range(r)]
-        Mtheta = Matrix.companion_form(T)
+        def sign(i, threshold):
+            return -1 if i > (threshold + 1) else 1
 
         matrices = {}
         negative_matrices = {}
-        # Build a_i matrices (bidiagonal form)
-        for i, a_i in enumerate(a):
-            a_i_matrix = Mtheta + (1 - a_i) * eye
-            if i + 1 > n:
-                a_i_matrix = -a_i_matrix
-            negative_matrices[a_i] = a_i_matrix
-            matrices[a_i] = a_i_matrix.subs({a_i: a_i + 1}).inv()
+        for i, a_i in enumerate(MeijerG.a_symbols(p)):
+            negative_matrices[a_i] = (theta_matrix + (1 - a_i) * eye) * sign(i, n)
+            matrices[a_i] = (
+                negative_matrices[a_i].subs({a_i: a_i + 1}).inverse().factor()
+            )
 
-        # Build b_i matrices (bidiagonal form)
-        for i, b_i in enumerate(b):
-            b_i_matrix = -Mtheta + b_i * eye
-            if i + 1 > m:
-                b_i_matrix = -b_i_matrix
+        for i, b_i in enumerate(MeijerG.b_symbols(q)):
+            b_i_matrix = (-theta_matrix + b_i * eye) * sign(i, m)
             matrices[b_i] = b_i_matrix
 
         # Combine all into one dictionary

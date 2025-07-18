@@ -54,6 +54,16 @@ class pFq(CMF):
             validate=False,
         )
 
+    @staticmethod
+    def differential_equation(x, y, z) -> sp.Poly:
+        return sp.Poly(
+            sp.expand(
+                theta * sp.prod(theta + y_i - 1 for y_i in y)
+                - z * sp.prod(theta + x_i for x_i in x)
+            ),
+            theta,
+        )
+
     @lru_cache
     @staticmethod
     def construct_matrices(
@@ -68,42 +78,35 @@ class pFq(CMF):
         x = sp.symbols(f"x:{p}")
         y = sp.symbols(f"y:{q}")
 
-        def differential_equation(p, q) -> sp.Poly:
-            return sp.Poly(
-                sp.expand(
-                    theta * sp.prod(theta + y[i] - 1 for i in range(q))
-                    - z_eval * sp.prod(theta + x[i] for i in range(p))
-                ),
-                theta,
-            )
+        d_poly = pFq.differential_equation(x, y, z_eval)
+        d_poly_monic = sp.Poly(d_poly / sp.LC(d_poly), theta)
+        theta_matrix = Matrix.companion(d_poly_monic)
 
-        def core_matrix(p, q) -> Matrix:
-            d_poly = differential_equation(p, q)
-            d_poly_monic = sp.Poly(d_poly / sp.LC(d_poly), theta)
-            return Matrix.companion(d_poly_monic)
+        r = theta_matrix.rows
+        eye = Matrix.eye(r)
 
-        M = core_matrix(p, q)
-
-        equation_size = M.rows
-
-        if not theta_derivative:
+        if theta_derivative:
+            M = theta_matrix
+        else:
             basis_transition_matrix = Matrix(
-                equation_size,
-                equation_size,
+                r,
+                r,
                 lambda i, j: sp.functions.combinatorial.numbers.stirling(j, i)
                 * (z_eval**i),
             )
             M = (
-                basis_transition_matrix * M * (basis_transition_matrix.inverse())
+                basis_transition_matrix
+                * theta_matrix
+                * (basis_transition_matrix.inverse())
             ).factor()
 
         matrices = {}
         negative_matrices = {}
         for x_i in x:
-            matrices[x_i] = M / x_i + Matrix.eye(equation_size)
+            matrices[x_i] = M / x_i + eye
 
         for y_i in y:
-            negative_matrices[y_i] = M / (y_i - 1) + Matrix.eye(equation_size)
+            negative_matrices[y_i] = M / (y_i - 1) + eye
             matrices[y_i] = (
                 negative_matrices[y_i].subs({y_i: y_i + 1}).inverse().factor()
             )
