@@ -6,7 +6,7 @@ import itertools
 import sympy as sp
 from sympy.abc import n
 
-from ramanujantools import Position, Matrix, Limit, simplify
+from ramanujantools import Position, Matrix, Limit
 from ramanujantools.flint_core import (
     NumericMatrix,
     SymbolicMatrix,
@@ -28,6 +28,7 @@ class CMF:
     def __init__(
         self,
         matrices: dict[sp.Symbol, Matrix],
+        _negative_matrices_cache: dict[sp.Symbol, Matrix] | None = None,
         validate: bool = True,
     ):
         """
@@ -41,13 +42,15 @@ class CMF:
             ValueError: if one of the matrices contain the symbol n, which is recserved for PCF conversions.
         """
         self.matrices = matrices
+        self._negative_matrices_cache = _negative_matrices_cache or {}
         if n in self.matrices.keys():
             raise ValueError(
                 "Do not use symbol n as an axis, it's reserved for companion conversions"
             )
-        self.assert_matrices_same_dimension()
+        self.validate_matrices_same_dimension()
         if validate:
-            self.assert_conserving()
+            self.validate_conserving()
+            self.validate_negative_cache()
 
     def __hash__(self) -> int:
         return hash(frozenset(self.matrices.items()))
@@ -79,50 +82,45 @@ class CMF:
         self,
         x: sp.Symbol,
         y: sp.Symbol,
-        x_forward: bool = True,
-        y_forward: bool = True,
     ) -> bool:
-        Mx = self.M(x, x_forward)
-        My = self.M(y, y_forward)
-        Mxy = (Mx * My({x: x + 1 if x_forward else x - 1})).factor()
-        Myx = (My * Mx({y: y + 1 if y_forward else y - 1})).factor()
+        Mx = self.M(x)
+        My = self.M(y)
+        Mxy = (Mx * My({x: x + 1})).factor()
+        Myx = (My * Mx({y: y + 1})).factor()
         return Mxy == Myx
 
-    def assert_conserving(self, check_negatives: bool = False) -> None:
+    def validate_conserving(self) -> None:
         """
-        Asserts that all of the matrices of the CMF are conserving.
-        Args:
-            check_negatives: if `True`, will also check that the negative matrices are conserving.
-                             this should mathematically always be the case when the positive matrices are conserving.
+        Validates that all of the matrices of the CMF are conserving.
         Raises:
             ValueError: if two matrices or more are not conserving.
         """
         for x, y in itertools.combinations(self.matrices.keys(), 2):
-            if not self._are_conserving(x, y, True, True):
+            if not self._are_conserving(x, y):
                 raise ValueError(f"M({x}) and M({y}) matrices are not conserving!")
 
-            if check_negatives:
-                if not self._are_conserving(x, y, False, True):
-                    raise ValueError(f"M(-{x}) and M({y}) matrices are not conserving!")
-                if not self._are_conserving(x, y, True, False):
-                    raise ValueError(f"M({x}) and M(-{y}) matrices are not conserving!")
-                if not self._are_conserving(x, y, False, False):
-                    raise ValueError(
-                        f"M(-{x}) and M(-{y}) matrices are not conserving!"
-                    )
-
-    def assert_matrices_same_dimension(self) -> None:
+    def validate_matrices_same_dimension(self) -> None:
         """
-        Asserts that all of the matrices of the CMF have the same dimensions.
+        Validates that all of the matrices of the CMF have the same dimensions.
         Raises:
             ValueError: in case the matrices are not conserving.
         """
-        expected_N = self.N()
+        expected_N = self.rank()
         for symbol, matrix in self.matrices.items():
             if not expected_N == matrix.rows and expected_N == matrix.cols:
                 raise ValueError(
                     f"M({symbol}) is of dimension {matrix.rows}x{matrix.cols}, expected {expected_N}x{expected_N}"
                 )
+
+    def validate_negative_cache(self) -> None:
+        """
+        Validates all the matrices in the negative matrices cache.
+        """
+        for key, inverse_matrix in self._negative_matrices_cache.items():
+            assert (
+                Matrix.eye(self.rank())
+                == (self.M(key).subs({key: key - 1}) * inverse_matrix).factor()
+            )
 
     def M(self, axis: sp.Symbol, sign: bool = True) -> Matrix:
         """
@@ -134,7 +132,11 @@ class CMF:
         if sign:
             return self.matrices[axis]
         else:
-            return self.matrices[axis].inverse()({axis: axis - 1})
+            if axis not in self._negative_matrices_cache:
+                self._negative_matrices_cache[axis] = self.matrices[axis].inverse()(
+                    {axis: axis - 1}
+                )
+            return self._negative_matrices_cache[axis]
 
     def dual(self) -> CMF:
         """
@@ -172,9 +174,9 @@ class CMF:
         """
         return len(self.axes())
 
-    def N(self) -> int:
+    def rank(self) -> int:
         """
-        Returns the row/column amount of matrices of the CMF.
+        Returns the rank of the CMF.
         """
         random_matrix = list(self.matrices.values())[0]
         return random_matrix.rows
@@ -198,6 +200,10 @@ class CMF:
                 symbol: matrix.subs(substitutions)
                 for symbol, matrix in self.matrices.items()
             },
+            _negative_matrices_cache={
+                symbol: matrix.subs(substitutions)
+                for symbol, matrix in self._negative_matrices_cache.items()
+            },
             validate=False,
         )
 
@@ -207,8 +213,13 @@ class CMF:
         """
         return CMF(
             matrices={
-                symbol: simplify(matrix) for symbol, matrix in self.matrices.items()
-            }
+                symbol: matrix.simplify() for symbol, matrix in self.matrices.items()
+            },
+            _negative_matrices_cache={
+                symbol: matrix.simplify()
+                for symbol, matrix in self._negative_matrices_cache.items()
+            },
+            validate=False,
         )
 
     @staticmethod
@@ -231,7 +242,7 @@ class CMF:
         It's used to look for a non-singular path towards the trajectroy matrix.
         """
         if trajectory.longest() == 0:
-            return SymbolicMatrix.eye(self.N(), ctx)
+            return SymbolicMatrix.eye(self.rank(), ctx)
         for axis in sorted(trajectory.keys(), key=str):
             try:
                 inner_trajectory = trajectory.copy()
@@ -288,7 +299,7 @@ class CMF:
         if trajectory.longest() <= 1:
             return self._calculate_diagonal_matrix(trajectory, start, ctx)
 
-        result = SymbolicMatrix.eye(self.N(), ctx)
+        result = SymbolicMatrix.eye(self.rank(), ctx)
         symbol = CMF.walk_symbol()
         depth = trajectory.shortest()
         position = start.copy()
@@ -316,7 +327,7 @@ class CMF:
             matrix = self._calculate_diagonal_matrix(trajectory, start, ctx).factor()
             return NumericMatrix.lambda_from_rt(matrix)(start)
 
-        result = NumericMatrix.eye(self.N())
+        result = NumericMatrix.eye(self.rank())
         symbol = CMF.walk_symbol()
         depth = trajectory.shortest()
         position = start.copy()

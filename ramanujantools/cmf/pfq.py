@@ -24,7 +24,6 @@ class pFq(CMF):
         q: int,
         z_eval: sp.Expr = z,
         theta_derivative: bool = True,
-        negate_denominator_params: bool = True,
     ):
         r"""
         Constructs a pFq CMF.
@@ -41,18 +40,19 @@ class pFq(CMF):
             z_eval: If given, will attempt to construct the CMF for a specific z value.
             theta_derivative: If set to False, will construt the CMF using normal derivatives.
                 Otherwise, will use theta derivatives.
-            negate_denominator_params: if set to True, will inverse all y matrices.
-                Otherwise, will substitute y with -y.
         """
-        matrices = pFq.construct_matrices(
-            p, q, z_eval, theta_derivative, negate_denominator_params
+        matrices, negative_matrices = pFq.construct_matrices(
+            p, q, z_eval, theta_derivative
         )
         self.p = p
         self.q = q
         self.z = sp.S(z_eval)
         self.theta_derivative = theta_derivative
-        self.negate_denominator_params = negate_denominator_params
-        super().__init__(matrices=matrices, validate=False)
+        super().__init__(
+            matrices=matrices,
+            _negative_matrices_cache=negative_matrices,
+            validate=False,
+        )
 
     @lru_cache
     @staticmethod
@@ -61,8 +61,7 @@ class pFq(CMF):
         q: int,
         z_eval: sp.Expr = z,
         theta_derivative: bool = True,
-        negate_denominator_params: bool = True,
-    ):
+    ) -> tuple[dict[sp.Expr, Matrix], dict[sp.Expr, Matrix]]:
         r"""
         Constructs the pFq CMF matrices.
         """
@@ -98,30 +97,20 @@ class pFq(CMF):
                 basis_transition_matrix * M * (basis_transition_matrix.inverse())
             ).factor()
 
-        if negate_denominator_params:
-            y_matrices = {
-                y[i]: Matrix(
-                    M.subs({y[i]: y[i] + 1}) / y[i] + Matrix.eye(equation_size)
-                )
-                .inverse()
-                .factor()
-                for i in range(q)
-            }
-        else:
-            M = M.subs({y[i]: -y[i] for i in range(q)})
-            y_matrices = {
-                y[i]: Matrix(-M / (y[i] + 1) + Matrix.eye(equation_size))
-                for i in range(q)
-            }
+        matrices = {}
+        negative_matrices = {}
+        for x_i in x:
+            matrices[x_i] = M / x_i + Matrix.eye(equation_size)
 
-        matrices = {
-            x[i]: Matrix(M / x[i] + Matrix.eye(equation_size)) for i in range(p)
-        }
-        matrices.update(y_matrices)
-        return matrices
+        for y_i in y:
+            negative_matrices[y_i] = M / (y_i - 1) + Matrix.eye(equation_size)
+            matrices[y_i] = (
+                negative_matrices[y_i].subs({y_i: y_i + 1}).inverse().factor()
+            )
+        return matrices, negative_matrices
 
     def __repr__(self) -> str:
-        return f"pFq({self.p, self.q, self.z, self.theta_derivative, self.negate_denominator_params})"
+        return f"pFq({self.p, self.q, self.z, self.theta_derivative})"
 
     def ascend(
         self, trajectory: Position, start: Position
@@ -140,7 +129,6 @@ class pFq(CMF):
             self.q + 1,
             self.z,
             self.theta_derivative,
-            self.negate_denominator_params,
         )
         xp = sp.Symbol(f"x{self.p}")
         yq = sp.Symbol(f"y{self.q}")
@@ -155,13 +143,12 @@ class pFq(CMF):
             self.q,
             self.z.subs(substitutions),
             self.theta_derivative,
-            self.negate_denominator_params,
         )
 
     @staticmethod
-    def predict_N(p: int, q: int, z: sp.Expr):
+    def predict_rank(p: int, q: int, z: sp.Expr):
         """
-        Predicts the dimension of the NxN matrices in the CMF
+        Returns the rank of the CMF (i.e, the rank of its matrices).
         """
         N = max(p, q + 1)
         if z == 1 and p == q + 1:
@@ -190,7 +177,7 @@ class pFq(CMF):
         a_symbols = sp.symbols(f"a:{p}")
         b_symbols = sp.symbols(f"b:{q}")
         values = [sp.hyper(a_symbols, b_symbols, z)]
-        for _ in range(1, pFq.predict_N(p, q, z_eval)):
+        for _ in range(1, pFq.predict_rank(p, q, z_eval)):
             values.append(pFq.theta_derivative(values[-1]))
         a_subs = Position.from_list(a_values, "a")
         b_subs = Position.from_list(b_values, "b")

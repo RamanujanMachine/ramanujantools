@@ -12,7 +12,7 @@ def test_conserving():
         for _q in range(1, 3):
             for _n in range(_p):
                 for _m in range(_q):
-                    MeijerG(_m, _n, _p, _q, z).assert_conserving()
+                    MeijerG(_m, _n, _p, _q, z).validate_conserving()
 
 
 def test_gamma():
