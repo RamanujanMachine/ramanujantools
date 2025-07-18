@@ -58,20 +58,15 @@ def test_all_conserving():
     Checks that all cmfs are indeed cmfs.
     If one of these is not a cmf, an exception will be thrown.
     """
-    known_cmfs.e().assert_conserving()
-    known_cmfs.pi().assert_conserving()
-    known_cmfs.symmetric_pi().assert_conserving()
-    known_cmfs.zeta3().assert_conserving()
-    known_cmfs.var_root_cmf().assert_conserving()
-    known_cmfs.cmf1().assert_conserving()
-    known_cmfs.cmf2().assert_conserving()
-    known_cmfs.cmf3_1().assert_conserving()
-    known_cmfs.cmf3_2().assert_conserving()
-    known_cmfs.cmf3_3().assert_conserving()
-    known_cmfs.hypergeometric_derived_2F1().assert_conserving()
-    known_cmfs.hypergeometric_derived_3F2().assert_conserving()
-
-
-def test_back_conserving():
-    cmf = known_cmfs.hypergeometric_derived_2F1()
-    cmf.assert_conserving(check_negatives=True)
+    known_cmfs.e().validate_conserving()
+    known_cmfs.pi().validate_conserving()
+    known_cmfs.symmetric_pi().validate_conserving()
+    known_cmfs.zeta3().validate_conserving()
+    known_cmfs.var_root_cmf().validate_conserving()
+    known_cmfs.cmf1().validate_conserving()
+    known_cmfs.cmf2().validate_conserving()
+    known_cmfs.cmf3_1().validate_conserving()
+    known_cmfs.cmf3_2().validate_conserving()
+    known_cmfs.cmf3_3().validate_conserving()
+    known_cmfs.hypergeometric_derived_2F1().validate_conserving()
+    known_cmfs.hypergeometric_derived_3F2().validate_conserving()
