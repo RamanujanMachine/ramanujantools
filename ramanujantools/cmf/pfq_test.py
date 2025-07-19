@@ -91,11 +91,11 @@ def test_2F1_z_evaluation():
     p = 2
     q = 1
     z_value = -7
-    assert pFq(p, q, z_eval=z_value) == pFq(p, q).subs({z: z_value})
+    assert pFq(p, q, z=z_value) == pFq(p, q).subs({z: z_value})
 
 
 def test_gamma():
-    cmf = pFq(2, 2, z_eval=-1)
+    cmf = pFq(2, 2, z=-1)
     x0, x1 = sp.symbols("x:2")
     y0, y1 = sp.symbols("y:2")
     trajectory = {x0: 1, x1: 1, y0: 0, y1: -1}
@@ -113,8 +113,8 @@ def test_pfq_conserving():
 def test_predict_rank():
     for p in range(1, 5):
         for q in range(1, 5):
-            for z_eval in [-1, 1]:
-                assert pFq(p, q, z_eval=z_eval).rank() == pFq.predict_rank(p, q, z_eval)
+            for _z in [-1, 1]:
+                assert pFq(p, q, z=_z).rank() == pFq.predict_rank(p, q, _z)
 
 
 def test_work_numeric_3f2():
@@ -149,7 +149,7 @@ def test_state_vector():
 
 
 def test_evaluate_2f1():
-    for z_eval in [
+    for _z in [
         -1,
         -sp.Rational(1, 2),
         -sp.Rational(1, 4),
@@ -162,6 +162,6 @@ def test_evaluate_2f1():
             ([sp.Rational(3, 2), sp.Rational(5, 2)], [sp.Rational(7, 2)]),
             ([sp.Rational(3, 2), 4], [-sp.Rational(1, 2)]),
         ]:
-            evaluation = pFq.evaluate(a_values, b_values, z_eval).simplify()
-            expected = sp.hyper(a_values, b_values, z_eval).simplify().simplify()
+            evaluation = pFq.evaluate(a_values, b_values, _z).simplify()
+            expected = sp.hyper(a_values, b_values, _z).simplify().simplify()
             assert expected == evaluation

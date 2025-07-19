@@ -63,7 +63,6 @@ def test_evaluate_solution_basis_list_with_given_index():
     evaluations = r.evaluate_solution(initial_values, indices, given_index)
     assert len(matrices) == len(evaluations)
     for i in range(len(evaluations)):
-        print(i)
         assert initial_values.dot(matrices[i].col(-1)) == evaluations[i]
 
 

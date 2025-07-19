@@ -36,7 +36,7 @@ class DFinite(CMF, ABC):
 
     @classmethod
     @abstractmethod
-    def axes(cls, *args, **kwargs) -> dict[sp.Expr, bool]:
+    def axes_and_signs(cls, *args, **kwargs) -> dict[sp.Expr, bool]:
         """
         Function returns the axes and their signs for the D-finite CMF.
         The signs are used to determine the direction of the axes in the CMF,
@@ -54,7 +54,7 @@ class DFinite(CMF, ABC):
 
     @classmethod
     @abstractmethod
-    def construct_matrix(cls, theta_matrix: Matrix, symbol: sp.Symbol) -> Matrix:
+    def construct_matrix(cls, theta_matrix: Matrix, axis: sp.Symbol) -> Matrix:
         """
         Given a symbol, constructs the matrix for the D-finite CMF.
         Note that if axes[symbol] is False, then the matrix should be used to decrement the axis by one.
@@ -71,9 +71,11 @@ class DFinite(CMF, ABC):
         """
         d_poly = cls.differential_equation(*args, **kwargs)
 
-        if cls.axes(*args, **kwargs) != d_poly.free_symbols:
+        if not (d_poly.free_symbols).issuperset(
+            cls.axes_and_signs(*args, **kwargs).keys()
+        ):
             raise ValueError(
-                "The differential equation free symbols do not match the axes!"
+                "The differential equation free symbols does not contain the axes!"
             )
 
         d_poly_monic = sp.Poly(d_poly / sp.LC(d_poly), theta)
@@ -81,11 +83,11 @@ class DFinite(CMF, ABC):
 
         matrices = {}
         negative_matrices = {}
-        for symbol, sign in cls.axes(*args, **kwargs).items():
-            matrix = cls.construct_matrix(theta_matrix, symbol)
+        for axis, sign in cls.axes_and_signs(*args, **kwargs).items():
+            matrix = cls.construct_matrix(theta_matrix, axis)
             if sign:
-                matrices[symbol] = matrix
+                matrices[axis] = matrix
             else:
-                negative_matrices[symbol] = matrix
-                matrices[symbol] = matrix.subs({symbol: symbol + 1}).inverse().factor()
+                negative_matrices[axis] = matrix
+                matrices[axis] = matrix.subs({axis: axis + 1}).inverse().factor()
         return matrices, negative_matrices
