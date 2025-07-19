@@ -53,7 +53,7 @@ class MeijerG(CMF):
         Mai_dict = {}
         for i, a_i in enumerate(a):
             Mai = Mtheta + Matrix.companion_form([0] * r) + (1 - a_i) * eye
-            if i + 1 > n:
+            if i > n:
                 Mai = -Mai
             Mai_dict[a_i] = Mai.subs({a_i: a_i + 1}).inv()
 
@@ -61,7 +61,7 @@ class MeijerG(CMF):
         Mbi_dict = {}
         for i, b_i in enumerate(b):
             Mbi = -(Mtheta + Matrix.companion_form([0] * r)) + b_i * eye
-            if i + 1 > m:
+            if i > m:
                 Mbi = -Mbi
             Mbi_dict[b_i] = Mbi
 
