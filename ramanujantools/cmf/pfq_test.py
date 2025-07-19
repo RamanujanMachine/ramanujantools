@@ -49,7 +49,7 @@ def test_ascend_zeta2():
     assert abs(delta - a_delta) < 0.01
 
 
-def test_2F1_theta_derivative():
+def test_2F1():
     x0 = sp.Symbol("x0")
     x1 = sp.Symbol("x1")
     y0 = sp.Symbol("y0")
@@ -83,44 +83,6 @@ def test_2F1_theta_derivative():
         }
     )
     cmf = pFq(2, 1)
-    cmf.validate_conserving()
-    assert cmf == expected
-
-
-def test_2F1_normal_derivative():
-    x0 = sp.Symbol("x0")
-    x1 = sp.Symbol("x1")
-    y0 = sp.Symbol("y0")
-    z = sp.Symbol("z")
-    expected = CMF(
-        {
-            x0: Matrix(
-                [
-                    [1, -x1 / (z - 1)],
-                    [z / x0, 1 + (-x0 * z - x1 * z + y0 - 1) / (x0 * (z - 1))],
-                ]
-            ),
-            x1: Matrix(
-                [
-                    [1, -x0 / (z - 1)],
-                    [z / x1, 1 + (-x0 * z - x1 * z + y0 - 1) / (x1 * (z - 1))],
-                ]
-            ),
-            y0: Matrix(
-                [
-                    [
-                        y0 * (-x0 - x1 + y0) / (x0 * x1 - x0 * y0 - x1 * y0 + y0**2),
-                        x0 * x1 * y0 / (z * (x0 * x1 - x0 * y0 - x1 * y0 + y0**2)),
-                    ],
-                    [
-                        y0 * (1 - z) / (x0 * x1 - x0 * y0 - x1 * y0 + y0**2),
-                        y0**2 * (z - 1) / (z * (x0 * x1 - x0 * y0 - x1 * y0 + y0**2)),
-                    ],
-                ]
-            ),
-        }
-    )
-    cmf = pFq(2, 1, theta_derivative=False)
     cmf.validate_conserving()
     assert cmf == expected
 

@@ -23,31 +23,18 @@ class pFq(CMF):
         p: int,
         q: int,
         z_eval: sp.Expr = z,
-        theta_derivative: bool = True,
     ):
         r"""
         Constructs a pFq CMF.
-        A few things to note when working with the pFq CMF construction:
-        1. Construction is possible using either normal or theta derivatives
-        2. While the construction is purely symbolic, however singularity is possible in some z values.
-            To overcome this, we can select z during construction and construct specifically for it.
-        3. The y matrices are inversed, as they represent a negative step in the matching y axis.
-            There are two options to overcome this: inverse the matrices, or negate all y occurences.
-
         Args:
             p: The number of numerator parameters in the hypergeometric function
             q: The number of denominator parameters in the hypergeometric function
             z_eval: If given, will attempt to construct the CMF for a specific z value.
-            theta_derivative: If set to False, will construt the CMF using normal derivatives.
-                Otherwise, will use theta derivatives.
         """
-        matrices, negative_matrices = pFq.construct_matrices(
-            p, q, z_eval, theta_derivative
-        )
+        matrices, negative_matrices = pFq.construct_matrices(p, q, z_eval)
         self.p = p
         self.q = q
         self.z = sp.S(z_eval)
-        self.theta_derivative = theta_derivative
         super().__init__(
             matrices=matrices,
             _negative_matrices_cache=negative_matrices,
@@ -70,7 +57,6 @@ class pFq(CMF):
         p: int,
         q: int,
         z_eval: sp.Expr = z,
-        theta_derivative: bool = True,
     ) -> tuple[dict[sp.Expr, Matrix], dict[sp.Expr, Matrix]]:
         r"""
         Constructs the pFq CMF matrices.
@@ -85,35 +71,20 @@ class pFq(CMF):
         r = theta_matrix.rows
         eye = Matrix.eye(r)
 
-        if theta_derivative:
-            M = theta_matrix
-        else:
-            basis_transition_matrix = Matrix(
-                r,
-                r,
-                lambda i, j: sp.functions.combinatorial.numbers.stirling(j, i)
-                * (z_eval**i),
-            )
-            M = (
-                basis_transition_matrix
-                * theta_matrix
-                * (basis_transition_matrix.inverse())
-            ).factor()
-
         matrices = {}
         negative_matrices = {}
         for x_i in x:
-            matrices[x_i] = M / x_i + eye
+            matrices[x_i] = theta_matrix / x_i + eye
 
         for y_i in y:
-            negative_matrices[y_i] = M / (y_i - 1) + eye
+            negative_matrices[y_i] = theta_matrix / (y_i - 1) + eye
             matrices[y_i] = (
                 negative_matrices[y_i].subs({y_i: y_i + 1}).inverse().factor()
             )
         return matrices, negative_matrices
 
     def __repr__(self) -> str:
-        return f"pFq({self.p, self.q, self.z, self.theta_derivative})"
+        return f"pFq({self.p, self.q, self.z})"
 
     def ascend(
         self, trajectory: Position, start: Position
@@ -131,7 +102,6 @@ class pFq(CMF):
             self.p + 1,
             self.q + 1,
             self.z,
-            self.theta_derivative,
         )
         xp = sp.Symbol(f"x{self.p}")
         yq = sp.Symbol(f"y{self.q}")
@@ -145,7 +115,6 @@ class pFq(CMF):
             self.p,
             self.q,
             self.z.subs(substitutions),
-            self.theta_derivative,
         )
 
     @staticmethod
