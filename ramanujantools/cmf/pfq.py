@@ -4,15 +4,11 @@ import sympy as sp
 from sympy.abc import z
 
 from ramanujantools import Matrix, Position
-from ramanujantools.cmf import CMF
-
-from functools import lru_cache
-
-
-theta = sp.symbols("theta")
+from ramanujantools.cmf import DFinite
+from ramanujantools.cmf.d_finite import theta
 
 
-class pFq(CMF):
+class pFq(DFinite):
     r"""
     Represents the pFq CMF, derived from the differentiation property of generalized hypergeometric functions:
     https://en.wikipedia.org/wiki/Generalized_hypergeometric_function
@@ -22,99 +18,58 @@ class pFq(CMF):
         self,
         p: int,
         q: int,
-        z_eval: sp.Expr = z,
-        theta_derivative: bool = True,
+        z: sp.Expr = z,
     ):
         r"""
         Constructs a pFq CMF.
-        A few things to note when working with the pFq CMF construction:
-        1. Construction is possible using either normal or theta derivatives
-        2. While the construction is purely symbolic, however singularity is possible in some z values.
-            To overcome this, we can select z during construction and construct specifically for it.
-        3. The y matrices are inversed, as they represent a negative step in the matching y axis.
-            There are two options to overcome this: inverse the matrices, or negate all y occurences.
-
         Args:
             p: The number of numerator parameters in the hypergeometric function
             q: The number of denominator parameters in the hypergeometric function
-            z_eval: If given, will attempt to construct the CMF for a specific z value.
-            theta_derivative: If set to False, will construt the CMF using normal derivatives.
-                Otherwise, will use theta derivatives.
+            z: If given, will attempt to construct the CMF for a specific z value.
         """
-        matrices, negative_matrices = pFq.construct_matrices(
-            p, q, z_eval, theta_derivative
-        )
         self.p = p
         self.q = q
-        self.z = sp.S(z_eval)
-        self.theta_derivative = theta_derivative
-        super().__init__(
-            matrices=matrices,
-            _negative_matrices_cache=negative_matrices,
-            validate=False,
-        )
-
-    @lru_cache
-    @staticmethod
-    def construct_matrices(
-        p: int,
-        q: int,
-        z_eval: sp.Expr = z,
-        theta_derivative: bool = True,
-    ) -> tuple[dict[sp.Expr, Matrix], dict[sp.Expr, Matrix]]:
-        r"""
-        Constructs the pFq CMF matrices.
-        """
-        x = sp.symbols(f"x:{p}")
-        y = sp.symbols(f"y:{q}")
-
-        def differential_equation(p, q) -> sp.Poly:
-            return sp.Poly(
-                sp.expand(
-                    theta * sp.prod(theta + y[i] - 1 for i in range(q))
-                    - z_eval * sp.prod(theta + x[i] for i in range(p))
-                ),
-                theta,
-            )
-
-        def core_matrix(p, q) -> Matrix:
-            d_poly = differential_equation(p, q)
-            d_poly_monic = sp.Poly(d_poly / sp.LC(d_poly), theta)
-            return Matrix.companion(d_poly_monic)
-
-        M = core_matrix(p, q)
-
-        equation_size = M.rows
-
-        if not theta_derivative:
-            basis_transition_matrix = Matrix(
-                equation_size,
-                equation_size,
-                lambda i, j: sp.functions.combinatorial.numbers.stirling(j, i)
-                * (z_eval**i),
-            )
-            M = (
-                basis_transition_matrix * M * (basis_transition_matrix.inverse())
-            ).factor()
-
-        matrices = {}
-        negative_matrices = {}
-        for x_i in x:
-            matrices[x_i] = M / x_i + Matrix.eye(equation_size)
-
-        for y_i in y:
-            negative_matrices[y_i] = M / (y_i - 1) + Matrix.eye(equation_size)
-            matrices[y_i] = (
-                negative_matrices[y_i].subs({y_i: y_i + 1}).inverse().factor()
-            )
-        return matrices, negative_matrices
+        self.z = sp.S(z)
+        super().__init__(p, q, z)
 
     def __repr__(self) -> str:
-        return f"pFq({self.p, self.q, self.z, self.theta_derivative})"
+        return f"pFq({self.p, self.q, self.z})"
+
+    @staticmethod
+    def x_axes(p: int) -> list[sp.Symbol]:
+        return sp.symbols(f"x:{p}")
+
+    @staticmethod
+    def y_axes(q: int) -> list[sp.Symbol]:
+        return sp.symbols(f"y:{q}")
+
+    @classmethod
+    def axes_and_signs(cls, p, q, z) -> dict[sp.Expr, bool]:
+        x_axes = {x_i: True for x_i in pFq.x_axes(p)}
+        y_axes = {y_i: False for y_i in pFq.y_axes(q)}
+        return {**x_axes, **y_axes}
+
+    @classmethod
+    def differential_equation(cls, p, q, z) -> sp.Poly:
+        return sp.Poly(
+            sp.expand(
+                theta * sp.prod(theta + y_i - 1 for y_i in pFq.y_axes(q))
+                - z * sp.prod(theta + x_i for x_i in pFq.x_axes(p))
+            ),
+            theta,
+        )
+
+    @classmethod
+    def construct_matrix(
+        cls, theta_matrix: Matrix, axis: sp.Symbol, *args, **kwargs
+    ) -> Matrix:
+        eye = Matrix.eye(theta_matrix.rows)
+        denom = axis - 1 if axis.name.startswith("y") else axis
+        return theta_matrix / denom + eye
 
     def ascend(
         self, trajectory: Position, start: Position
-    ) -> tuple[CMF, Position, Position]:
+    ) -> tuple[pFq, Position, Position]:
         r"""
         Returns a tuple of (CMF, trajectory, start), such that:
         1. The CMF is ascended, i.e, the CMF of _{p+1}F_{q+1}
@@ -128,7 +83,6 @@ class pFq(CMF):
             self.p + 1,
             self.q + 1,
             self.z,
-            self.theta_derivative,
         )
         xp = sp.Symbol(f"x{self.p}")
         yq = sp.Symbol(f"y{self.q}")
@@ -142,7 +96,6 @@ class pFq(CMF):
             self.p,
             self.q,
             self.z.subs(substitutions),
-            self.theta_derivative,
         )
 
     @staticmethod
@@ -170,7 +123,7 @@ class pFq(CMF):
         r"""
         Returns the state vector of a pFq CMF in a specific point.
         The state vector is of length N, and the ith element is $\theta^i pFq(\bar{a}, \bar{b}, z)$,
-        with a_values, b_values and z_eval substituted in.
+        with a_values, b_values and z substituted in.
         """
         p = len(a_values)
         q = len(b_values)
@@ -197,7 +150,7 @@ class pFq(CMF):
 
     @staticmethod
     def evaluate(
-        a_values: list[sp.Rational], b_values: list[sp.Rational], z: sp.Rational
+        a_values: list[sp.Rational], b_values: list[sp.Rational], z_eval: sp.Rational
     ) -> sp.Expr:
         """
         Evaluates symbolically the pFq function at a specific point.
@@ -214,6 +167,6 @@ class pFq(CMF):
         b_anchor = [
             sp.sign(value) * (value - (value.floor() - 2)) for value in b_values
         ]
-        vector = pFq.state_vector(a_anchor, b_anchor, z)
-        m = pFq.contiguous_relation((a_values, b_values), (a_anchor, b_anchor), z)
+        vector = pFq.state_vector(a_anchor, b_anchor, z_eval)
+        m = pFq.contiguous_relation((a_values, b_values), (a_anchor, b_anchor), z_eval)
         return (vector * m)[0]
