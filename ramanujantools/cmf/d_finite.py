@@ -54,7 +54,9 @@ class DFinite(CMF, ABC):
 
     @classmethod
     @abstractmethod
-    def construct_matrix(cls, theta_matrix: Matrix, axis: sp.Symbol) -> Matrix:
+    def construct_matrix(
+        cls, theta_matrix: Matrix, axis: sp.Symbol, *args, **kwargs
+    ) -> Matrix:
         """
         Given a symbol, constructs the matrix for the D-finite CMF.
         Note that if axes[symbol] is False, then the matrix should be used to decrement the axis by one.
@@ -84,7 +86,7 @@ class DFinite(CMF, ABC):
         matrices = {}
         negative_matrices = {}
         for axis, sign in cls.axes_and_signs(*args, **kwargs).items():
-            matrix = cls.construct_matrix(theta_matrix, axis)
+            matrix = cls.construct_matrix(theta_matrix, axis, *args, **kwargs)
             if sign:
                 matrices[axis] = matrix
             else:

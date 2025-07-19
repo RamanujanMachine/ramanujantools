@@ -32,6 +32,9 @@ class pFq(DFinite):
         self.z = sp.S(z)
         super().__init__(p, q, z)
 
+    def __repr__(self) -> str:
+        return f"pFq({self.p, self.q, self.z})"
+
     @staticmethod
     def x_axes(p: int) -> list[sp.Symbol]:
         return sp.symbols(f"x:{p}")
@@ -41,7 +44,7 @@ class pFq(DFinite):
         return sp.symbols(f"y:{q}")
 
     @classmethod
-    def axes_and_signs(cls, p, q, *args) -> dict[sp.Expr, bool]:
+    def axes_and_signs(cls, p, q, z) -> dict[sp.Expr, bool]:
         x_axes = {x_i: True for x_i in pFq.x_axes(p)}
         y_axes = {y_i: False for y_i in pFq.y_axes(q)}
         return {**x_axes, **y_axes}
@@ -57,13 +60,12 @@ class pFq(DFinite):
         )
 
     @classmethod
-    def construct_matrix(cls, theta_matrix: Matrix, axis: sp.Symbol) -> Matrix:
+    def construct_matrix(
+        cls, theta_matrix: Matrix, axis: sp.Symbol, *args, **kwargs
+    ) -> Matrix:
         eye = Matrix.eye(theta_matrix.rows)
         denom = axis - 1 if axis.name.startswith("y") else axis
         return theta_matrix / denom + eye
-
-    def __repr__(self) -> str:
-        return f"pFq({self.p, self.q, self.z})"
 
     def ascend(
         self, trajectory: Position, start: Position
