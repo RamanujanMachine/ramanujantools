@@ -16,7 +16,6 @@ class pFq(CMF):
     r"""
     Represents the pFq CMF, derived from the differentiation property of generalized hypergeometric functions:
     https://en.wikipedia.org/wiki/Generalized_hypergeometric_function
-
     """
 
     def __init__(
