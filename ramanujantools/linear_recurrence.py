@@ -56,7 +56,7 @@ class LinearRecurrence:
         """
         Returns True iff two requrences are identical (even up to gcd).
         """
-        return self.relation == other.relation or self.relation == (-other).relation
+        return self.relation == other.relation
 
     def __neg__(self) -> LinearRecurrence:
         return LinearRecurrence([-c for c in self.relation])
@@ -250,12 +250,12 @@ class LinearRecurrence:
         Folds the recurrence into a higher order recurrence.
 
         Given a recurrence
-        $H_n := \sum_{i=0}^{N}a_i(n) p(n - i) = 0$
+        $$H_n := \sum_{i=0}^{N}a_i(n) p(n - i) = 0.$$
 
         We rewrite $n \to n-1$ to get:
-        $H_{n-1} := \sum_{i=0}^{N}a_i(n-1) p(n - 1 - i) = 0$
+        $$H_{n-1} := \sum_{i=0}^{N}a_i(n-1) p(n - 1 - i) = 0.$$
 
-        Selecting a multiplier rational function $d$, this function returns $H_n + d(n) H_{n-1} = 0$.
+        Selecting a multiplier rational function $d(n)$, this function returns $H_n + d(n) H_{n-1} = 0$.
 
         Example:
             >>> s = LinearRecurrence([sp.Function("a")(n), sp.Function("b")(n), sp.Function("c")(n)])
