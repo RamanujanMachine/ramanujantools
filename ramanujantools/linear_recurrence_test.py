@@ -111,21 +111,21 @@ def test_fold():
 
 
 def test_unfold_poly():
-    r = LinearRecurrence([1, n, n])
+    r = LinearRecurrence([-1, n, n])
     multiplier = n - 3
     folded = r.fold(multiplier)
     assert r == folded.unfold_poly(multiplier)
 
 
 def test_unfold():
-    r = LinearRecurrence([1, n, (n - 3) * (n + 7) * (n - 11)])
+    r = LinearRecurrence([-1, n, (n - 3) * (n + 7) * (n - 11)])
     multiplier = (n - 1) * (n + 2)
     folded = r.fold(multiplier)
     assert (r, sp.Poly(multiplier, n)) == folded.unfold()[0]
 
 
 def test_unfold_deflate():
-    r = LinearRecurrence([1, n, n])
+    r = LinearRecurrence([-1, n, n])
     multiplier = n - 17
     inflation = n + 1
     folded = r.fold(multiplier).inflate(inflation)

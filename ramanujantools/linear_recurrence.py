@@ -56,9 +56,7 @@ class LinearRecurrence:
         """
         Returns True iff two requrences are identical (even up to gcd).
         """
-        return self.relation == other.relation or self.relation == [
-            -c for c in other.relation
-        ]
+        return self.relation == other.relation
 
     def __mul__(self, scalar: int) -> LinearRecurrence:
         return LinearRecurrence([p * scalar for p in self.relation])
