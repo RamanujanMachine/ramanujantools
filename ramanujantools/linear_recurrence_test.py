@@ -114,7 +114,7 @@ def test_unfold_poly():
     r = LinearRecurrence([1, n, n])
     multiplier = n - 3
     folded = r.fold(multiplier)
-    assert r == folded.unfold_poly(multiplier)
+    assert [r] == folded.unfold_poly(multiplier)
 
 
 def test_unfold():
@@ -122,6 +122,67 @@ def test_unfold():
     multiplier = (n - 1) * (n + 2)
     folded = r.fold(multiplier)
     assert (r, sp.Poly(multiplier, n)) == folded.unfold()[0]
+
+
+def test_fold_solution_space():
+    r = LinearRecurrence([n, n + 1, (n + 17) ** 2, 3])
+    initial_values = Matrix([[1, 2, 3]])
+    start = 5
+    end = 10
+    solution = r.evaluate_solution(initial_values, list(range(start, end)), start - 1)
+    multiplier = n**2 + n + 1
+    folded = r.fold(multiplier)
+    assert folded == r + multiplier * r._shift(1)
+    folded_initial_values = Matrix.hstack(initial_values, Matrix([solution[0]]))
+    shifted_solution = folded.evaluate_solution(
+        folded_initial_values,
+        list(range(start + 1, end)),
+        start,
+    )
+    assert solution[1:] == shifted_solution
+
+
+def test_compose_solution_space_constants():
+    r = LinearRecurrence([-1, 1, 1])
+    initial_values = Matrix([[1, 1]])
+    assert [2, 3, 5, 8, 13] == r.evaluate_solution(
+        initial_values, list(range(len(initial_values) + 1, 8)), len(initial_values)
+    )
+
+    rr = r.compose(r)
+    new_initial_values = Matrix([[1, 1, 2, 3]])
+    assert [5, 8, 13, 21, 34] == rr.evaluate_solution(
+        new_initial_values,
+        list(range(len(new_initial_values) + 1, 10)),
+        len(new_initial_values),
+    )
+
+
+def test_compose_solution_space_polynomials():
+    MAX_INDEX = 100
+
+    r1 = LinearRecurrence([n**2 + 3 * n, 5 * n - 7, 13 * n**3, 2])
+    r2 = LinearRecurrence([17 * n, 18 * (n - 2), 19 * (n - 3), 20 * (n - 5)])
+    initial_values = Matrix([[17, 18, 19]])
+    start = 17
+    solution = r2.evaluate_solution(
+        initial_values, list(range(start, MAX_INDEX)), start - 1
+    )
+
+    rr = r1.compose(r2)
+    shift = r1.order()
+    composed_initial_values = Matrix.hstack(
+        initial_values,
+        Matrix([solution[:shift]]),
+    )
+    expected = solution[shift:]
+    actual = rr.evaluate_solution(
+        composed_initial_values,
+        list(range(start + shift, MAX_INDEX)),
+        start - 1 + shift,
+    )
+
+    assert expected == actual
 
 
 def test_unfold_deflate():
@@ -153,7 +214,8 @@ def test_gamma():
     )
 
     unfolded = inflated.unfold_poly(n)
-    pcf = PCF(unfolded.recurrence_matrix).deflate_all()
+    assert 1 == len(unfolded)
+    pcf = PCF(unfolded[0].recurrence_matrix).deflate_all()
     assert PCF(-2 * (n + 2), -((n + 1) ** 2)) == pcf
 
 

@@ -14,7 +14,7 @@ from ramanujantools.utils import batched, Batchable
 
 def trim_trailing_zeros(sequence: list[int]) -> list[int]:
     ending = len(sequence)
-    while sequence[ending - 1] == 0:
+    while ending > 0 and sequence[ending - 1] == 0:
         ending -= 1
     return sequence[0:ending]
 
@@ -31,7 +31,7 @@ class LinearRecurrence:
     $\sum_{i=0}^{N}a_i(n + s) p(n - i) = 0$ for any integer $s$.
     """
 
-    def __init__(self, recurrence: Matrix | list[sp.Expr]):
+    def __init__(self, recurrence: Matrix | list[sp.Expr] | None = None):
         r"""
         Construct the recurrence.
 
@@ -39,7 +39,9 @@ class LinearRecurrence:
             1. A list of the coefficients of the recurrence [a_0(n), ..., a_N(n)]
             2. A matrix which is companionized and used as the recurrence sequence
         """
-        if isinstance(recurrence, Matrix):
+        if recurrence is None:
+            relation = []
+        elif isinstance(recurrence, Matrix):
             recurrence_matrix = recurrence.as_companion()
             col = recurrence_matrix.col(-1)
             lead = col.denominator_lcm
@@ -47,8 +49,6 @@ class LinearRecurrence:
             relation = [-lead] + coeffs
         else:
             relation = recurrence
-        if len(relation) == 0:
-            raise ValueError("Attempted to construct an empty recurrence!")
         relation = [sp.factor(sp.simplify(p)) for p in relation]
         self.relation = trim_trailing_zeros(relation)
 
@@ -56,9 +56,34 @@ class LinearRecurrence:
         """
         Returns True iff two requrences are identical (even up to gcd).
         """
-        return self.relation == other.relation or self.relation == [
-            -c for c in other.relation
-        ]
+        return self.relation == other.relation or self.relation == (-other).relation
+
+    def __neg__(self) -> LinearRecurrence:
+        return LinearRecurrence([-c for c in self.relation])
+
+    def __add__(self, other: LinearRecurrence) -> LinearRecurrence:
+        return LinearRecurrence(
+            [
+                a_i + b_i
+                for a_i, b_i in itertools.zip_longest(
+                    self.relation, other.relation, fillvalue=0
+                )
+            ]
+        )
+
+    def __radd__(self, other: LinearRecurrence) -> LinearRecurrence:
+        return self + other
+
+    def _shift(self, num: int) -> LinearRecurrence:
+        return LinearRecurrence(
+            [0] * num + [c.subs({n: n - num}) for c in self.relation]
+        )
+
+    def __sub__(self, other: LinearRecurrence) -> LinearRecurrence:
+        return self + (-other)
+
+    def __rsub__(self, other: LinearRecurrence) -> LinearRecurrence:
+        return self - other
 
     def __mul__(self, scalar: int) -> LinearRecurrence:
         return LinearRecurrence([p * scalar for p in self.relation])
@@ -86,8 +111,8 @@ class LinearRecurrence:
 
     def _symbolic_relation(self) -> sp.Expr:
         terms = [
-            self.relation[i] * sp.Function("p")(n + 1 - i)
-            for i in range(1, len(self.relation))
+            self.relation[i] * sp.Function("p")(n - i)
+            for i in range(len(self.relation))
         ]
         return sp.Add(*terms)
 
@@ -181,7 +206,8 @@ class LinearRecurrence:
         """
         if self.order() != len(initial_values):
             raise ValueError(
-                "Initial values of a recursion must be of the recurrence's order"
+                "Initial values of a recursion must be of the recurrence's order! "
+                f"got {len(initial_values)} while order is {self.order()}"
             )
         if min(indices) <= given_index:
             raise ValueError(
@@ -228,10 +254,10 @@ class LinearRecurrence:
         Folds the recurrence into a higher order recurrence.
 
         Given a recurrence
-        $H_n \coloneq \sum_{i=0}^{N}a_i(n) p(n - i) = 0$
+        $H_n := \sum_{i=0}^{N}a_i(n) p(n - i) = 0$
 
         We rewrite $n \to n-1$ to get:
-        $H_{n-1} \coloneq \sum_{i=0}^{N}a_i(n-1) p(n - 1 - i) = 0$
+        $H_{n-1} := \sum_{i=0}^{N}a_i(n-1) p(n - 1 - i) = 0$
 
         Selecting a multiplier rational function $d$, this function returns $H_n + d(n) H_{n-1} = 0$.
 
@@ -242,12 +268,7 @@ class LinearRecurrence:
             >>> s.fold(sp.Function("d")(n))
             LinearRecurrence([a(n), a(n - 1)*d(n) + b(n), b(n - 1)*d(n) + c(n), c(n - 1)*d(n)])
         """
-        relation = self.relation
-        modification = [0] + [multiplier * c.subs({n: n - 1}) for c in self.relation]
-        relation = [
-            sum(d) for d in itertools.zip_longest(relation, modification, fillvalue=0)
-        ]
-        return LinearRecurrence(relation)
+        return self + multiplier * self._shift(1)
 
     @staticmethod
     def all_divisors(p: sp.Poly) -> list[sp.Poly]:
@@ -276,13 +297,13 @@ class LinearRecurrence:
         """
         return LinearRecurrence.all_divisors(self.relation[-1])
 
-    def unfold_poly(self, multiplier: sp.Poly) -> LinearRecurrence:
+    def unfold_poly(self, multiplier: sp.Poly) -> list[LinearRecurrence]:
         r"""
         Attempts to unfold this recursion using a multiplier rational function.
-        In case of success, returns a recurrence such that `recurrence.fold(multiplier) == self`
+        In case of success, returns all recurrence that satisfy `recurrence.fold(multiplier) == self`
 
-        If `self` contains parameters (other than n), will attempt to find a matching substitution.
-        In case of success, the returned recurrence will be substituted with the solution.
+        If `self` contains parameters (other than n), will attempt to find matching substitutions.
+        In case of success, the returned recurrences will be substituted with the solution.
         i.e, for that solution, `recurrence.fold(multiplier) == self.subs(solution)`
         """
         multiplier = sp.Poly(multiplier, n).as_expr()
@@ -292,13 +313,10 @@ class LinearRecurrence:
             unfolded.append(sp.simplify(self.relation[index] - next * multiplier))
         expected_tail = unfolded[-1].subs({n: n - 1}) * multiplier
         if sp.simplify(expected_tail - self.relation[-1]) == 0:
-            return LinearRecurrence(unfolded)
+            return [LinearRecurrence(unfolded)]
         if len(self.free_symbols()) > 0:
             solutions = sp.solve(sp.Poly(expected_tail - self.relation[-1], n).coeffs())
-            assert len(solutions) < 2
-            for solution in solutions:
-                unfolded = [d.subs(solution) for d in unfolded]
-                return LinearRecurrence(unfolded)
+            return [LinearRecurrence(unfolded).subs(solution) for solution in solutions]
         return None
 
     def unfold(self, inflation_degree=0) -> tuple[LinearRecurrence, sp.Poly]:
@@ -319,10 +337,25 @@ class LinearRecurrence:
         else:
             recurrence = self
         for multiplier in tqdm(self.possible_multipliers()):
-            unfolded = recurrence.unfold_poly(multiplier)
-            if unfolded is not None:
+            solutions = recurrence.unfold_poly(multiplier)
+            for unfolded in solutions:
                 results.append((unfolded, multiplier))
         return results
+
+    def compose(self, other: LinearRecurrence) -> LinearRecurrence:
+        r"""
+        Composes two linear recurrences.
+        Given two linear recurrence $A_n := \sum_{i=0}^{d_a}a_i(n) p(n - i) = 0$
+        and $B_n := \sum_{i=0}^{d_b}b_i(n) p(n - i) = 0$, calculates the composition of them:
+
+        $$ A_n \circ B_n := \sum_{i=0}^{d_a} a_i(n) \cdot B_{n-i} = 0 $$
+
+        The resulting recurrence is of order $d_a + d_b$.
+        """
+        result = LinearRecurrence()
+        for i, a_i in enumerate(self.relation):
+            result += a_i * other._shift(i)
+        return result
 
     def kamidelta(self, depth=20):
         r"""
