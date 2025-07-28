@@ -36,31 +36,31 @@ def test_limit():
 
 def test_evaluate_solution_fibonacci():
     r = LinearRecurrence([-1, 1, 1])
-    given_index = 0  # i.e, the initial values are at indices -1 and 0.
-    indices = list(range(given_index + 1, given_index + 6))
+    start = 33
+    end = start + 5
     initial_values = Matrix([[1, 1]])
-    assert r.evaluate_solution(initial_values, indices, given_index) == [2, 3, 5, 8, 13]
+    assert r.evaluate_solution(initial_values, start, end) == [2, 3, 5, 8, 13]
 
 
 def test_evaluate_solution_basis_single():
     r = LinearRecurrence([1, n, n**2, 3])
-    indices = 100
+    start = 0
+    end = 100
     initial_values = Matrix([[0, 1, 0]])
-    matrix = r.recurrence_matrix.walk({n: 1}, indices, {n: 0})
-    evaluation = r.evaluate_solution(initial_values, indices)
-    assert initial_values.dot(matrix.col(-1)) == evaluation
+    matrix = r.recurrence_matrix.walk({n: 1}, end, {n: start})
+    evaluation = r.evaluate_solution(initial_values, start, end)
+    assert initial_values.dot(matrix.col(-1)) == evaluation[-1]
 
 
 def test_evaluate_solution_basis_list_with_given_index():
     r = LinearRecurrence([n, -n, 5, n**2 + n + 1])
-    given_index = 3
-    max_index = 100
+    start = 3
+    end = 100
     initial_values = Matrix([[0, 0, 1]])
-    indices = list(range(given_index + 1, 100))
     matrices = r.recurrence_matrix.walk(
-        {n: 1}, list(range(1, max_index - given_index)), {n: given_index}
+        {n: 1}, list(range(1, end - start + 1)), {n: start}
     )
-    evaluations = r.evaluate_solution(initial_values, indices, given_index)
+    evaluations = r.evaluate_solution(initial_values, start, end)
     assert len(matrices) == len(evaluations)
     for i in range(len(evaluations)):
         assert initial_values.dot(matrices[i].col(-1)) == evaluations[i]
@@ -68,14 +68,13 @@ def test_evaluate_solution_basis_list_with_given_index():
 
 def test_evaluate_solution_generic():
     r = LinearRecurrence([2, -n + 1, n**3 + n, 14])
-    given_index = 17
-    max_index = 123
+    start = 17
+    end = 123
     initial_values = Matrix([[5, -4, 2]])
-    indices = list(range(given_index + 1, max_index))
     matrices = r.recurrence_matrix.walk(
-        {n: 1}, list(range(1, max_index - given_index)), {n: given_index}
+        {n: 1}, list(range(1, end - start + 1)), {n: start}
     )
-    evaluations = r.evaluate_solution(initial_values, indices, given_index)
+    evaluations = r.evaluate_solution(initial_values, start, end)
     assert len(matrices) == len(evaluations)
     for i in range(len(evaluations)):
         assert initial_values.dot(matrices[i].col(-1)) == evaluations[i]
@@ -129,45 +128,34 @@ def test_fold_solution_space():
     initial_values = Matrix([[1, 2, 3]])
     start = 5
     end = 10
-    solution = r.evaluate_solution(initial_values, list(range(start, end)), start - 1)
+    solution = r.evaluate_solution(initial_values, start, end)
     multiplier = n**2 + n + 1
     folded = r.fold(multiplier)
     assert folded == r + multiplier * r._shift(1)
     folded_initial_values = Matrix.hstack(initial_values, Matrix([solution[0]]))
-    shifted_solution = folded.evaluate_solution(
-        folded_initial_values,
-        list(range(start + 1, end)),
-        start,
-    )
+    shifted_solution = folded.evaluate_solution(folded_initial_values, start + 1, end)
     assert solution[1:] == shifted_solution
 
 
 def test_compose_solution_space_constants():
     r = LinearRecurrence([-1, 1, 1])
     initial_values = Matrix([[1, 1]])
-    assert [2, 3, 5, 8, 13] == r.evaluate_solution(
-        initial_values, list(range(len(initial_values) + 1, 8)), len(initial_values)
-    )
+    start = 0
+    end = 5
+    assert [2, 3, 5, 8, 13] == r.evaluate_solution(initial_values, start, end)
 
     rr = r.compose(r)
     new_initial_values = Matrix([[1, 1, 2, 3]])
-    assert [5, 8, 13, 21, 34] == rr.evaluate_solution(
-        new_initial_values,
-        list(range(len(new_initial_values) + 1, 10)),
-        len(new_initial_values),
-    )
+    assert [5, 8, 13, 21, 34] == rr.evaluate_solution(new_initial_values, start, end)
 
 
 def test_compose_solution_space_polynomials():
-    MAX_INDEX = 100
-
     r1 = LinearRecurrence([n**2 + 3 * n, 5 * n - 7, 13 * n**3, 2])
     r2 = LinearRecurrence([17 * n, 18 * (n - 2), 19 * (n - 3), 20 * (n - 5)])
     initial_values = Matrix([[17, 18, 19]])
     start = 17
-    solution = r2.evaluate_solution(
-        initial_values, list(range(start, MAX_INDEX)), start - 1
-    )
+    end = 100
+    solution = r2.evaluate_solution(initial_values, start, end)
 
     rr = r1.compose(r2)
     shift = r1.order()
@@ -176,11 +164,7 @@ def test_compose_solution_space_polynomials():
         Matrix([solution[:shift]]),
     )
     expected = solution[shift:]
-    actual = rr.evaluate_solution(
-        composed_initial_values,
-        list(range(start + shift, MAX_INDEX)),
-        start - 1 + shift,
-    )
+    actual = rr.evaluate_solution(composed_initial_values, start + shift, end)
 
     assert expected == actual
 

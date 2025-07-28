@@ -190,10 +190,9 @@ class LinearRecurrence:
             {n: 1}, iterations, {n: start}, initial_values
         )
 
-    @batched("indices")
-    def evaluate_solution(  # noqa: F811
-        self, initial_values: Matrix, indices: Batchable[int], given_index: int = 0
-    ) -> Batchable[sp.Rational]:
+    def evaluate_solution(
+        self, initial_values: Matrix, start: int, end: int
+    ) -> list[sp.Rational]:
         """
         Returns an evaluation of a specific solution of the recurrence.
         A specific solution is uniquely defined by initial values.
@@ -209,15 +208,12 @@ class LinearRecurrence:
                 "Initial values of a recursion must be of the recurrence's order! "
                 f"got {len(initial_values)} while order is {self.order()}"
             )
-        if min(indices) <= given_index:
-            raise ValueError(
-                "Requested to evaluate indices that are less than the given index:"
-                f"Got index {min(indices)} while given index is {given_index}"
-            )
+        if not start <= end:
+            raise ValueError("Requested to evaluate solution at a negative range!")
         retval = []
-        iterations = [index - given_index for index in indices]
+        iterations = list(range(1, end - start + 1))
         limits = self.limit(
-            iterations, given_index, Matrix.vstack(initial_values, initial_values)
+            iterations, start, Matrix.vstack(initial_values, initial_values)
         )
         for limit in limits:
             retval.append(limit.p())
