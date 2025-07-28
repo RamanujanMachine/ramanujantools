@@ -137,6 +137,17 @@ def test_fold_solution_space():
     assert solution[1:] == shifted_solution
 
 
+def test_unfold_deflate():
+    r = LinearRecurrence([-1, n, n])
+    multiplier = n - 17
+    inflation = n + 1
+    folded = r.fold(multiplier).inflate(inflation)
+    solutions = folded.unfold(-1)
+    recurrence, actual_multiplier = solutions[-1]
+    assert r == recurrence.deflate(inflation)
+    assert actual_multiplier == sp.Poly(multiplier * inflation, n)
+
+
 def test_compose_solution_space_constants():
     r = LinearRecurrence([-1, 1, 1])
     initial_values = Matrix([[1, 1]])
@@ -169,15 +180,10 @@ def test_compose_solution_space_polynomials():
     assert expected == actual
 
 
-def test_unfold_deflate():
-    r = LinearRecurrence([-1, n, n])
-    multiplier = n - 17
-    inflation = n + 1
-    folded = r.fold(multiplier).inflate(inflation)
-    solutions = folded.unfold(-1)
-    recurrence, actual_multiplier = solutions[-1]
-    assert r == recurrence.deflate(inflation)
-    assert actual_multiplier == sp.Poly(multiplier * inflation, n)
+def test_fold_is_compose():
+    r = LinearRecurrence([n**2 + 3 * n, 5 * n - 7, 13 * n**3, 2])
+    multiplier = 12 * n**3 - 34 * n**2 + 56 * n - 78
+    assert r.fold(multiplier) == LinearRecurrence([1, multiplier]).compose(r)
 
 
 def test_gamma():

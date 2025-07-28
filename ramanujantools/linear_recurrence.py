@@ -256,6 +256,7 @@ class LinearRecurrence:
         $$H_{n-1} := \sum_{i=0}^{N}a_i(n-1) p(n - 1 - i) = 0.$$
 
         Selecting a multiplier rational function $d(n)$, this function returns $H_n + d(n) H_{n-1} = 0$.
+        Note: this is the same as `LinearRecurrence([1, multiplier]).compose(self)`.
 
         Example:
             >>> s = LinearRecurrence([sp.Function("a")(n), sp.Function("b")(n), sp.Function("c")(n)])
