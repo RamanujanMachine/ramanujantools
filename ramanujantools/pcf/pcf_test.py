@@ -117,7 +117,7 @@ def test_pcf_construction_from_matrix():
 def test_pcf_construction_from_linear_recurrence():
     a_n = 2 * n**2 + 3 * n
     b_n = 5 * n**2 + 7 * n
-    recurrence = LinearRecurrence([1, a_n, b_n])
+    recurrence = LinearRecurrence([-1, a_n, b_n])
     assert PCF(a_n, b_n) == PCF(recurrence)
 
 

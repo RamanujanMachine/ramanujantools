@@ -21,7 +21,7 @@ def test_relation():
 
 
 def test_matrix():
-    relation = [1, n, n + 1]
+    relation = [-1, n, n + 1]
     assert Matrix([[0, n + 1], [1, n]]) == LinearRecurrence(relation).recurrence_matrix
 
 
@@ -35,7 +35,7 @@ def test_limit():
 
 
 def test_evaluate_solution_fibonacci():
-    r = LinearRecurrence([1, 1, 1])
+    r = LinearRecurrence([-1, 1, 1])
     given_index = 0  # i.e, the initial values are at indices -1 and 0.
     indices = list(range(given_index + 1, given_index + 6))
     initial_values = Matrix([[1, 1]])
@@ -63,7 +63,6 @@ def test_evaluate_solution_basis_list_with_given_index():
     evaluations = r.evaluate_solution(initial_values, indices, given_index)
     assert len(matrices) == len(evaluations)
     for i in range(len(evaluations)):
-        print(i)
         assert initial_values.dot(matrices[i].col(-1)) == evaluations[i]
 
 
@@ -104,7 +103,7 @@ def test_fold():
     assert LinearRecurrence(
         [
             f("a"),
-            -f("a", n - 1) * f("d") + f("b"),
+            f("a", n - 1) * f("d") + f("b"),
             f("b", n - 1) * f("d") + f("c"),
             f("c", n - 1) * f("d"),
         ]
@@ -112,21 +111,21 @@ def test_fold():
 
 
 def test_unfold_poly():
-    r = LinearRecurrence([1, n, n])
+    r = LinearRecurrence([-1, n, n])
     multiplier = n - 3
     folded = r.fold(multiplier)
     assert r == folded.unfold_poly(multiplier)
 
 
 def test_unfold():
-    r = LinearRecurrence([1, n, (n - 3) * (n + 7) * (n - 11)])
+    r = LinearRecurrence([-1, n, (n - 3) * (n + 7) * (n - 11)])
     multiplier = (n - 1) * (n + 2)
     folded = r.fold(multiplier)
     assert (r, sp.Poly(multiplier, n)) == folded.unfold()[0]
 
 
 def test_unfold_deflate():
-    r = LinearRecurrence([1, n, n])
+    r = LinearRecurrence([-1, n, n])
     multiplier = n - 17
     inflation = n + 1
     folded = r.fold(multiplier).inflate(inflation)
@@ -162,7 +161,7 @@ def test_euler_gompertz_independent():
     # from https://arxiv.org/abs/0902.1768
     r = LinearRecurrence(
         [
-            (16 * n + 1) * (16 * n - 15),
+            -(16 * n + 1) * (16 * n - 15),
             (16 * n - 15) * (256 * n**3 + 528 * n**2 + 352 * n + 73),
             -(16 * n + 17) * (128 * n**3 + 40 * n**2 - 82 * n - 45),
             n**2 * (16 * n + 17) * (16 * n + 1),
@@ -177,25 +176,3 @@ def test_euler_gompertz_independent():
 
     limit = r.limit(200, 1)
     assert Matrix([[0, 0, 17], [-3, -2, 7]]) == limit.identify(constant(limit.mp))
-
-
-def test_apteshuffle():
-    expected = LinearRecurrence(  # from the paper
-        [
-            (16 * n - 15) * (16 * n + 1),
-            (16 * n - 15) * (256 * n**3 + 528 * n**2 + 352 * n + 73),
-            -(16 * n + 17) * (128 * n**3 + 40 * n**2 - 82 * n - 45),
-            n**2 * (16 * n + 1) * (16 * n + 17),
-        ]
-    )
-
-    apt = LinearRecurrence(  # from the paper
-        [
-            16 * n - 15,
-            128 * n**3 + 40 * n**2 - 82 * n - 45,
-            -(n**2) * (256 * n**3 - 240 * n**2 + 64 * n - 7),
-            n**2 * (n - 1) ** 2 * (16 * n + 1),
-        ]
-    )
-
-    assert expected == apt.apteshuffle().deflate((n + 1) ** 2)

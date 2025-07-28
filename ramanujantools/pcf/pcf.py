@@ -72,7 +72,7 @@ class PCF:
             a_n, b_n = args
             if b_n == 0:
                 raise ValueError("b_n cannot be zero in a PCF!")
-            self.recurrence = LinearRecurrence([1, a_n, b_n])
+            self.recurrence = LinearRecurrence([-1, a_n, b_n])
         elif len(args) == 1 and isinstance(recurrence := args[0], LinearRecurrence):
             self.recurrence = recurrence.normalize()
         elif len(args) == 1 and isinstance(matrix := args[0], Matrix):
