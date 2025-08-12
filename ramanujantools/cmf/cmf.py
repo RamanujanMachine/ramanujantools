@@ -117,10 +117,12 @@ class CMF:
         """
         Validates all the matrices in the negative matrices cache.
         """
+        ctx = self.ctx()
         for key, inverse_matrix in self._negative_matrices_cache.items():
+            M = SymbolicMatrix.from_sympy(self.M(key, True), ctx)
+            m_inv = SymbolicMatrix.from_sympy(inverse_matrix, ctx)
             if not (
-                Matrix.eye(self.rank())
-                == (self.M(key).subs({key: key - 1}) * inverse_matrix).factor()
+                SymbolicMatrix.eye(self.rank(), ctx) == (M.subs({key: key - 1}) * m_inv)
             ):
                 raise ValueError(
                     f"The negative matrix cache is corrupted for axis {key}"
@@ -245,7 +247,7 @@ class CMF:
     def walk_symbol() -> sp.Symbol:
         return sp.Symbol("walk")
 
-    def ctx(self, start: Position | None) -> FlintContext:
+    def ctx(self, start: Position | None = None) -> FlintContext:
         start = Position(start) if start else Position()
         free_symbols = (
             self.free_symbols().union({CMF.walk_symbol()}).union(start.free_symbols())
