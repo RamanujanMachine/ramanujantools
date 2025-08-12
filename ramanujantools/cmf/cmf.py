@@ -433,7 +433,7 @@ class CMF:
         return effective_start + symbol * trajectory
 
     @batched("iterations")
-    def walk(  # noqa: F811
+    def walk(
         self,
         trajectory: dict,
         iterations: Batchable[int],

@@ -60,7 +60,7 @@ class MeijerG(CMF):
         # Build a_i matrices (bidiagonal form)
         for i, a_i in enumerate(a):
             a_i_matrix = Mtheta + (1 - a_i) * eye
-            if i + 1 > n:
+            if i > n:
                 a_i_matrix = -a_i_matrix
             negative_matrices[a_i] = a_i_matrix
             matrices[a_i] = a_i_matrix.subs({a_i: a_i + 1}).inv()
@@ -68,7 +68,7 @@ class MeijerG(CMF):
         # Build b_i matrices (bidiagonal form)
         for i, b_i in enumerate(b):
             b_i_matrix = -Mtheta + b_i * eye
-            if i + 1 > m:
+            if i > m:
                 b_i_matrix = -b_i_matrix
             matrices[b_i] = b_i_matrix
 

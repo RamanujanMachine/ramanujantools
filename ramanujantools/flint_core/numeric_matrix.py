@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Callable
 
 import sympy as sp
-from flint import fmpq_mat, fmpq  # noqa: F401
+from flint import fmpq_mat, fmpq
 
 import ramanujantools as rt
 from ramanujantools import Position
