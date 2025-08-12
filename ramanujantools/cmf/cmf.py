@@ -117,10 +117,13 @@ class CMF:
         Validates all the matrices in the negative matrices cache.
         """
         for key, inverse_matrix in self._negative_matrices_cache.items():
-            assert (
+            if not (
                 Matrix.eye(self.rank())
                 == (self.M(key).subs({key: key - 1}) * inverse_matrix).factor()
-            )
+            ):
+                raise ValueError(
+                    f"The negative matrix cache is corrupted for axis {key}"
+                )
 
     def M(self, axis: sp.Symbol, sign: bool = True) -> Matrix:
         """

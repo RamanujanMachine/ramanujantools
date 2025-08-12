@@ -39,6 +39,16 @@ def test_validate_conserving():
         cmf = CMF(matrices={x: m, y: m}, validate=True)
 
 
+def test_validate_negative_cache():
+    cmf = known_cmfs.cmf1()
+    negative_matrices = {axis: cmf.M(axis, sign=False) for axis in cmf.matrices}
+    CMF(cmf.matrices, _negative_matrices_cache=negative_matrices, validate=True)
+    random_axis = list(negative_matrices.keys())[0]
+    negative_matrices[random_axis] += Matrix.eye(cmf.rank())
+    with raises(ValueError):
+        CMF(cmf.matrices, _negative_matrices_cache=negative_matrices, validate=True)
+
+
 def test_symbols():
     cmf = known_cmfs.cmf1()
     expected_axes = {x, y}
