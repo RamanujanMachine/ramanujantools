@@ -4,73 +4,66 @@ import sympy as sp
 from sympy.abc import z
 
 from ramanujantools import Matrix
-from ramanujantools.cmf import CMF
+from ramanujantools.cmf import DFinite
+from ramanujantools.cmf.d_finite import theta
 
-from functools import lru_cache
 
-
-class MeijerG(CMF):
+class MeijerG(DFinite):
     r"""
     Represents the pFq CMF, derived from the differentiation property of generalized hypergeometric functions:
     https://en.wikipedia.org/wiki/Meijer_G-function
     """
 
     def __init__(self, m: int, n: int, p: int, q: int, z: sp.Expr = z):
+        if not (p > 0 and 0 <= n and n <= p) or not (q > 0 and 0 <= m and m <= q):
+            raise ValueError(
+                "Meijer G must satisfy p > 0, 0 <= n <= p and q > 0, 0 <= m <= q"
+            )
         self.m = m
         self.n = n
         self.p = p
         self.q = q
         self.z = z
-        matrices, negative_matrices = MeijerG.construct_matrices(m, n, p, q, z)
-        super().__init__(
-            matrices=matrices,
-            _negative_matrices_cache=negative_matrices,
-            validate=False,
+        super().__init__(self.m, self.n, self.p, self.q, self.z)
+
+    def __repr__(self) -> str:
+        return f"MeijerG({self.m, self.n, self.p, self.q, self.z})"
+
+    @staticmethod
+    def a_axes(p) -> list[sp.Symbol]:
+        return sp.symbols(f"a:{p}")
+
+    @staticmethod
+    def b_axes(q) -> list[sp.Symbol]:
+        return sp.symbols(f"b:{q}")
+
+    @classmethod
+    def axes_and_signs(cls, m, n, p, q, z) -> dict[sp.Expr, bool]:
+        a_axes = {a_i: False for a_i in MeijerG.a_axes(p)}
+        b_axes = {b_i: True for b_i in MeijerG.b_axes(q)}
+        return {**a_axes, **b_axes}
+
+    @staticmethod
+    def differential_equation(m, n, p, q, z) -> sp.Poly:
+        coeff = (-sp.Integer(1)) ** (p - m - n)
+        return sp.Poly(
+            sp.expand(
+                coeff * z * sp.prod(theta - a_i + 1 for a_i in MeijerG.a_axes(p))
+                - sp.prod(theta - b_j for b_j in MeijerG.b_axes(q))
+            ),
+            theta,
         )
 
-    @lru_cache
-    @staticmethod
-    def construct_matrices(
-        m: int, n: int, p: int, q: int, z: sp.Expr
-    ) -> tuple[dict[sp.Expr, Matrix], dict[sp.Expr, Matrix]]:
-        if not (p > 0 and 0 <= n and n <= p) or not (q > 0 and 0 <= m and m <= q):
-            raise ValueError(
-                "Meijer G must satisfy p > 0, 0 <= n <= p and q > 0, 0 <= m <= q"
-            )
-        X = sp.symbols("X")
-        a = sp.symbols(f"a:{p}")
-        b = sp.symbols(f"b:{q}")
-
-        # Construct the polynomial expression from the differential equation
-        diff_eq_a = sp.prod([X - a_i + 1 for a_i in a])
-        diff_eq_b = sp.prod([X - b_j for b_j in b])
-        diff_eq = (-sp.Integer(1)) ** (p - m - n) * z * diff_eq_a - diff_eq_b
-        diff_eq_coeffs = sp.Poly(diff_eq, X).all_coeffs()
-
-        # Compute the recurrence coefficients T0, T1, ..., Tr
-        r = len(diff_eq_coeffs) - 1
-        eye = Matrix.eye(r)
-
-        # Construct the Mtheta matrix (r x r with T as last column)
-        T = [-diff_eq_coeffs[-(i + 1)] / diff_eq_coeffs[0] for i in range(r)]
-        Mtheta = Matrix.companion_form(T)
-
-        matrices = {}
-        negative_matrices = {}
-        # Build a_i matrices (bidiagonal form)
-        for i, a_i in enumerate(a):
-            a_i_matrix = Mtheta + (1 - a_i) * eye
-            if i > n:
-                a_i_matrix = -a_i_matrix
-            negative_matrices[a_i] = a_i_matrix
-            matrices[a_i] = a_i_matrix.subs({a_i: a_i + 1}).inv()
-
-        # Build b_i matrices (bidiagonal form)
-        for i, b_i in enumerate(b):
-            b_i_matrix = -Mtheta + b_i * eye
-            if i > m:
-                b_i_matrix = -b_i_matrix
-            matrices[b_i] = b_i_matrix
-
-        # Combine all into one dictionary
-        return matrices, negative_matrices
+    @classmethod
+    def construct_matrix(
+        cls, theta_matrix: Matrix, axis: sp.Symbol, m: int, n: int, *args, **kwargs
+    ) -> Matrix:
+        eye = Matrix.eye(theta_matrix.rows)
+        is_a = axis.name.startswith("a")
+        index = int(axis.name[1:])
+        if is_a:
+            sign = -1 if index > n else 1
+        else:
+            sign = 1 if index > m else -1
+        multiplier = axis - 1 if is_a else axis
+        return (theta_matrix - multiplier * eye) * sign

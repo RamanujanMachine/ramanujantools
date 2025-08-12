@@ -268,8 +268,6 @@ def test_work_symbolic():
     trajectory = end - start
     expected = cmf.walk(trajectory, 1, start)
     actual = cmf.work(start, end)
-    print(expected)
-    print(actual)
     assert expected == actual
 
 

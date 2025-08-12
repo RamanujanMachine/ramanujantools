@@ -1,4 +1,5 @@
 from .cmf import CMF
+from .d_finite import DFinite
 from .ffbar import FFbar
 from .pfq import pFq
 from .meijer_g import MeijerG
@@ -20,6 +21,7 @@ from .known_cmfs import (
 
 __all__ = [
     "CMF",
+    "DFinite",
     "FFbar",
     "pFq",
     "MeijerG",
