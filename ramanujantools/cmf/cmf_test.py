@@ -42,7 +42,7 @@ def test_coboundary_inversible():
 
 
 def test_coboundary_is_conserving():
-    cmf = pFq(2, 1, -1)
+    cmf = pFq(3, 2, 1)
     x0 = sp.Symbol("x0")
     y0 = sp.Symbol("y0")
     U = Matrix([[x0, c0 * y0], [3 * x0 - 2 * y0, 17 * x0**2]])

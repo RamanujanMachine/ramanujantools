@@ -83,10 +83,11 @@ class CMF:
         x: sp.Symbol,
         y: sp.Symbol,
     ) -> bool:
-        Mx = self.M(x)
-        My = self.M(y)
-        Mxy = (Mx * My({x: x + 1})).factor()
-        Myx = (My * Mx({y: y + 1})).factor()
+        ctx = self.ctx(Position({x: 0, y: 0}))
+        Mx = SymbolicMatrix.from_sympy(self.M(x, True), ctx)
+        My = SymbolicMatrix.from_sympy(self.M(y, True), ctx)
+        Mxy = Mx * My.subs({x: x + 1})
+        Myx = My * Mx.subs({y: y + 1})
         return Mxy == Myx
 
     def validate_conserving(self) -> None:
