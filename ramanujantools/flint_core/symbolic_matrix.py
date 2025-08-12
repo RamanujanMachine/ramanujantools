@@ -116,7 +116,10 @@ class SymbolicMatrix:
         """
         if isinstance(other, SymbolicMatrix):
             if self.cols() != other.rows():
-                raise ValueError("Attempting to multiply")
+                raise ValueError(
+                    "Attempting to multiply matrices with incompatible shapes!"
+                    f"self.cols()={self.cols()}, other.rows()={other.rows()}"
+                )
             elements = []
             for row in range(self.rows()):
                 for col in range(other.cols()):

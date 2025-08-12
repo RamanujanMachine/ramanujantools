@@ -141,15 +141,6 @@ class CMF:
                 )
             return self._negative_matrices_cache[axis]
 
-    def dual(self) -> CMF:
-        """
-        Returns the dual CMF which is defined with inverse-transpose matrices.
-        """
-        return CMF(
-            {axis: self.M(axis).inverse().transpose() for axis in self.axes()},
-            validate=False,
-        )
-
     def axes(self) -> set[sp.Symbol]:
         """
         Returns the symbols of all axes of the CMF.
@@ -183,6 +174,30 @@ class CMF:
         """
         random_matrix = list(self.matrices.values())[0]
         return random_matrix.rows
+
+    def dual(self) -> CMF:
+        """
+        Returns the dual CMF which is defined with inverse-transpose matrices.
+        """
+        return CMF(
+            {axis: self.M(axis).inverse().transpose() for axis in self.axes()},
+            validate=False,
+        )
+
+    def coboundary(self, coboundary: Matrix) -> CMF:
+        """
+        Returns the CMF up to a coboundary matrix U.
+        """
+
+        matrices = {
+            axis: matrix.coboundary(coboundary, axis, sign=True)
+            for axis, matrix in self.matrices.items()
+        }
+        negative_matrices = {
+            axis: matrix.coboundary(coboundary, axis, sign=False)
+            for axis, matrix in self._negative_matrices_cache.items()
+        }
+        return CMF(matrices, negative_matrices, validate=False)
 
     def _validate_axes_substitutions(self, substitutions: Position) -> None:
         if (

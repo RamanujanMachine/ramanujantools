@@ -160,22 +160,25 @@ class Matrix(sp.Matrix):
         """
         return sp.solve(self.det(), dict=True)
 
-    def coboundary(self, U: Matrix, symbol: sp.Symbol = n) -> Matrix:
+    def coboundary(self, U: Matrix, symbol: sp.Symbol = n, sign: bool = True) -> Matrix:
         r"""
-        Calculates the coboundary relation of M and U $U^{-1}(n) * M(n) * U^(n+1)$, where $M$ is `self`.
+        Calculates the coboundary relation of M and U $U^{-1}(n) * M(n) * U^(n+s)$, where $M$ is `self` and $s$ is `sign`.
 
         Args:
             U: The coboundary matrix
             symbol: The symbol to use when calculating the coboundary relation. `n` by default.
+            sign: Represents if `symbol` goes up or down in the coboundary relation.
         Returns:
             The coboundary relation as described above
         """
-        free_symbols = self.free_symbols.union({symbol})
+        free_symbols = self.free_symbols.union(U.free_symbols).union({symbol})
         ctx = flint_ctx(free_symbols, fmpz=True)
         return (
             SymbolicMatrix.from_sympy(U.inverse(), ctx)
             * SymbolicMatrix.from_sympy(self, ctx)
-            * SymbolicMatrix.from_sympy(U.subs({symbol: symbol + 1}), ctx)
+            * SymbolicMatrix.from_sympy(
+                U.subs({symbol: symbol + (1 if sign else -1)}), ctx
+            )
         ).factor()
 
     def companion_coboundary_matrix(self, symbol: sp.Symbol = n) -> Matrix:
