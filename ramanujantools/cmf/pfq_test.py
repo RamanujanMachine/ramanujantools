@@ -83,42 +83,7 @@ def test_2F1_theta_derivative():
         }
     )
     cmf = pFq(2, 1)
-    cmf.assert_conserving()
-    assert cmf == expected
-
-
-def test_2F1_theta_derivative_negate_denominator():
-    x0 = sp.Symbol("x0")
-    x1 = sp.Symbol("x1")
-    y0 = sp.Symbol("y0")
-    z = sp.Symbol("z")
-    expected = CMF(
-        {
-            x0: Matrix(
-                [
-                    [1, -x1 * z / (z - 1)],
-                    [1 / x0, 1 - (x0 * z + x1 * z + y0 + 1) / (x0 * (z - 1))],
-                ]
-            ),
-            x1: Matrix(
-                [
-                    [1, -x0 * z / (z - 1)],
-                    [1 / x1, 1 - (x0 * z + x1 * z + y0 + 1) / (x1 * (z - 1))],
-                ]
-            ),
-            y0: Matrix(
-                [
-                    [1, x0 * x1 * z / ((y0 + 1) * (z - 1))],
-                    [
-                        -1 / (y0 + 1),
-                        1 + (x0 * z + x1 * z + y0 + 1) / ((y0 + 1) * (z - 1)),
-                    ],
-                ]
-            ),
-        }
-    )
-    cmf = pFq(2, 1, negate_denominator_params=False)
-    cmf.assert_conserving()
+    cmf.validate_conserving()
     assert cmf == expected
 
 
@@ -156,42 +121,7 @@ def test_2F1_normal_derivative():
         }
     )
     cmf = pFq(2, 1, theta_derivative=False)
-    cmf.assert_conserving()
-    assert cmf == expected
-
-
-def test_2F1_normal_derivative_negate_denominator():
-    x0 = sp.Symbol("x0")
-    x1 = sp.Symbol("x1")
-    y0 = sp.Symbol("y0")
-    z = sp.Symbol("z")
-    expected = CMF(
-        {
-            x0: Matrix(
-                [
-                    [1, -x1 / (z - 1)],
-                    [z / x0, 1 + (-x0 * z - x1 * z - y0 - 1) / (x0 * (z - 1))],
-                ]
-            ),
-            x1: Matrix(
-                [
-                    [1, -x0 / (z - 1)],
-                    [z / x1, 1 + (-x0 * z - x1 * z - y0 - 1) / (x1 * (z - 1))],
-                ]
-            ),
-            y0: Matrix(
-                [
-                    [1, x0 * x1 / ((y0 + 1) * (z - 1))],
-                    [
-                        -z / (y0 + 1),
-                        1 - (-x0 * z - x1 * z - y0 - 1) / ((y0 + 1) * (z - 1)),
-                    ],
-                ]
-            ),
-        }
-    )
-    cmf = pFq(2, 1, theta_derivative=False, negate_denominator_params=False)
-    cmf.assert_conserving()
+    cmf.validate_conserving()
     assert cmf == expected
 
 
@@ -203,11 +133,11 @@ def test_2F1_z_evaluation():
 
 
 def test_gamma():
-    cmf = pFq(2, 2, negate_denominator_params=False, z_eval=-1)
+    cmf = pFq(2, 2, z_eval=-1)
     x0, x1 = sp.symbols("x:2")
     y0, y1 = sp.symbols("y:2")
-    trajectory = {x0: 1, x1: 1, y0: 1, y1: 0}
-    start = {x0: 1, x1: 1, y0: 1, y1: 1}
+    trajectory = {x0: 1, x1: 1, y0: 0, y1: -1}
+    start = {x0: 1, x1: 1, y0: -1, y1: -1}
     limit = cmf.limit(trajectory, 100, start)
     assert Matrix([[1, 3, 0], [3, 5, 0]]) == limit.identify(limit.mp.euler)
 
@@ -215,14 +145,14 @@ def test_gamma():
 def test_pfq_conserving():
     for p in range(1, 3):
         for q in range(1, 3):
-            pFq(p, q).assert_conserving()
+            pFq(p, q).validate_conserving()
 
 
-def test_predict_N():
+def test_predict_rank():
     for p in range(1, 5):
         for q in range(1, 5):
             for z_eval in [-1, 1]:
-                assert pFq(p, q, z_eval=z_eval).N() == pFq.predict_N(p, q, z_eval)
+                assert pFq(p, q, z_eval=z_eval).rank() == pFq.predict_rank(p, q, z_eval)
 
 
 def test_work_numeric_3f2():
@@ -248,7 +178,7 @@ def test_state_vector():
     a_symbols = sp.symbols(f"a:{p}")
     b_symbols = sp.symbols(f"b:{q}")
     state_vector = pFq.state_vector(a_symbols, b_symbols, z_eval)
-    assert len(state_vector) == pFq.predict_N(p, q, z_eval)
+    assert len(state_vector) == pFq.predict_rank(p, q, z_eval)
     assert state_vector.free_symbols == set(a_symbols).union(b_symbols)
     value = sp.hyper(a_symbols, b_symbols, z)
     for i in range(len(state_vector)):

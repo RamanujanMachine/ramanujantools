@@ -21,12 +21,18 @@ class MeijerG(CMF):
         self.p = p
         self.q = q
         self.z = z
-        matrices = MeijerG.construct_matrices(m, n, p, q, z)
-        super().__init__(matrices=matrices, validate=False)
+        matrices, negative_matrices = MeijerG.construct_matrices(m, n, p, q, z)
+        super().__init__(
+            matrices=matrices,
+            _negative_matrices_cache=negative_matrices,
+            validate=False,
+        )
 
     @lru_cache
     @staticmethod
-    def construct_matrices(m: int, n: int, p: int, q: int, z: sp.Expr):
+    def construct_matrices(
+        m: int, n: int, p: int, q: int, z: sp.Expr
+    ) -> tuple[dict[sp.Expr, Matrix], dict[sp.Expr, Matrix]]:
         if not (p > 0 and 0 <= n and n <= p) or not (q > 0 and 0 <= m and m <= q):
             raise ValueError(
                 "Meijer G must satisfy p > 0, 0 <= n <= p and q > 0, 0 <= m <= q"
@@ -43,27 +49,28 @@ class MeijerG(CMF):
 
         # Compute the recurrence coefficients T0, T1, ..., Tr
         r = len(diff_eq_coeffs) - 1
-        T = Matrix([-diff_eq_coeffs[-(i + 1)] / diff_eq_coeffs[0] for i in range(r)])
         eye = Matrix.eye(r)
 
         # Construct the Mtheta matrix (r x r with T as last column)
-        Mtheta = Matrix.hstack(Matrix.zeros(r, r - 1), T)
+        T = [-diff_eq_coeffs[-(i + 1)] / diff_eq_coeffs[0] for i in range(r)]
+        Mtheta = Matrix.companion_form(T)
 
+        matrices = {}
+        negative_matrices = {}
         # Build a_i matrices (bidiagonal form)
-        Mai_dict = {}
         for i, a_i in enumerate(a):
-            Mai = Mtheta + Matrix.companion_form([0] * r) + (1 - a_i) * eye
+            a_i_matrix = Mtheta + (1 - a_i) * eye
             if i > n:
-                Mai = -Mai
-            Mai_dict[a_i] = Mai.subs({a_i: a_i + 1}).inv()
+                a_i_matrix = -a_i_matrix
+            negative_matrices[a_i] = a_i_matrix
+            matrices[a_i] = a_i_matrix.subs({a_i: a_i + 1}).inv()
 
         # Build b_i matrices (bidiagonal form)
-        Mbi_dict = {}
         for i, b_i in enumerate(b):
-            Mbi = -(Mtheta + Matrix.companion_form([0] * r)) + b_i * eye
+            b_i_matrix = -Mtheta + b_i * eye
             if i > m:
-                Mbi = -Mbi
-            Mbi_dict[b_i] = Mbi
+                b_i_matrix = -b_i_matrix
+            matrices[b_i] = b_i_matrix
 
         # Combine all into one dictionary
-        return {**Mai_dict, **Mbi_dict}
+        return matrices, negative_matrices

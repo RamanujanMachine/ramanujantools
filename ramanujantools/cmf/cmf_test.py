@@ -9,9 +9,9 @@ from ramanujantools.cmf import CMF, known_cmfs
 c0, c1, c2, c3 = sp.symbols("c:4")
 
 
-def test_N():
+def test_rank():
     cmf = known_cmfs.hypergeometric_derived_2F1()
-    assert 2 == cmf.N()
+    assert 2 == cmf.rank()
 
 
 def test_dim():
@@ -22,7 +22,7 @@ def test_dim():
 def test_dual_conserving():
     cmf = known_cmfs.cmf2()
     dual_cmf = cmf.dual()
-    dual_cmf.assert_conserving
+    dual_cmf.validate_conserving()
 
 
 def test_dual_inverible():
@@ -30,13 +30,23 @@ def test_dual_inverible():
     assert cmf == cmf.dual().dual()
 
 
-def test_assert_conserving():
+def test_validate_conserving():
     m = Matrix([[x, x + 17], [y * x, y * 3 - x + 5]])
     cmf = CMF(matrices={x: m, y: m}, validate=False)
     with raises(ValueError):
-        cmf.assert_conserving()
+        cmf.validate_conserving()
     with raises(ValueError):
         cmf = CMF(matrices={x: m, y: m}, validate=True)
+
+
+def test_validate_negative_cache():
+    cmf = known_cmfs.cmf1()
+    negative_matrices = {axis: cmf.M(axis, sign=False) for axis in cmf.matrices}
+    CMF(cmf.matrices, _negative_matrices_cache=negative_matrices, validate=True)
+    random_axis = list(negative_matrices.keys())[0]
+    negative_matrices[random_axis] += Matrix.eye(cmf.rank())
+    with raises(ValueError):
+        CMF(cmf.matrices, _negative_matrices_cache=negative_matrices, validate=True)
 
 
 def test_symbols():
