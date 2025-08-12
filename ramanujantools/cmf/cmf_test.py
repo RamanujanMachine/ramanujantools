@@ -4,7 +4,7 @@ import sympy as sp
 from sympy.abc import a, b, c, x, y, n
 
 from ramanujantools import Position, Matrix, simplify
-from ramanujantools.cmf import CMF, known_cmfs
+from ramanujantools.cmf import CMF, known_cmfs, pFq
 
 c0, c1, c2, c3 = sp.symbols("c:4")
 
@@ -28,6 +28,27 @@ def test_dual_conserving():
 def test_dual_inverible():
     cmf = known_cmfs.cmf1()
     assert cmf == cmf.dual().dual()
+
+
+def test_coboundary_eye():
+    cmf = known_cmfs.e()
+    assert cmf == cmf.coboundary(Matrix.eye(cmf.rank()))
+
+
+def test_coboundary_inversible():
+    cmf = known_cmfs.e()
+    U = Matrix([[x, c0 * x], [y, x * y]])
+    assert cmf == cmf.coboundary(U).coboundary(U.inverse())
+
+
+def test_coboundary_is_conserving():
+    cmf = pFq(3, 2, 1)
+    x0 = sp.Symbol("x0")
+    y0 = sp.Symbol("y0")
+    U = Matrix([[x0, c0 * y0], [3 * x0 - 2 * y0, 17 * x0**2]])
+    co_cmf = cmf.coboundary(U)
+    co_cmf.validate_conserving()
+    co_cmf.validate_negative_cache()
 
 
 def test_validate_conserving():

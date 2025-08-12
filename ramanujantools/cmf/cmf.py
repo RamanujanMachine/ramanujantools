@@ -83,10 +83,11 @@ class CMF:
         x: sp.Symbol,
         y: sp.Symbol,
     ) -> bool:
-        Mx = self.M(x)
-        My = self.M(y)
-        Mxy = (Mx * My({x: x + 1})).factor()
-        Myx = (My * Mx({y: y + 1})).factor()
+        ctx = self.ctx(Position({x: 0, y: 0}))
+        Mx = SymbolicMatrix.from_sympy(self.M(x, True), ctx)
+        My = SymbolicMatrix.from_sympy(self.M(y, True), ctx)
+        Mxy = Mx * My.subs({x: x + 1})
+        Myx = My * Mx.subs({y: y + 1})
         return Mxy == Myx
 
     def validate_conserving(self) -> None:
@@ -116,10 +117,12 @@ class CMF:
         """
         Validates all the matrices in the negative matrices cache.
         """
+        ctx = self.ctx()
         for key, inverse_matrix in self._negative_matrices_cache.items():
+            M = SymbolicMatrix.from_sympy(self.M(key, True), ctx)
+            m_inv = SymbolicMatrix.from_sympy(inverse_matrix, ctx)
             if not (
-                Matrix.eye(self.rank())
-                == (self.M(key).subs({key: key - 1}) * inverse_matrix).factor()
+                SymbolicMatrix.eye(self.rank(), ctx) == (M.subs({key: key - 1}) * m_inv)
             ):
                 raise ValueError(
                     f"The negative matrix cache is corrupted for axis {key}"
@@ -140,15 +143,6 @@ class CMF:
                     {axis: axis - 1}
                 )
             return self._negative_matrices_cache[axis]
-
-    def dual(self) -> CMF:
-        """
-        Returns the dual CMF which is defined with inverse-transpose matrices.
-        """
-        return CMF(
-            {axis: self.M(axis).inverse().transpose() for axis in self.axes()},
-            validate=False,
-        )
 
     def axes(self) -> set[sp.Symbol]:
         """
@@ -183,6 +177,30 @@ class CMF:
         """
         random_matrix = list(self.matrices.values())[0]
         return random_matrix.rows
+
+    def dual(self) -> CMF:
+        """
+        Returns the dual CMF which is defined with inverse-transpose matrices.
+        """
+        return CMF(
+            {axis: self.M(axis).inverse().transpose() for axis in self.axes()},
+            validate=False,
+        )
+
+    def coboundary(self, coboundary: Matrix) -> CMF:
+        """
+        Returns the CMF up to a coboundary matrix U.
+        """
+
+        matrices = {
+            axis: matrix.coboundary(coboundary, axis, sign=True)
+            for axis, matrix in self.matrices.items()
+        }
+        negative_matrices = {
+            axis: matrix.coboundary(coboundary, axis, sign=False)
+            for axis, matrix in self._negative_matrices_cache.items()
+        }
+        return CMF(matrices, negative_matrices, validate=False)
 
     def _validate_axes_substitutions(self, substitutions: Position) -> None:
         if (
@@ -229,7 +247,7 @@ class CMF:
     def walk_symbol() -> sp.Symbol:
         return sp.Symbol("walk")
 
-    def ctx(self, start: Position | None) -> FlintContext:
+    def ctx(self, start: Position | None = None) -> FlintContext:
         start = Position(start) if start else Position()
         free_symbols = (
             self.free_symbols().union({CMF.walk_symbol()}).union(start.free_symbols())
