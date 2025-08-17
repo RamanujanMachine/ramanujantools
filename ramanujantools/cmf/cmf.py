@@ -243,6 +243,42 @@ class CMF:
         }
         return CMF(matrices, negative_matrices, validate=False)
 
+    def sub_cmf(self, basis: dict[sp.Symbol, Position]) -> CMF:
+        """
+        Returns a sub-CMF defined by a basis of trajectories.
+        Each axis in the new CMF corresponds to a trajectory in the basis.
+        Validates that the basis is linearly independent.
+        Args:
+            basis: dict mapping new axis symbols to Position objects (trajectories).
+        Returns:
+            A new CMF with axes as basis keys and matrices as trajectory matrices.
+        Raises:
+            ValueError: if the basis is not linearly independent.
+        """
+        for axis, trajectory in basis.items():
+            if set(trajectory.keys()) != self.axes():
+                raise ValueError(
+                    f"Trajectory for axis {axis} is missing axes {set(self.axes()) - set(trajectory.keys())}"
+                )
+
+        basis_matrix = Matrix(
+            [
+                [basis[new_axis][axis] for new_axis in basis.keys()]
+                for axis in self.axes()
+            ]
+        ).transpose()
+        if basis_matrix.rank() < len(basis):
+            raise ValueError("Given basis is not linearly independent!")
+        start = sum(
+            [axis * Position(trajectory) for axis, trajectory in basis.items()],
+            start=Position(),
+        )
+        matrices = {
+            axis: self.trajectory_matrix(trajectory, start).subs({n: 0})
+            for axis, trajectory in basis.items()
+        }
+        return CMF(matrices)
+
     @staticmethod
     def walk_symbol() -> sp.Symbol:
         return sp.Symbol("walk")
