@@ -277,7 +277,7 @@ class CMF:
             axis: self.trajectory_matrix(trajectory, start).subs({n: 0})
             for axis, trajectory in basis.items()
         }
-        return CMF(matrices)
+        return CMF(matrices, validate=False)
 
     @staticmethod
     def walk_symbol() -> sp.Symbol:

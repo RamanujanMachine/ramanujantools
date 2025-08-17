@@ -47,7 +47,11 @@ class Matrix(sp.Matrix):
         return repr(self)
 
     def __eq__(self, other: Matrix) -> bool:
-        return (self - other).factor() == Matrix.zeros(self.rows, self.cols)
+        return (
+            self.rows == other.rows
+            and self.cols == other.cols
+            and all(cell == 0 for cell in (self - other).factor())
+        )
 
     def __hash__(self) -> int:
         return hash(frozenset(self))
@@ -158,7 +162,8 @@ class Matrix(sp.Matrix):
 
     def coboundary(self, U: Matrix, symbol: sp.Symbol = n, sign: bool = True) -> Matrix:
         r"""
-        Calculates the coboundary relation of M and U $U^{-1}(n) * M(n) * U^(n+s)$, where $M$ is `self` and $s$ is `sign`.
+        Calculates the coboundary relation of M and U $U^{-1}(n) * M(n) * U^(n+s)$,
+        where $M$ is `self` and $s$ is `sign`.
 
         Args:
             U: The coboundary matrix

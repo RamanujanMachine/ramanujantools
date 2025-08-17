@@ -6,7 +6,11 @@ from sympy.abc import a, b, c, x, y, n
 from ramanujantools import Position, Matrix, simplify
 from ramanujantools.cmf import CMF, known_cmfs, pFq
 
+a0, a1 = sp.symbols("a:2")
+b0, b1 = sp.symbols("b:2")
 c0, c1, c2, c3 = sp.symbols("c:4")
+x0, x1, x2, x3 = sp.symbols("x:4")
+y0, y1, y2, y3 = sp.symbols("y:4")
 
 
 def test_symbols():
@@ -99,6 +103,64 @@ def test_coboundary_is_conserving():
     co_cmf = cmf.coboundary(U)
     co_cmf.validate_conserving()
     co_cmf.validate_negative_cache()
+
+
+def test_sub_cmf_zero_trajectory_throws():
+    cmf = pFq(2, 1, -1)
+    with raises(ValueError):
+        cmf.sub_cmf({a0: {x0: 0, x1: 0, y0: 0}})
+
+
+def test_sub_cmf_missing_axes_throws():
+    cmf = pFq(2, 1, -1)
+    with raises(ValueError):
+        cmf.sub_cmf({a0: {x0: 1, y0: 0}})
+
+
+def test_sub_cmf_wrong_axes_throws():
+    cmf = pFq(2, 1, -1)
+    with raises(ValueError):
+        cmf.sub_cmf({a0: {x3: 1, y3: 0}})
+
+
+def test_sub_cmf_linear_dependent_basis_throws():
+    cmf = pFq(2, 1, -1)
+    with raises(ValueError):
+        cmf.sub_cmf(
+            {
+                a0: {x0: 1, x1: 0, y0: 0},
+                a1: {x0: 1, x1: 0, y0: 0},
+            }
+        )
+
+
+def test_sub_cmf_trivial():
+    cmf = pFq(2, 1, -1)
+    basis = {
+        a0: {x0: 1, x1: 0, y0: 0},
+        a1: {x0: 0, x1: 1, y0: 0},
+        b0: {x0: 0, x1: 0, y0: 1},
+    }
+    expected = CMF(
+        matrices={
+            a0: cmf.M(x0).subs({x0: a0, x1: a1, y0: b0}),
+            a1: cmf.M(x1).subs({x0: a0, x1: a1, y0: b0}),
+            b0: cmf.M(y0).subs({x0: a0, x1: a1, y0: b0}),
+        }
+    )
+    assert expected == cmf.sub_cmf(basis)
+
+
+def test_sub_cmf_conserving():
+    cmf = pFq(3, 3, -1)
+    basis = {
+        a0: {x0: 0, x1: 1, x2: 0, y0: 0, y1: 1, y2: -1},
+        a1: {x0: 1, x1: 0, x2: 1, y0: 0, y1: 0, y2: 0},
+        b0: {x0: 0, x1: 0, x2: 0, y0: 0, y1: 1, y2: 1},
+        b1: {x0: 1, x1: 0, x2: 0, y0: 1, y1: 0, y2: 0},
+    }
+    sub_cmf = cmf.sub_cmf(basis)
+    sub_cmf.validate_conserving()
 
 
 def test_trajectory_matrix_axis():
