@@ -9,6 +9,15 @@ from ramanujantools.cmf import CMF, known_cmfs, pFq
 c0, c1, c2, c3 = sp.symbols("c:4")
 
 
+def test_symbols():
+    cmf = known_cmfs.cmf1()
+    expected_axes = {x, y}
+    expected_parameters = {c0, c1, c2, c3}
+    assert expected_axes == cmf.axes()
+    assert expected_parameters == cmf.parameters()
+    assert set().union(expected_axes, expected_parameters) == cmf.free_symbols()
+
+
 def test_rank():
     cmf = known_cmfs.hypergeometric_derived_2F1()
     assert 2 == cmf.rank()
@@ -17,6 +26,47 @@ def test_rank():
 def test_dim():
     cmf = known_cmfs.hypergeometric_derived_2F1()
     assert 3 == cmf.dim()
+
+
+def test_validate_conserving():
+    m = Matrix([[x, x + 17], [y * x, y * 3 - x + 5]])
+    cmf = CMF(matrices={x: m, y: m}, validate=False)
+    with raises(ValueError):
+        cmf.validate_conserving()
+    with raises(ValueError):
+        cmf = CMF(matrices={x: m, y: m}, validate=True)
+
+
+def test_validate_negative_cache():
+    cmf = known_cmfs.cmf1()
+    negative_matrices = {axis: cmf.M(axis, sign=False) for axis in cmf.matrices}
+    CMF(cmf.matrices, _negative_matrices_cache=negative_matrices, validate=True)
+    random_axis = list(negative_matrices.keys())[0]
+    negative_matrices[random_axis] += Matrix.eye(cmf.rank())
+    with raises(ValueError):
+        CMF(cmf.matrices, _negative_matrices_cache=negative_matrices, validate=True)
+
+
+def test_subs():
+    cmf = known_cmfs.var_root_cmf()
+    substitution = Position({c0: 1, c1: 2 * c1 - 3})
+    assert cmf.subs(substitution) == CMF(
+        {axis: matrix.subs(substitution) for axis, matrix in cmf.matrices.items()}
+    )
+
+
+def test_subs_axes_throw():
+    cmf = known_cmfs.e()
+    substitution = Position({x: 2})
+    with raises(ValueError):
+        cmf.subs(substitution)
+
+
+def test_subs_non_linear_shift_throws():
+    cmf = known_cmfs.e()
+    substitution = Position({x: x**2})
+    with raises(ValueError):
+        cmf.subs(substitution)
 
 
 def test_dual_conserving():
@@ -49,56 +99,6 @@ def test_coboundary_is_conserving():
     co_cmf = cmf.coboundary(U)
     co_cmf.validate_conserving()
     co_cmf.validate_negative_cache()
-
-
-def test_validate_conserving():
-    m = Matrix([[x, x + 17], [y * x, y * 3 - x + 5]])
-    cmf = CMF(matrices={x: m, y: m}, validate=False)
-    with raises(ValueError):
-        cmf.validate_conserving()
-    with raises(ValueError):
-        cmf = CMF(matrices={x: m, y: m}, validate=True)
-
-
-def test_validate_negative_cache():
-    cmf = known_cmfs.cmf1()
-    negative_matrices = {axis: cmf.M(axis, sign=False) for axis in cmf.matrices}
-    CMF(cmf.matrices, _negative_matrices_cache=negative_matrices, validate=True)
-    random_axis = list(negative_matrices.keys())[0]
-    negative_matrices[random_axis] += Matrix.eye(cmf.rank())
-    with raises(ValueError):
-        CMF(cmf.matrices, _negative_matrices_cache=negative_matrices, validate=True)
-
-
-def test_symbols():
-    cmf = known_cmfs.cmf1()
-    expected_axes = {x, y}
-    expected_parameters = {c0, c1, c2, c3}
-    assert expected_axes == cmf.axes()
-    assert expected_parameters == cmf.parameters()
-    assert set().union(expected_axes, expected_parameters) == cmf.free_symbols()
-
-
-def test_subs():
-    cmf = known_cmfs.var_root_cmf()
-    substitution = Position({c0: 1, c1: 2 * c1 - 3})
-    assert cmf.subs(substitution) == CMF(
-        {axis: matrix.subs(substitution) for axis, matrix in cmf.matrices.items()}
-    )
-
-
-def test_subs_axes_throw():
-    cmf = known_cmfs.e()
-    substitution = Position({x: 2})
-    with raises(ValueError):
-        cmf.subs(substitution)
-
-
-def test_subs_non_linear_shift_throws():
-    cmf = known_cmfs.e()
-    substitution = Position({x: x**2})
-    with raises(ValueError):
-        cmf.subs(substitution)
 
 
 def test_trajectory_matrix_axis():
