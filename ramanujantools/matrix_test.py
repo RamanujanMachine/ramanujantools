@@ -1,11 +1,25 @@
 from pytest import approx
 
+from unittest.mock import patch
+
 import sympy as sp
 from sympy.abc import x, y, n
 
 from ramanujantools import Matrix, Limit, simplify
 from ramanujantools.pcf import PCF
 from ramanujantools.cmf import pFq
+
+
+def test_eq_optimized_path_called():
+    m1 = Matrix.eye(2)
+    m2 = Matrix.eye(2)
+    with patch("ramanujantools.Matrix._optimized_eq", return_value=True) as mock_opt:
+        assert m1 == m2
+        mock_opt.assert_called_once_with(m1, m2)
+
+
+def test_eq_non_polynomial():
+    assert not Matrix.eye(2) == (2**x) * Matrix.eye(2)
 
 
 def test_is_square():
