@@ -46,12 +46,19 @@ class Matrix(sp.Matrix):
     def __str__(self) -> str:
         return repr(self)
 
-    def __eq__(self, other: Matrix) -> bool:
+    @classmethod
+    def _optimized_eq(cls, a, b) -> bool:
         return (
-            self.rows == other.rows
-            and self.cols == other.cols
-            and all(sp.simplify(cell) == 0 for cell in self - other)
+            a.rows == b.rows
+            and a.cols == b.cols
+            and all(cell == 0 for cell in (a - b).factor())
         )
+
+    def __eq__(self, other: Matrix) -> bool:
+        try:
+            return self._optimized_eq(self, other)
+        except sp.PolynomialError:
+            return sp.Matrix.__eq__(self, other)
 
     def __hash__(self) -> int:
         return hash(frozenset(self))
@@ -162,7 +169,8 @@ class Matrix(sp.Matrix):
 
     def coboundary(self, U: Matrix, symbol: sp.Symbol = n, sign: bool = True) -> Matrix:
         r"""
-        Calculates the coboundary relation of M and U $U^{-1}(n) * M(n) * U^(n+s)$, where $M$ is `self` and $s$ is `sign`.
+        Calculates the coboundary relation of M and U $U^{-1}(n) * M(n) * U^(n+s)$,
+        where $M$ is `self` and $s$ is `sign`.
 
         Args:
             U: The coboundary matrix

@@ -1,7 +1,11 @@
 import sympy as sp
 
-from ramanujantools.cmf import CMF
-from ramanujantools.cmf.known_cmfs import e, pFq
+from ramanujantools.cmf import CMF, e, pFq
+
+a0, a1 = sp.symbols("a:2")
+b0, b1 = sp.symbols("b:2")
+x0, x1, x2, x3 = sp.symbols("x:4")
+y0, y1, y2, y3 = sp.symbols("y:4")
 
 
 def test_trajectory_matrix_simple(benchmark):
@@ -89,3 +93,14 @@ def test_walk_4f3(benchmark):
     start = {x0: 1, x1: 1, x2: 2, x3: 2, y0: 3, y1: 3, y2: 4}
     trajectory = {x0: 1, x1: 1, x2: 2, x3: 2, y0: 3, y1: 3, y2: 4}
     benchmark(CMF.walk, cmf, trajectory, 1000, start)
+
+
+def test_sub_cmf_3f3(benchmark):
+    cmf = pFq(3, 3, -1)
+    basis = {
+        a0: {x0: 0, x1: 1, x2: 0, y0: 0, y1: 1, y2: -1},
+        a1: {x0: 1, x1: 0, x2: 1, y0: 0, y1: 0, y2: 0},
+        b0: {x0: 0, x1: 0, x2: 0, y0: 0, y1: 1, y2: 1},
+        b1: {x0: 1, x1: 0, x2: 0, y0: 1, y1: 0, y2: 0},
+    }
+    benchmark(CMF.sub_cmf, cmf, basis)
