@@ -378,3 +378,23 @@ def test_blind_delta_sequence_agrees_with_blind_delta():
     ]
     assert delta_sequence == sequence_of_deltas
     assert len(delta_sequence) == depth
+
+
+def test_pickle_state():
+    import pickle
+    cmf = pFq(2, 1, sp.Rational(1, 2))
+
+    # 2. Force the creation of a negative matrix in the original object
+    # This populates the _negative_matrices_cache before pickling
+    x0 = sp.symbols('x0')
+    _ = cmf.M(x0, sign=False)
+
+    dumped = pickle.dumps(cmf)
+    loaded_cmf = pickle.loads(dumped)
+
+    assert hasattr(loaded_cmf, '_negative_matrices_cache'), \
+        "Unpickled object is missing '_negative_matrices_cache' attribute"
+    try:
+        _ = loaded_cmf.M(x0, sign=False)
+    except AttributeError as e:
+        assert False, f"Failed to access negative matrix after unpickling: {e}"
