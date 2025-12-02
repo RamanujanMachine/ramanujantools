@@ -383,9 +383,6 @@ def test_blind_delta_sequence_agrees_with_blind_delta():
 def test_pickle_state():
     import pickle
     cmf = pFq(2, 1, sp.Rational(1, 2))
-
-    # 2. Force the creation of a negative matrix in the original object
-    # This populates the _negative_matrices_cache before pickling
     x0 = sp.symbols('x0')
     _ = cmf.M(x0, sign=False)
 
