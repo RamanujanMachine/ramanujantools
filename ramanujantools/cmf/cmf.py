@@ -77,6 +77,7 @@ class CMF:
 
     def __setstate__(self, state):
         self.matrices = state
+        self._negative_matrices_cache = {}
 
     def _are_conserving(
         self,
