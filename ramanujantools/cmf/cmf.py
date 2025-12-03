@@ -5,6 +5,7 @@ import itertools
 
 import sympy as sp
 from sympy.abc import n
+from sympy.printing.defaults import Printable
 
 from ramanujantools import Position, Matrix, Limit
 from ramanujantools.flint_core import (
@@ -17,7 +18,7 @@ from ramanujantools.flint_core import (
 from ramanujantools.utils import batched, Batchable
 
 
-class CMF:
+class CMF(Printable):
     r"""
     Represents a Conservative Matrix Field (CMF).
 
@@ -68,9 +69,6 @@ class CMF:
                 f"{printer.doprint(axis)} \\mapsto {printer.doprint(self.M(axis))}"
             )
         return r"\begin{array}{l}" + r"\\ ".join(lines) + r"\end{array}"
-
-    def _repr_latex_(self) -> str:
-        return rf"{sp.latex(self)}"
 
     def __getstate__(self):
         return self.matrices

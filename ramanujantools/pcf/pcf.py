@@ -3,6 +3,7 @@ from __future__ import annotations
 import mpmath as mp
 import sympy as sp
 from sympy.abc import n
+from sympy.printing.defaults import Printable
 
 from ramanujantools import Matrix, Limit, LinearRecurrence
 from ramanujantools.utils import batched, Batchable
@@ -56,7 +57,7 @@ def content(a, b, variables):
     return sp.simplify(c_n)
 
 
-class PCF:
+class PCF(Printable):
     """
     Represents a Polynomial Continued Fraction (PCF).
     """
@@ -119,9 +120,6 @@ class PCF:
         a_0 = printer.doprint(self.a_n.subs({n: 0}))
         b_1 = printer.doprint(self.b_n.subs({n: 1}))
         return rf"{a_0} + \cfrac{{{b_1}}}{{{recurse(1, DEPTH)}}}"
-
-    def _repr_latex_(self) -> str:
-        return rf"{sp.latex(self)}"
 
     def degrees(self) -> tuple[int, int]:
         """

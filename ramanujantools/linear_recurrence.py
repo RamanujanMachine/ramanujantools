@@ -7,6 +7,7 @@ from tqdm import tqdm
 
 import sympy as sp
 from sympy.abc import n
+from sympy.printing.defaults import Printable
 
 from ramanujantools import Matrix, Limit, GenericPolynomial
 from ramanujantools.utils import batched, Batchable
@@ -19,7 +20,7 @@ def trim_trailing_zeros(sequence: list[int]) -> list[int]:
     return sequence[0:ending]
 
 
-class LinearRecurrence:
+class LinearRecurrence(Printable):
     r"""
     Represents a linear recurrence of the form
     $\sum_{i=0}^{N}a_i(n) p(n - i) = 0$
@@ -105,9 +106,6 @@ class LinearRecurrence:
 
     def _latex(self, printer) -> str:
         return f"{printer.doprint(self._symbolic_relation())} = 0"
-
-    def _repr_latex_(self) -> str:
-        return rf"{sp.latex(self)}"
 
     def _symbolic_relation(self) -> sp.Expr:
         terms = [
