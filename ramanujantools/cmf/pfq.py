@@ -171,50 +171,48 @@ class pFq(DFinite):
         m = pFq.contiguous_relation((a_values, b_values), (a_anchor, b_anchor), z_eval)
         return (vector * m)[0]
 
-
-            
-
-
-
     @staticmethod
-    def determinant(p,q,z,axis: sp.Symbol):
+    def determinant(p: int, q: int, z: sp.Expr, axis: sp.Symbol):
         """
-        Returns the determinant of an axis (basis) matrix in factored form via a hardcoded formula, for quick performance.
+        Returns the determinant of an axis (basis) matrix in factored form via
+        a hardcoded formula, for quick performance.
         """
-        is_y_axis = True if axis.name.startswith("y") else False
+        is_y = axis.name.startswith("y")
         x_axes = pFq.x_axes(p)
         y_axes = pFq.y_axes(q)
+
+        prod_x = sp.prod(-axis + x_i for x_i in x_axes)
+        prod_y = sp.prod(-axis + y_i - 1 for y_i in y_axes)
+
         if p == q + 1 and z == 1:
-            if is_y_axis:
-                return sp.factor(((-1) ** (q+1) * (-axis ** (q + 1)
-                                                     + axis ** q* (sum(y_i for y_i in y_axes)
-                                                                          - sum(
-                                    x_i for x_i in x_axes) + axis - q + 1))) / (
-                                     sp.prod(-axis + x_i for x_i in x_axes)))
+            sum_diff = sum(y_axes) - sum(x_axes) - q + axis
+
+            if is_y:
+                poly = -(axis ** (q + 1)) + axis**q * (sum_diff + 1)
+                return sp.factor(((-1) ** (q + 1) * poly) / prod_x)
             else:
-                return sp.factor((-1) ** (q+1) * ((-axis * sp.prod(-axis + y_i - 1 for y_i in y_axes)) / (
-                        axis ** (q + 1) - axis ** q *
-                        (sum(y_i for y_i in y_axes) - sum(x_i for x_i in x_axes) + axis - q))))
+                poly = axis ** (q + 1) - axis**q * sum_diff
+                return sp.factor(((-1) ** (q + 1) * -axis * prod_y) / poly)
 
-        if p == q+1 and z != 1:
-            if is_y_axis:
-                return sp.factor((-1) ** p *(1-z)* (axis ** p) / (-z*sp.prod(-axis + x_i for x_i in x_axes)))
+        if p == q + 1:
+            if is_y:
+                term = ((-1) ** p * (1 - z) * axis**p) / -z
             else:
-                return sp.factor((-1) ** (p-1) * sp.prod(-axis + y_i - 1 for y_i in y_axes) / ((1-z) * axis ** (p-1)))
+                term = ((-1) ** (p - 1)) / ((1 - z) * axis ** (p - 1))
 
-        if p > q + 1:
-            if is_y_axis:
-                return sp.factor((-1) ** p * (axis ** p) / sp.prod(-axis + x_i for x_i in x_axes))
+        elif p > q + 1:
+            if is_y:
+                term = (-1) ** p * axis**p
             else:
-                return sp.factor((-1) ** p * sp.prod(-axis + y_i - 1 for y_i in y_axes) / (z * axis ** (p-1)))
+                term = ((-1) ** p) / (z * axis ** (p - 1))
 
-        if p < q + 1:
-            if is_y_axis:
-                return sp.factor(
-                    (-1) ** (q+1) * axis ** (q + 1) / ((-z) * sp.prod(-axis + x_i for x_i in x_axes)))
+        else:
+            if is_y:
+                term = ((-1) ** (q + 1) * axis ** (q + 1)) / -z
             else:
-                return sp.factor((-1) ** q * sp.prod(-axis + y_i - 1 for y_i in y_axes) / axis ** q)
+                term = ((-1) ** q) / axis**q
 
-        return None
-
-
+        if is_y:
+            return sp.factor(term / prod_x)
+        else:
+            return sp.factor(term * prod_y)
