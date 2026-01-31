@@ -105,9 +105,7 @@ class FlintRational:
         return f"FlintRational({self.numerator}, {self.denominator})"
 
     def __eq__(self, other: FlintRational) -> bool:
-        return (
-            self.numerator == other.numerator and self.denominator == other.denominator
-        )
+        return self.numerator * other.denominator == self.denominator * other.numerator
 
     def degrees(self) -> list[int]:
         return [max(poly.degrees()) for poly in [self.numerator, self.denominator]]
