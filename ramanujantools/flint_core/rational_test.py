@@ -60,6 +60,14 @@ def test_eq():
     assert expr == expr / 2 + 3 - 3 + expr / 2
 
 
+def test_eq_negation():
+    rational = flintify((x + 1) / (x - 1))
+    assert (
+        FlintRational(-rational.numerator, -rational.denominator, rational.ctx)
+        == rational
+    )
+
+
 def test_factor():
     expected = (x + y) * (x**2 + y**2) * (y - 3) / ((x + 17) * (y - 15) * (x * y + 1))
     assert expected == flintify(expected.expand()).factor()
