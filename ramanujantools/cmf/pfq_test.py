@@ -245,5 +245,5 @@ def test_determinant_against_char_poly(p, q, z, axis):
 def test_hardcoded_determinant_formula(p, q, z, axis):
     """Tests the high-performance pFq.determinant against the char_poly method."""
     det = pFq_determinant_from_char_poly(p, q, z, axis)
-    calc = pFq.determinant(p, q, z, axis)
+    calc = pFq(p, q, z).determinant(axis)
     assert calc == det

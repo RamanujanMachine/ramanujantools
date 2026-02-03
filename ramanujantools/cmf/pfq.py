@@ -171,8 +171,7 @@ class pFq(DFinite):
         m = pFq.contiguous_relation((a_values, b_values), (a_anchor, b_anchor), z_eval)
         return (vector * m)[0]
 
-    @staticmethod
-    def determinant(p: int, q: int, z: sp.Expr, axis: sp.Symbol):
+    def determinant(self, axis: sp.Symbol):
         """
         Returns the determinant of an axis (basis) matrix in factored form via
         a hardcoded formula, for quick performance.
@@ -231,6 +230,7 @@ class pFq(DFinite):
         $$(-1)^{q+1} \\frac{-(y_r)^{q+1}+(y_r)^{q-1}((\\sum_{i=0}^{q-1}y_i + \\sum x_i ) +y_r-q+1)}
         {\\prod_{i=0}^{p-1}(-y_r+x_i)}$$
         """
+        p, q, z = self.p, self.q, self.z
         is_y = axis.name.startswith("y")
         x_axes = pFq.x_axes(p)
         y_axes = pFq.y_axes(q)
