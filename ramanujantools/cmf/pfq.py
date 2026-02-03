@@ -176,6 +176,60 @@ class pFq(DFinite):
         """
         Returns the determinant of an axis (basis) matrix in factored form via
         a hardcoded formula, for quick performance.
+
+        We have the following differential equation for the generalized hypergeometric function
+        $pFq(x_0,...x_{p-1},y_0,\\ldots y_{q-1}|z)$:
+
+        $$\\theta_z \\prod_{i=0}^{q-1}(\\theta_z+y_i-1)-z\\prod_{i=0}^{p-1}(\\theta_z+x_i)=0$$
+
+        We have the following contiguous relations:
+        $$\\theta_z = x_i S_{x_i} + x_i, i=0,\\ldots,p-1$$
+        $$\\theta_z = (y_i-1) S_{y_i} + y_i-1, i=0,\\ldots,q-1$$
+        For any shift $S\\in \\{S_{x_0},\\ldots,S_{x_{p-1}}, S_{y_0},\\ldots,S_{y_{q-1}}\\}$,
+        we substitute the contiguous relation in the differential equation and obtain a polynomial in $S$.
+        We expect the obtained polynomial in $S$ to be a characteristic polynomial for the operator $S$
+        (after dividing by the lead coefficient).
+        The free coefficient of the normalized polynomial should be $det([S])$ times (-1) taken to
+        the dimension of the matrix.
+
+        x axis calculations:
+        For $p=q+1$ we obtain:
+        $$(-1)^{p-1}\\frac{\\prod_{i=0}^{q-1}(-x_r+y_i-1)}{(1-z)x_r^{p-1}}$$
+
+        For $p>q+1$ the determinant will be:
+        $$(-1)^p\\frac{\\prod_{i=0}^{q-1}(-x_r+y_i-1)}{zx_r^{p-1}}.$$
+
+        For $p < q+1$ the determinant will be:
+        $$(-1)^{q}\\frac{\\prod_{i=0}^{q-1}(-x_r+y_i-1)}{x_r^{q}}.$$
+        (power is $q$ because denominator is $-x_r^{q}$)
+
+        y axis parameters: We calculate as before but in order to get the determinant for
+        $S_r$ from $S_r^{-1}$ we invert and replace $y_0$ with $y_0+1$:
+
+        For $p=q+1$ we obtain:
+
+        $$(-1)^p\\frac{(1-z)(y_r)^{p}}{-z\\prod_{i=0}^{p-1}(-y_r+x_i)}$$
+
+        For $p>q+1$:
+        $$(-1)^p\\frac{(y_r)^p}{\\prod_{i=0}^{p-1}(-y_r+x_i)}.$$
+
+        For $p < q+1$:
+        $$(-1)^{q+1}\\frac{y_r^{q+1}}{-z\\cdot\\prod_{i=0}^{p-1}(-y_r+x_i)}$$
+
+        p=q+1 and z=1 case: For $p=q+1$ and $z=1$, $S_r$ is a zero of the following expression:
+        $$(x_r S_r - x_r)\\prod_{i=0}^{q-1}((x_r S_r - x_r)+y_i-1)-\\prod_{i=0}^{q}(x_r S_r - x_r+x_i)=0$$
+
+        We obtain that the determinant is:
+        $$(-1)^q\\frac{-x_r\\prod_{i=0}^{q-1}(-x_r+y_i-1)}{ x_r^{q+1} -
+        x_r^{q}(\\sum_{i=0}^{q-1}(y_i)-\\sum_{i=0}^q(x_i)+x_r-q)}$$
+
+        For the $y_i$ shift, we substitute $\\theta = (y_r-1)S-(y_r-1)$.
+        $$((y_r-1) S_r^{-1} -y_r+1)\\prod_{i=0}^{q-1}((y_r-1) S_r^{-1} -y_r+y_i) -
+        \\prod_{i=0}^{p-1}((y_r-1) S_r^{-1} -y_r+1+x_i)=0$$
+
+        and we obtain for the determinant::
+        $$(-1)^{q+1} \\frac{-(y_r)^{q+1}+(y_r)^{q-1}((\\sum_{i=0}^{q-1}y_i + \\sum x_i ) +y_r-q+1)}
+        {\\prod_{i=0}^{p-1}(-y_r+x_i)}$$
         """
         is_y = axis.name.startswith("y")
         x_axes = pFq.x_axes(p)
