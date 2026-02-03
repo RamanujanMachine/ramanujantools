@@ -641,3 +641,10 @@ class CMF(Printable):
                 trajectory, depths, start, initial_values, final_projection
             )
         return [approximant.delta(limit) for approximant in approximants]
+
+    def determinant(self, axis: sp.Symbol) -> sp.Expr:
+        """
+        Computes the determinant of the relevant CMF matrix matching 'axis'
+        """
+        # Note: this is a default behavior - it should be overridden in the subclasses
+        return sp.det(self.matrices[axis])
