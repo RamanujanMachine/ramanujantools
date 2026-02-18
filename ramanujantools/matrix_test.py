@@ -406,3 +406,10 @@ def test_kamidelta_3f2():
     l1, l2 = m.limit({n: 1}, [100, 200], {n: 1})
     expected = l1.delta(l2.as_float())
     assert actual == approx(expected, abs=1e-1)  # at most 0.1 error
+
+
+def test_degrees():
+    m = Matrix([[x * y, x**2], [y / x, (x + 1) / (y**2 * (x - 1))]])
+    assert m.degrees(x) == Matrix([[1, 2], [-1, 0]])
+    assert m.degrees(y) == Matrix([[1, 0], [1, -2]])
+    assert m.degrees(n) == Matrix([[0, 0], [0, 0]])

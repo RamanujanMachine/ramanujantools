@@ -360,16 +360,13 @@ class Matrix(sp.Matrix):
         Deflates a polynomial such that all coefficients approach a finite number.
         Assumes polynomial only contain n as a free symbol.
         """
-        current_degree = 0
+        from ramanujantools import LinearRecurrence
+
         charpoly_coeffs = poly.all_coeffs()
-        for i in range(len(charpoly_coeffs)):
-            coeff = charpoly_coeffs[i]
-            numerator, denominator = coeff.as_numer_denom()
-            degree = sp.Poly(numerator, n).degree() - sp.Poly(denominator, n).degree()
-            if (current_degree * i) < degree:
-                current_degree = -(degree // -i)  # ceil div trick
+        degree = LinearRecurrence.poincare_deflation_degree(charpoly_coeffs)
+        print(charpoly_coeffs, degree)
         coeffs = [
-            (charpoly_coeffs[i] / (n ** (current_degree * i))).limit(n, "oo")
+            (charpoly_coeffs[i] / (n ** (degree * i))).limit(n, "oo")
             for i in range(len(charpoly_coeffs))
         ]
         return sp.PurePoly(coeffs, poly.gen)
@@ -460,3 +457,26 @@ class Matrix(sp.Matrix):
         errors = self.errors()
         slope = self.gcd_slope(depth)
         return [-1 + error / slope for error in errors]
+
+    def at_infinity(self) -> Matrix:
+        return Matrix(sp.Matrix(self).limit(n, sp.oo))
+
+    def degrees(self, symbol: sp.Symbol = None) -> Matrix:
+        r"""
+        Returns a matrix of the degrees of each cell in the matrix.
+        For a rational function $f = \frac{p}{q}$, the degree is defined as $deg(f) = deg(p) - deg(q)$.
+        """
+        if symbol is None:
+            if len(self.free_symbols) != 1:
+                raise ValueError(
+                    f"Must specify symbol when matrix has more than one free symbol, got {self.free_symbols}"
+                )
+            symbol = list(self.free_symbols)[0]
+        return Matrix(
+            self.rows,
+            self.cols,
+            [
+                sp.Poly(p, symbol).degree() - sp.Poly(q, symbol).degree()
+                for p, q in (cell.as_numer_denom() for cell in self)
+            ],
+        )

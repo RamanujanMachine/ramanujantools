@@ -352,6 +352,31 @@ class LinearRecurrence(Printable):
             result += a_i * other._shift(i)
         return result
 
+    @staticmethod
+    def poincare_deflation_degree(relation: list[sp.Expr]) -> sp.Integer:
+        r"""
+        Returns the poincare deflation degree for a recurrence relation
+        It is defined by the minimal degree such that the deflated recurrence is constant at infinity.
+        """
+        retval = 0
+        for i in range(len(relation)):
+            coeff = relation[i]
+            numerator, denominator = coeff.as_numer_denom()
+            degree = sp.Poly(numerator, n).degree() - sp.Poly(denominator, n).degree()
+            if (retval * i) < degree:
+                retval = -(degree // -i)  # ceil div trick
+        return retval
+
+    def poincare(self) -> LinearRecurrence:
+        r"""
+        Returns the Poincare recurrence corresponding to this recurrence.
+
+        The Poincare recurrence is achieved by deflating the terms such that their limits at infinity are constant.
+        """
+        return self.deflate(
+            n ** LinearRecurrence.poincare_deflation_degree(self.relation)
+        )
+
     def kamidelta(self, depth=20):
         r"""
         Uses the Kamidelta alogrithm to predict possible delta values of the recurrence.
