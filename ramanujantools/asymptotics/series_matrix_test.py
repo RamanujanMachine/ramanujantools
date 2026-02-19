@@ -71,3 +71,33 @@ def test_shift(precision=10):
     assert diff == Matrix.zeros(dim), (
         "Shift output does not match SymPy analytic Taylor expansion."
     )
+
+
+def test_series_matrix_valuations():
+    """
+    Tests that SeriesMatrix correctly identifies the lowest non-zero
+    power (valuation) for every cell in the matrix series.
+    """
+    # M_0 has a value only at (0, 0)
+    C0 = Matrix([[1, 0], [0, 0]])
+
+    # M_1 has a value only at (0, 1)
+    C1 = Matrix([[0, 2], [0, 0]])
+
+    # M_2 has a value only at (1, 0)
+    C2 = Matrix([[0, 0], [3, 0]])
+
+    # Cell (1, 1) remains 0 across all coefficients
+
+    # Construct the series: C0 + C1*t + C2*t^2
+    SM = SeriesMatrix([C0, C1, C2], precision=3)
+
+    vals = SM.valuations()
+
+    # Assertions
+    assert vals[0, 0] == 0  # Appeared in C0
+    assert vals[0, 1] == 1  # Appeared in C1
+    assert vals[1, 0] == 2  # Appeared in C2
+    assert vals[1, 1] == sp.oo  # Never appeared
+
+    print("Valuations correctly extracted!")

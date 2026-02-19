@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sympy as sp
+from sympy.abc import n
 
 from ramanujantools import Matrix
 
@@ -97,7 +98,34 @@ class SeriesMatrix:
 
         return SeriesMatrix(new_coeffs, p=self.p, precision=self.precision)
 
+    def valuations(self) -> Matrix:
+        """
+        Returns a matrix where each entry (i, j) is the valuation
+        (the lowest power of t with a non-zero coefficient) of that cell.
+        Returns sympy.oo (infinity) for cells that are strictly zero.
+        """
+        rows, cols = self.shape
+        val_matrix = sp.zeros(rows, cols)
+
+        for i in range(rows):
+            for j in range(cols):
+                val = sp.oo
+                for k in range(self.precision):
+                    if self.coeffs[k][i, j] != sp.S.Zero:
+                        val = sp.Rational(k)
+                        break
+                val_matrix[i, j] = val
+
+        return val_matrix
+
     def __repr__(self) -> str:
         return (
             f"SeriesMatrix(shape={self.shape}, precision={self.precision}, p={self.p})"
         )
+
+    def __str__(self) -> str:
+        """Helper to see the series written out symbolically."""
+        expr = Matrix.zeros(*self.shape)
+        for i, coeff in enumerate(self.coeffs):
+            expr += coeff * (n ** (-sp.Rational(i, self.p)))
+        return str(expr)
