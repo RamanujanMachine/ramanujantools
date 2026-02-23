@@ -1,5 +1,7 @@
 from __future__ import annotations
+
 import sympy as sp
+
 from ramanujantools import Matrix
 from ramanujantools.asymptotics import SeriesMatrix
 
@@ -14,15 +16,16 @@ class Reducer:
         if not matrix.is_square():
             raise ValueError("Input matrix must be square.")
 
-        if not len(matrix.free_symbols) == 1:
-            raise ValueError("Input matrix must depend on exactly one variable.")
+        free_syms = list(matrix.free_symbols)
+        if len(free_syms) > 1:
+            raise ValueError("Input matrix must depend on at most one variable.")
 
-        self.var = list(matrix.free_symbols)[0]
         self.precision = precision
         self.p = p
         self.dim = matrix.shape[0]
 
-        self.factorial_power = max(matrix.degrees())
+        self.var = sp.Symbol("n") if len(free_syms) == 0 else free_syms[0]
+        self.factorial_power = max(matrix.degrees(self.var))
         normalized_matrix = matrix / (self.var**self.factorial_power)
 
         self.M = self._symbolic_to_series(normalized_matrix)
@@ -38,6 +41,12 @@ class Reducer:
         """
         Expands a symbolic matrix M(n) at n=oo into a formal series in t = n^(-1/p).
         """
+        if not matrix.free_symbols:
+            coeffs = [matrix] + [
+                Matrix.zeros(self.dim, self.dim) for _ in range(self.precision - 1)
+            ]
+            return SeriesMatrix(coeffs, p=self.p, precision=self.precision)
+
         t = sp.Symbol("t", positive=True)
         M_t = matrix.subs({self.var: t ** (-self.p)})
 
@@ -85,8 +94,7 @@ class Reducer:
 
     def reduce(self) -> tuple[sp.Number, Matrix, Matrix]:
         """
-        The main state-machine loop. Runs until the system is fully diagonalized,
-        then returns the extracted canonical data.
+        The main state-machine loop. Runs until the system is fully diagonalized.
         """
         max_iterations = 10
         iterations = 0
@@ -95,9 +103,20 @@ class Reducer:
             M0 = self.M.coeffs[0]
             P, J = M0.jordan_form()
 
+            if M0.is_zero_matrix:
+                self.M = self.M.divide_by_t()
+                self.factorial_power -= 1
+                continue
+
+            # Align the entire series with the Jordan basis of M0
+            # Since P is a constant matrix, its shift is just itself.
+            S_step = SeriesMatrix([P], p=self.p, precision=self.precision)
+            self.S_total = self.S_total * S_step
+            self.M = S_step.inverse() * self.M * S_step
+
             if J.is_diagonal():
-                # Step 2: Distinct eigenvalues, block-diagonalize the tail
-                self.split(P, J)
+                # Step 2: Distinct eigenvalues, clean the tail
+                self.split(J)
             else:
                 # Step 3: Jordan blocks detected, apply Newton Polygon shearing
                 self.shear()
@@ -109,15 +128,10 @@ class Reducer:
 
         return self.get_canonical_data()
 
-    def split(self, P: Matrix, J: Matrix) -> None:
+    def split(self, J: Matrix) -> None:
         """
-        Executes the Splitting Lemma to block-diagonalize the system.
-        Updates self.M and self.S_total in place.
+        Executes the Splitting Lemma to block-diagonalize the tail.
         """
-        S_step = SeriesMatrix([P], p=self.p, precision=self.precision)
-        self.S_total = self.S_total * S_step
-        self.M = S_step.inverse() * self.M * S_step
-
         for k in range(1, self.precision):
             R_k = self.M.coeffs[k]
 
@@ -126,7 +140,6 @@ class Reducer:
 
             R_off = R_k - Matrix.diag(*[R_k[i, i] for i in range(self.dim)])
 
-            # Eigenvalues are guaranteed to be distinct since J is diagonal here
             Y_mat = self._solve_sylvester_diagonal(J, -R_off)
 
             G_coeffs = (
@@ -139,12 +152,77 @@ class Reducer:
             self.S_total = self.S_total * G
             self.M = G.inverse() * self.M * G.shift()
 
-        # If we reach the end of the precision tail, we are fully diagonalized
         self.is_canonical = True
 
+    def _compute_shear_slope(self) -> sp.Rational:
+        """
+        Constructs the Newton Polygon from the matrix valuations and returns
+        the shearing slope 'g' (the steepest negative slope on the lower hull).
+        """
+        vals = self.M.valuations()
+
+        # 1. Create the points (x = j - i, y = valuation)
+        points = []
+        for i in range(self.dim):
+            for j in range(self.dim):
+                v = vals[i, j]
+                if v != sp.oo:
+                    points.append((j - i, v))
+
+        # 2. Group by x, keeping only the lowest y for each vertical line
+        lowest_points = {}
+        for x, y in points:
+            if x not in lowest_points or y < lowest_points[x]:
+                lowest_points[x] = y
+
+        sorted_x = sorted(lowest_points.keys())
+        hull_points = [(x, lowest_points[x]) for x in sorted_x]
+
+        # 3. Find the steepest negative slope (which yields the maximum positive g)
+        max_g = sp.S.Zero
+
+        for p1 in hull_points:
+            for p2 in hull_points:
+                x1, y1 = p1
+                x2, y2 = p2
+
+                if x1 < x2:
+                    # slope = (y2 - y1) / (x2 - x1)
+                    # g = -slope = (y1 - y2) / (x2 - x1)
+                    g = (y1 - y2) / sp.Rational(x2 - x1)
+                    if g > max_g:
+                        max_g = g
+
+        return max_g
+
     def shear(self) -> None:
-        """Applies the Newton Polygon to handle Jordan blocks (Phase 3)."""
-        raise NotImplementedError("Phase 3 (Shearing) logic goes here.")
+        """
+        Executes Phase 3: Applies the Newton Polygon shearing transformation
+        to split nilpotent Jordan blocks.
+        """
+        g = self._compute_shear_slope()
+
+        if g == sp.S.Zero:
+            raise NotImplementedError(
+                "Permanent Jordan block detected! Exponential extraction for "
+                "regular singularities is not yet fully implemented."
+            )
+
+        if not g.is_integer:
+            raise NotImplementedError(
+                f"Fractional slope g={g} detected! Phase 4 (Ramification) is required."
+            )
+
+        g = int(g)
+        t = sp.Symbol("t", positive=True)
+
+        # 1. Update the global gauge receipt.
+        S_sym = Matrix.diag(*[t ** (i * g) for i in range(self.dim)])
+        S_series = self._symbolic_to_series(S_sym)
+        self.S_total = self.S_total * S_series
+
+        # 2. Tell the series matrix to execute the shear analytically
+        self.M = self.M.apply_diagonal_shear(g)
 
     def get_canonical_data(self) -> tuple[sp.Number, Matrix, Matrix]:
         """
@@ -166,4 +244,4 @@ class Reducer:
         else:
             D = Matrix.zeros(self.dim)
 
-        return self.factorial_power, Lambda, D
+        return self.factorial_power, Lambda.simplify(), D.simplify()

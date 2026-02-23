@@ -32,14 +32,20 @@ class SeriesMatrix:
                 self.coeffs.append(Matrix.zeros(*self.shape))
 
     def __add__(self, other) -> SeriesMatrix:
-        assert self.shape == other.shape and self.p == other.p
+        if self.shape != other.shape or self.p != other.p:
+            raise ValueError(
+                "SeriesMatrix dimensions or ramification indices do not match."
+            )
         new_precision = min(self.precision, other.precision)
         new_coeffs = [self.coeffs[i] + other.coeffs[i] for i in range(new_precision)]
         return SeriesMatrix(new_coeffs, p=self.p, precision=new_precision)
 
     def __mul__(self, other) -> SeriesMatrix:
         """Cauchy product of two series. O(K^2) matrix multiplications."""
-        assert self.shape[1] == other.shape[0] and self.p == other.p
+        if self.shape != other.shape or self.p != other.p:
+            raise ValueError(
+                "SeriesMatrix dimensions or ramification indices do not match."
+            )
         new_precision = min(self.precision, other.precision)
         new_coeffs = [
             Matrix.zeros(self.shape[0], other.shape[1]) for _ in range(new_precision)
@@ -50,6 +56,18 @@ class SeriesMatrix:
                 new_coeffs[k] += self.coeffs[i] * other.coeffs[k - i]
 
         return SeriesMatrix(new_coeffs, p=self.p, precision=new_precision)
+
+    def __repr__(self) -> str:
+        return (
+            f"SeriesMatrix(shape={self.shape}, precision={self.precision}, p={self.p})"
+        )
+
+    def __str__(self) -> str:
+        """Helper to see the series written out symbolically."""
+        expr = Matrix.zeros(*self.shape)
+        for i, coeff in enumerate(self.coeffs):
+            expr += coeff * (n ** (-sp.Rational(i, self.p)))
+        return str(expr)
 
     def inverse(self) -> SeriesMatrix:
         """
@@ -98,6 +116,10 @@ class SeriesMatrix:
 
         return SeriesMatrix(new_coeffs, p=self.p, precision=self.precision)
 
+    def divide_by_t(self) -> SeriesMatrix:
+        coeffs = self.coeffs[1:] + [Matrix.zeros(*self.shape)]
+        return SeriesMatrix(coeffs, p=self.p, precision=self.precision)
+
     def valuations(self) -> Matrix:
         """
         Returns a matrix where each entry (i, j) is the valuation
@@ -118,14 +140,36 @@ class SeriesMatrix:
 
         return val_matrix
 
-    def __repr__(self) -> str:
-        return (
-            f"SeriesMatrix(shape={self.shape}, precision={self.precision}, p={self.p})"
-        )
+    def apply_diagonal_shear(self, g: int) -> "SeriesMatrix":
+        new_coeffs = [Matrix.zeros(*self.shape) for _ in range(self.precision)]
 
-    def __str__(self) -> str:
-        """Helper to see the series written out symbolically."""
-        expr = Matrix.zeros(*self.shape)
-        for i, coeff in enumerate(self.coeffs):
-            expr += coeff * (n ** (-sp.Rational(i, self.p)))
-        return str(expr)
+        for j in range(self.shape[1]):
+            m_val = -sp.Rational(j * g, self.p)
+            c_coeffs = []
+            for k in range(self.precision):
+                # Only non-zero when k is a multiple of p
+                if k % self.p == 0:
+                    c_coeffs.append(sp.binomial(m_val, k // self.p))
+                else:
+                    c_coeffs.append(sp.S.Zero)
+
+            for i in range(self.shape[0]):
+                power_shift = (j - i) * g
+                m_coeffs = [self.coeffs[k][i, j] for k in range(self.precision)]
+
+                prod_coeffs = [sp.S.Zero] * self.precision
+                for k in range(self.precision):
+                    for m_idx in range(k + 1):
+                        prod_coeffs[k] += m_coeffs[m_idx] * c_coeffs[k - m_idx]
+
+                for k in range(self.precision):
+                    new_k = k + power_shift
+                    if 0 <= new_k < self.precision:
+                        new_coeffs[new_k][i, j] = prod_coeffs[k]
+                    elif new_k < 0 and prod_coeffs[k] != sp.S.Zero:
+                        raise ValueError(
+                            f"Negative power {new_k} at cell ({i},{j})! "
+                            "The Newton Polygon slope 'g' is invalid."
+                        )
+
+        return SeriesMatrix(new_coeffs, p=self.p, precision=self.precision)

@@ -45,7 +45,8 @@ def test_inverse(precision=10):
         )
 
 
-def test_shift(precision=10):
+def test_shift():
+    precision = 10
     matrices = generate_test_matrices()
     dim = matrices[0].shape[0]
     S = SeriesMatrix(matrices, p=1, precision=precision)
@@ -53,23 +54,20 @@ def test_shift(precision=10):
     shifted_S = S.shift()
 
     t = sp.Symbol("t")
-    t_new = sp.series(t / (1 + t), t, 0, precision).removeO()
+    expected_coeffs = [Matrix.zeros(dim) for _ in range(precision)]
 
-    expected_sym = Matrix.zeros(dim)
-    for i, C in enumerate(matrices):
-        expected_sym += C * (t_new**i)
+    for i, C in enumerate(S.coeffs):
+        if C.is_zero_matrix:
+            continue
 
-    expected_sym = expected_sym.applyfunc(
-        lambda x: sp.expand(x).series(t, 0, precision).removeO()
-    )
+        scalar_series = sp.series((t / (1 + t)) ** i, t, 0, precision).removeO()
+        for k in range(precision):
+            coeff_val = scalar_series.coeff(t, k)
+            if coeff_val != sp.S.Zero:
+                expected_coeffs[k] += C * coeff_val
 
-    algorithmic_sym = Matrix.zeros(dim)
-    for i, C in enumerate(shifted_S.coeffs):
-        algorithmic_sym += C * (t**i)
-
-    diff = (expected_sym - algorithmic_sym).factor()
-    assert diff == Matrix.zeros(dim), (
-        "Shift output does not match SymPy analytic Taylor expansion."
+    assert shifted_S.coeffs == expected_coeffs, (
+        f"Shift output does not match expected at coefficient t^{k}"
     )
 
 
@@ -101,3 +99,26 @@ def test_series_matrix_valuations():
     assert vals[1, 1] == sp.oo  # Never appeared
 
     print("Valuations correctly extracted!")
+
+
+def test_divide_by_t():
+    """
+    Tests that divide_by_t correctly shifts the series coefficients left by one
+    and pads the tail with a zero matrix to maintain precision.
+    """
+    dim = 2
+    M0 = Matrix([[1, 2], [3, 4]])
+    M1 = Matrix([[5, 6], [7, 8]])
+    M2 = Matrix([[9, 10], [11, 12]])
+
+    S = SeriesMatrix([M0, M1, M2], p=1, precision=3)
+
+    # We now capture the new matrix!
+    S = S.divide_by_t()
+
+    assert S.precision == 3
+    assert len(S.coeffs) == 3
+
+    assert S.coeffs[0] == M1
+    assert S.coeffs[1] == M2
+    assert S.coeffs[2] == Matrix.zeros(dim, dim)
