@@ -122,3 +122,31 @@ def test_divide_by_t():
     assert S.coeffs[0] == M1
     assert S.coeffs[1] == M2
     assert S.coeffs[2] == Matrix.zeros(dim, dim)
+
+
+def test_ramify():
+    """
+    Tests that ramify correctly substitutes t = tau^b, scaling the precision,
+    updating the ramification index p, and perfectly spacing out the coefficients.
+    """
+    dim = 2
+    M0 = Matrix([[1, 2], [3, 4]])
+    M1 = Matrix([[5, 6], [7, 8]])
+
+    S = SeriesMatrix([M0, M1], p=1, precision=2)
+
+    b = 3
+    S_ramified = S.ramify(b)
+
+    assert S_ramified.p == 3
+    assert S_ramified.precision == 6
+    assert len(S_ramified.coeffs) == 6
+
+    assert S_ramified.coeffs[0] == M0  # tau^0
+    assert S_ramified.coeffs[1] == Matrix.zeros(dim)
+    assert S_ramified.coeffs[2] == Matrix.zeros(dim)
+    assert S_ramified.coeffs[3] == M1  # tau^3
+    assert S_ramified.coeffs[4] == Matrix.zeros(dim)
+    assert S_ramified.coeffs[5] == Matrix.zeros(dim)
+
+    print("Ramify correctly stretched the series and updated the indices!")

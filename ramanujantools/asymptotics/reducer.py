@@ -96,29 +96,34 @@ class Reducer:
         """
         The main state-machine loop. Runs until the system is fully diagonalized.
         """
-        max_iterations = 10
+        max_iterations = max(20, self.dim * 3)
         iterations = 0
 
         while not self.is_canonical and iterations < max_iterations:
             M0 = self.M.coeffs[0]
-            P, J = M0.jordan_form()
 
             if M0.is_zero_matrix:
                 self.M = self.M.divide_by_t()
                 self.factorial_power -= 1
                 continue
 
-            # Align the entire series with the Jordan basis of M0
-            # Since P is a constant matrix, its shift is just itself.
+            k_target = self.M.get_first_non_scalar_index()
+
+            if k_target is None:
+                # If every single matrix in the tail is scalar, the system is fully decoupled!
+                self.is_canonical = True
+                break
+
+            M_target = self.M.coeffs[k_target]
+            P, J_target = M_target.jordan_form()
+
             S_step = SeriesMatrix([P], p=self.p, precision=self.precision)
             self.S_total = self.S_total * S_step
-            self.M = S_step.inverse() * self.M * S_step
+            self.M = self.M.similarity_transform(P, J_target if k_target == 0 else None)
 
-            if J.is_diagonal():
-                # Step 2: Distinct eigenvalues, clean the tail
-                self.split(J)
+            if J_target.is_diagonal():
+                self.split(k_target, J_target)
             else:
-                # Step 3: Jordan blocks detected, apply Newton Polygon shearing
                 self.shear()
 
             iterations += 1
@@ -128,23 +133,25 @@ class Reducer:
 
         return self.get_canonical_data()
 
-    def split(self, J: Matrix) -> None:
+    def split(self, k_target: int, J_target: Matrix) -> None:
         """
-        Executes the Splitting Lemma to block-diagonalize the tail.
+        Executes the generalized Splitting Lemma.
+        Uses the first non-scalar matrix J_target (at t^k_target)
+        to block-diagonalize the higher-order tail.
         """
-        for k in range(1, self.precision):
-            R_k = self.M.coeffs[k]
+        for m in range(1, self.precision - k_target):
+            target_idx = k_target + m
+            R_k = self.M.coeffs[target_idx]
 
             if R_k.is_diagonal():
                 continue
 
             R_off = R_k - Matrix.diag(*[R_k[i, i] for i in range(self.dim)])
-
-            Y_mat = self._solve_sylvester_diagonal(J, -R_off)
+            Y_mat = self._solve_sylvester_diagonal(J_target, -R_off)
 
             G_coeffs = (
                 [Matrix.eye(self.dim)]
-                + [Matrix.zeros(self.dim, self.dim)] * (k - 1)
+                + [Matrix.zeros(self.dim, self.dim)] * (m - 1)
                 + [Y_mat]
             )
             G = SeriesMatrix(G_coeffs, p=self.p, precision=self.precision)
@@ -159,9 +166,12 @@ class Reducer:
         Constructs the Newton Polygon from the matrix valuations and returns
         the shearing slope 'g' (the steepest negative slope on the lower hull).
         """
-        vals = self.M.valuations()
+        lambda_val = self.M.coeffs[0][0, 0]
 
-        # 1. Create the points (x = j - i, y = valuation)
+        shifted_series = self.M.shift_leading_eigenvalue(lambda_val)
+        vals = shifted_series.valuations()
+
+        # Create the points (x = j - i, y = valuation)
         points = []
         for i in range(self.dim):
             for j in range(self.dim):
@@ -169,7 +179,7 @@ class Reducer:
                 if v != sp.oo:
                     points.append((j - i, v))
 
-        # 2. Group by x, keeping only the lowest y for each vertical line
+        # Group by x, keeping only the lowest y for each vertical line
         lowest_points = {}
         for x, y in points:
             if x not in lowest_points or y < lowest_points[x]:
@@ -178,7 +188,7 @@ class Reducer:
         sorted_x = sorted(lowest_points.keys())
         hull_points = [(x, lowest_points[x]) for x in sorted_x]
 
-        # 3. Find the steepest negative slope (which yields the maximum positive g)
+        # Find the steepest negative slope (which yields the maximum positive g)
         max_g = sp.S.Zero
 
         for p1 in hull_points:
@@ -187,8 +197,6 @@ class Reducer:
                 x2, y2 = p2
 
                 if x1 < x2:
-                    # slope = (y2 - y1) / (x2 - x1)
-                    # g = -slope = (y1 - y2) / (x2 - x1)
                     g = (y1 - y2) / sp.Rational(x2 - x1)
                     if g > max_g:
                         max_g = g
@@ -197,8 +205,8 @@ class Reducer:
 
     def shear(self) -> None:
         """
-        Executes Phase 3: Applies the Newton Polygon shearing transformation
-        to split nilpotent Jordan blocks.
+        Applies the Newton Polygon shearing transformation to split nilpotent Jordan blocks,
+        ramifying the system if fractional Puiseux powers are required.
         """
         g = self._compute_shear_slope()
 
@@ -209,19 +217,19 @@ class Reducer:
             )
 
         if not g.is_integer:
-            raise NotImplementedError(
-                f"Fractional slope g={g} detected! Phase 4 (Ramification) is required."
-            )
+            g, b = g.as_numer_denom()
 
-        g = int(g)
+            self.M = self.M.ramify(b)
+            self.S_total = self.S_total.ramify(b)
+
+            self.p *= b
+            self.precision *= b
+
         t = sp.Symbol("t", positive=True)
 
-        # 1. Update the global gauge receipt.
         S_sym = Matrix.diag(*[t ** (i * g) for i in range(self.dim)])
         S_series = self._symbolic_to_series(S_sym)
         self.S_total = self.S_total * S_series
-
-        # 2. Tell the series matrix to execute the shear analytically
         self.M = self.M.apply_diagonal_shear(g)
 
     def get_canonical_data(self) -> tuple[sp.Number, Matrix, Matrix]:
@@ -244,4 +252,33 @@ class Reducer:
         else:
             D = Matrix.zeros(self.dim)
 
-        return self.factorial_power, Lambda.simplify(), D.simplify()
+        return self.factorial_power, Lambda, D
+
+    def get_asymptotic_expressions(self) -> list[sp.Expr]:
+        """
+        Converts the canonical matrices into concrete SymPy expressions
+        representing the asymptotic growth of each fundamental solution.
+        The returned list strictly preserves the diagonal order of the canonical matrices.
+        """
+        if not self.is_canonical:
+            raise RuntimeError("System is not canonical yet. Call reduce() first.")
+
+        if self.p > 1:
+            raise NotImplementedError(
+                "Translating ramified (p > 1) systems back to scalar expressions "
+                "requires formal exponential integration."
+            )
+
+        d, Lambda, D = self.get_canonical_data()
+        n = self.var
+
+        solutions = []
+        for i in range(self.dim):
+            lambda_val = Lambda[i, i]
+            d_val = D[i, i]
+
+            # u_i(n) = (n!)^d * (lambda_i)^n * n^{D_i}
+            expr = (sp.factorial(n) ** d) * (lambda_val**n) * (n**d_val)
+            solutions.append(expr)
+
+        return solutions

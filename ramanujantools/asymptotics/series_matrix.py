@@ -140,6 +140,25 @@ class SeriesMatrix:
 
         return val_matrix
 
+    def similarity_transform(self, P: Matrix, J: Matrix = None) -> SeriesMatrix:
+        """
+        Applies a constant similarity transformation P^{-1} * M(t) * P.
+        If the series has no tail (is a constant matrix) and J is provided,
+        it mathematically short-circuits the inversion.
+        """
+        has_tail = any(not C.is_zero_matrix for C in self.coeffs[1:])
+
+        if not has_tail and J is not None:
+            new_coeffs = [J] + [
+                Matrix.zeros(*self.shape) for _ in range(self.precision - 1)
+            ]
+            return SeriesMatrix(new_coeffs, p=self.p, precision=self.precision)
+
+        P_inv = P.inverse()
+        new_coeffs = [P_inv * C * P for C in self.coeffs]
+
+        return SeriesMatrix(new_coeffs, p=self.p, precision=self.precision)
+
     def apply_diagonal_shear(self, g: int) -> "SeriesMatrix":
         new_coeffs = [Matrix.zeros(*self.shape) for _ in range(self.precision)]
 
@@ -173,3 +192,42 @@ class SeriesMatrix:
                         )
 
         return SeriesMatrix(new_coeffs, p=self.p, precision=self.precision)
+
+    def shift_leading_eigenvalue(self, lambda_val: sp.Expr) -> SeriesMatrix:
+        """
+        Shifts the formal series by subtracting a scalar matrix from the leading term.
+        Mathematically equivalent to M(t) - lambda_val * I.
+        """
+        new_coeffs = list(self.coeffs)
+        # Shift only the M_0 coefficient by the eigenvalue identity matrix
+        new_coeffs[0] = new_coeffs[0] - lambda_val * sp.eye(self.shape[0])
+
+        return SeriesMatrix(new_coeffs, p=self.p, precision=self.precision)
+
+    def ramify(self, b: int) -> SeriesMatrix:
+        """
+        Executes Phase 4: Substitutes t = tau^b, effectively spreading the coefficients
+        to handle fractional powers (Puiseux series).
+        Returns a new SeriesMatrix with a multiplied ramification index and precision.
+        """
+        new_precision = self.precision * b
+        new_coeffs = [Matrix.zeros(*self.shape) for _ in range(new_precision)]
+
+        for k in range(self.precision):
+            new_coeffs[k * b] = self.coeffs[k]
+
+        return SeriesMatrix(new_coeffs, p=self.p * b, precision=new_precision)
+
+    def get_first_non_scalar_index(self) -> int | None:
+        """
+        Scans the series and returns the index of the first non-scalar matrix.
+        A matrix is scalar if it is diagonal and all diagonal entries are identical.
+        Returns None if the entire series consists of scalar matrices.
+        """
+        for k, C in enumerate(self.coeffs):
+            # A matrix is scalar if it's diagonal and has <= 1 unique diagonal elements
+            if C.is_diagonal() and len(set(C.diagonal())) <= 1:
+                continue
+            return k
+
+        return None
