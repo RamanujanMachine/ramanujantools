@@ -131,7 +131,7 @@ class Reducer:
         if not self.is_canonical:
             raise RuntimeError("Failed to reach canonical form within iteration limit.")
 
-        return self.get_canonical_data()
+        return self.canonical_data()
 
     def split(self, k_target: int, J_target: Matrix) -> None:
         """
@@ -250,7 +250,7 @@ class Reducer:
         self.S_total = self.S_total * S_series
         self.M = self.M.shear_coboundary(g)
 
-    def get_canonical_data(self) -> tuple[sp.Number, Matrix, Matrix]:
+    def canonical_data(self) -> tuple[sp.Number, Matrix, Matrix]:
         """
         Extracts the canonical growth matrices.
         Returns:
@@ -272,7 +272,7 @@ class Reducer:
 
         return self.factorial_power, Lambda, D
 
-    def get_asymptotic_expressions(self) -> list[sp.Expr]:
+    def asymptotic_expressions(self) -> list[sp.Expr]:
         """
         Converts the canonical matrices into concrete SymPy expressions
         representing the asymptotic growth of each fundamental solution.
@@ -281,22 +281,46 @@ class Reducer:
         if not self.is_canonical:
             raise RuntimeError("System is not canonical yet. Call reduce() first.")
 
-        if self.p > 1:
-            raise NotImplementedError(
-                "Translating ramified (p > 1) systems back to scalar expressions "
-                "requires formal exponential integration."
-            )
-
-        d, Lambda, D = self.get_canonical_data()
+        d = self.factorial_power
         n = self.var
+        t = sp.Symbol("t", positive=True)
 
         solutions = []
         for i in range(self.dim):
-            lambda_val = Lambda[i, i]
-            d_val = D[i, i]
+            lambda_val = self.M.coeffs[0][i, i]
 
-            # u_i(n) = (n!)^d * (lambda_i)^n * n^{D_i}
-            expr = (sp.factorial(n) ** d) * (lambda_val**n) * (n**d_val)
+            if lambda_val == sp.S.Zero:
+                solutions.append(sp.S.Zero)
+                continue
+
+            L_t = sp.S.One
+
+            # We only need up to p terms to find the exponential roots and the algebraic tail D.
+            max_k = min(self.precision, self.p + 1)
+            for k in range(1, max_k):
+                L_t += (self.M.coeffs[k][i, i] / lambda_val) * (t**k)
+
+            # Formal Exponential Integration: Taylor series of log(L(t))
+            log_series = sp.series(sp.log(L_t), t, 0, self.p + 1)
+
+            Q_n = sp.S.Zero
+            D_val = sp.S.Zero
+
+            for k in range(1, self.p + 1):
+                c_k = log_series.coeff(t, k)
+                if c_k == sp.S.Zero:
+                    continue
+
+                if k < self.p:
+                    # Fractional powers integrate to build the exponential polynomial e^Q
+                    power = 1 - sp.Rational(k, self.p)
+                    Q_n += (c_k / power) * (n**power)
+                elif k == self.p:
+                    # The n^{-1} term integrates to log(n), becoming the algebraic tail D
+                    D_val = c_k
+
+            # u_i(n) = (n!)^d * (lambda_i)^n * exp(Q(n)) * n^{D_i}
+            expr = (sp.factorial(n) ** d) * (lambda_val**n) * sp.exp(Q_n) * (n**D_val)
             solutions.append(expr)
 
         return solutions

@@ -15,7 +15,7 @@ def test_fibonacci():
     assert [
         Lambda[0, 0] ** n,
         Lambda[1, 1] ** n,
-    ] == reducer.get_asymptotic_expressions()
+    ] == reducer.asymptotic_expressions()
 
 
 def test_tribonacci():
@@ -158,6 +158,11 @@ def test_ramified_scalar_peeling_no_block_degeneracy():
 
     # Mathematica found n^(-1/4) for both solutions
     assert set(d_values) == {sp.Rational(-1, 4)}
+
+    assert [
+        sp.exp(-2 * sp.sqrt(n)) * n ** (sp.Rational(-1, 4)),
+        sp.exp(2 * sp.sqrt(n)) * n ** (sp.Rational(-1, 4)),
+    ] == reducer.asymptotic_expressions()
 
 
 def test_euler_trajectory():
