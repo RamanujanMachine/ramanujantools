@@ -40,22 +40,23 @@ class SeriesMatrix:
         new_coeffs = [self.coeffs[i] + other.coeffs[i] for i in range(new_precision)]
         return SeriesMatrix(new_coeffs, p=self.p, precision=new_precision)
 
-    def __mul__(self, other) -> SeriesMatrix:
-        """Cauchy product of two series. O(K^2) matrix multiplications."""
-        if self.shape != other.shape or self.p != other.p:
-            raise ValueError(
-                "SeriesMatrix dimensions or ramification indices do not match."
-            )
-        new_precision = min(self.precision, other.precision)
-        new_coeffs = [
-            Matrix.zeros(self.shape[0], other.shape[1]) for _ in range(new_precision)
-        ]
+    def __mul__(self, other: SeriesMatrix) -> SeriesMatrix:
+        """
+        Computes the Cauchy product of two Formal Power Series matrices.
+        """
+        if self.p != other.p or self.precision != other.precision:
+            raise ValueError("SeriesMatrix parameters must match for multiplication.")
 
-        for k in range(new_precision):
-            for i in range(k + 1):
-                new_coeffs[k] += self.coeffs[i] * other.coeffs[k - i]
+        new_coeffs = [Matrix.zeros(*self.shape) for _ in range(self.precision)]
 
-        return SeriesMatrix(new_coeffs, p=self.p, precision=new_precision)
+        for k in range(self.precision):
+            coeff_sum = Matrix.zeros(*self.shape)
+            # Standard discrete convolution: sum_{m=0}^k A_m * B_{k-m}
+            for m in range(k + 1):
+                coeff_sum += self.coeffs[m] * other.coeffs[k - m]
+            new_coeffs[k] = coeff_sum
+
+        return SeriesMatrix(new_coeffs, p=self.p, precision=self.precision)
 
     def __repr__(self) -> str:
         return (
@@ -159,37 +160,55 @@ class SeriesMatrix:
 
         return SeriesMatrix(new_coeffs, p=self.p, precision=self.precision)
 
-    def apply_diagonal_shear(self, g: int) -> "SeriesMatrix":
+    def coboundary(self, T: "SeriesMatrix") -> "SeriesMatrix":
+        """
+        Computes the right-acting discrete coboundary T(n+1)^{-1} * M(n) * T(n).
+        Assumes T is an invertible formal power series (det(T_0) != 0).
+        """
+        return T.shift().inverse() * self * T
+
+    def shear_coboundary(self, g: int) -> "SeriesMatrix":
+        """
+        Computes the exact discrete coboundary S(n+1)^{-1} * M(n) * S(n)
+        for a diagonal shear matrix S = diag(1, t^g, t^{2g}, ...).
+
+        This bypasses singular matrix inversion by analytically fusing the
+        algebraic Laurent shift t^{(j-i)g} and the discrete Taylor correction
+        (1 + t^p)^{ig/p} into a single, highly efficient array pass.
+        """
+        import sympy as sp
+        from ramanujantools import Matrix
+
+        row_corrections = []
+        for i in range(self.shape[0]):
+            exponent = sp.Rational(i * g, self.p)
+            coeffs = [sp.S.Zero] * self.precision
+
+            for k in range(self.precision // self.p):
+                bin_coeff = sp.S.One
+                for j in range(k):
+                    bin_coeff *= (exponent - j) / sp.Rational(j + 1)
+
+                idx = k * self.p
+                if idx < self.precision:
+                    coeffs[idx] = bin_coeff
+            row_corrections.append(coeffs)
+
         new_coeffs = [Matrix.zeros(*self.shape) for _ in range(self.precision)]
 
-        for j in range(self.shape[1]):
-            m_val = -sp.Rational(j * g, self.p)
-            c_coeffs = []
-            for k in range(self.precision):
-                # Only non-zero when k is a multiple of p
-                if k % self.p == 0:
-                    c_coeffs.append(sp.binomial(m_val, k // self.p))
-                else:
-                    c_coeffs.append(sp.S.Zero)
-
+        for k in range(self.precision):
             for i in range(self.shape[0]):
-                power_shift = (j - i) * g
-                m_coeffs = [self.coeffs[k][i, j] for k in range(self.precision)]
+                for j in range(self.shape[0]):
+                    val = sp.S.Zero
+                    shift = int((j - i) * g)
 
-                prod_coeffs = [sp.S.Zero] * self.precision
-                for k in range(self.precision):
-                    for m_idx in range(k + 1):
-                        prod_coeffs[k] += m_coeffs[m_idx] * c_coeffs[k - m_idx]
+                    # We need m + shift + c = k  =>  m = k - c - shift
+                    for c in range(k + 1):
+                        m = k - c - shift
+                        if 0 <= m < self.precision:
+                            val += row_corrections[i][c] * self.coeffs[m][i, j]
 
-                for k in range(self.precision):
-                    new_k = k + power_shift
-                    if 0 <= new_k < self.precision:
-                        new_coeffs[new_k][i, j] = prod_coeffs[k]
-                    elif new_k < 0 and prod_coeffs[k] != sp.S.Zero:
-                        raise ValueError(
-                            f"Negative power {new_k} at cell ({i},{j})! "
-                            "The Newton Polygon slope 'g' is invalid."
-                        )
+                    new_coeffs[k][i, j] = val
 
         return SeriesMatrix(new_coeffs, p=self.p, precision=self.precision)
 

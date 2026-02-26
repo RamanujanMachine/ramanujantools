@@ -157,21 +157,21 @@ class Reducer:
             G = SeriesMatrix(G_coeffs, p=self.p, precision=self.precision)
 
             self.S_total = self.S_total * G
-            self.M = G.inverse() * self.M * G.shift()
+            self.M = self.M.coboundary(G)
 
         self.is_canonical = True
 
     def _compute_shear_slope(self) -> sp.Rational:
         """
-        Constructs the Newton Polygon from the matrix valuations and returns
+        Constructs the exact Lower Convex Hull of the matrix valuations and returns
         the shearing slope 'g' (the steepest negative slope on the lower hull).
         """
         lambda_val = self.M.coeffs[0][0, 0]
 
+        # Delegate the algebraic shift directly to the SeriesMatrix
         shifted_series = self.M.shift_leading_eigenvalue(lambda_val)
         vals = shifted_series.valuations()
 
-        # Create the points (x = j - i, y = valuation)
         points = []
         for i in range(self.dim):
             for j in range(self.dim):
@@ -188,20 +188,38 @@ class Reducer:
         sorted_x = sorted(lowest_points.keys())
         hull_points = [(x, lowest_points[x]) for x in sorted_x]
 
-        # Find the steepest negative slope (which yields the maximum positive g)
-        max_g = sp.S.Zero
+        # Build the exact Lower Convex Hull using a Monotone Chain
+        lower_hull = []
+        for p in hull_points:
+            while len(lower_hull) >= 2:
+                p1 = lower_hull[-2]
+                p2 = lower_hull[-1]
+                p3 = p
 
-        for p1 in hull_points:
-            for p2 in hull_points:
-                x1, y1 = p1
-                x2, y2 = p2
+                # Calculate slopes between the last two segments
+                slope1 = sp.Rational(p2[1] - p1[1], p2[0] - p1[0])
+                slope2 = sp.Rational(p3[1] - p2[1], p3[0] - p2[0])
 
-                if x1 < x2:
-                    g = (y1 - y2) / sp.Rational(x2 - x1)
-                    if g > max_g:
-                        max_g = g
+                # If the slope decreases or stays the same, the point p2 is an interior
+                # point (not strictly convex) and must be discarded.
+                if slope2 <= slope1:
+                    lower_hull.pop()
+                else:
+                    break
+            lower_hull.append(p)
 
-        return max_g
+        # The steepest negative slope is mathematically guaranteed to be
+        # the very first segment of the lower convex hull!
+        if len(lower_hull) < 2:
+            return sp.S.Zero
+
+        p1, p2 = lower_hull[0], lower_hull[1]
+        steepest_slope = sp.Rational(p2[1] - p1[1], p2[0] - p1[0])
+
+        # We return the positive scalar g
+        g = -steepest_slope
+
+        return max(sp.S.Zero, g)
 
     def shear(self) -> None:
         """
@@ -230,7 +248,7 @@ class Reducer:
         S_sym = Matrix.diag(*[t ** (i * g) for i in range(self.dim)])
         S_series = self._symbolic_to_series(S_sym)
         self.S_total = self.S_total * S_series
-        self.M = self.M.apply_diagonal_shear(g)
+        self.M = self.M.shear_coboundary(g)
 
     def get_canonical_data(self) -> tuple[sp.Number, Matrix, Matrix]:
         """

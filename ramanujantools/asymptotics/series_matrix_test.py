@@ -30,6 +30,27 @@ def test_construction():
         assert Matrix.zeros(2, 2) == S.coeffs[i]
 
 
+def test_multiplication():
+    precision = 3
+
+    A_coeffs = [Matrix.diag(1, 1), Matrix.diag(2, 2), Matrix.diag(3, 3)]
+    B_coeffs = [Matrix.diag(4, 4), Matrix.diag(5, 5), Matrix.diag(6, 6)]
+
+    A = SeriesMatrix(A_coeffs, p=1, precision=precision)
+    B = SeriesMatrix(B_coeffs, p=1, precision=precision)
+
+    C = A * B
+
+    # C_0 = A_0 * B_0 = 1 * 4 = 4
+    assert C.coeffs[0] == Matrix.diag(4, 4)
+
+    # C_1 = A_0 * B_1 + A_1 * B_0 = 1*5 + 2*4 = 13
+    assert C.coeffs[1] == Matrix.diag(13, 13)
+
+    # C_2 = A_0 * B_2 + A_1 * B_1 + A_2 * B_0 = 1*6 + 2*5 + 3*4 = 28
+    assert C.coeffs[2] == Matrix.diag(28, 28)
+
+
 def test_inverse(precision=10):
     matrices = generate_test_matrices()
     dim = matrices[0].shape[0]
@@ -71,6 +92,43 @@ def test_shift():
     )
 
 
+def test_series_matrix_coboundary():
+    precision = 2
+    M_coeffs = [Matrix.eye(2), Matrix.zeros(2, 2)]
+    M = SeriesMatrix(M_coeffs, p=1, precision=precision)
+
+    Y = Matrix([[0, 1], [0, 0]])
+    T_coeffs = [Matrix.eye(2), Y]
+    T = SeriesMatrix(T_coeffs, p=1, precision=precision)
+
+    # M is the Identity matrix.
+    # M_new = T(n+1)^{-1} I T(n) = T(n+1)^{-1} T(n)
+    # T(n+1)^{-1} T(n) evaluates exactly to the Identity matrix + O(t^2)
+    M_cob = M.coboundary(T)
+
+    assert M_cob.coeffs[0] == Matrix.eye(2)
+    assert M_cob.coeffs[1] == Matrix.zeros(2, 2)
+
+
+def test_series_matrix_shear_coboundary():
+    """
+    Validates the analytical discrete shear coboundary S(n+1)^{-1} M(n) S(n).
+    Proves that the algebraic shift and the discrete (1+t^p) Taylor correction
+    are simultaneously and correctly applied.
+    """
+    precision = 2
+    M_coeffs = [
+        Matrix([[1, 0], [0, 1]]),
+        Matrix([[0, 1], [1, 0]]),
+    ]
+    M = SeriesMatrix(M_coeffs, p=1, precision=precision)
+
+    M_sheared = M.shear_coboundary(g=1)
+
+    assert M_sheared.coeffs[0] == Matrix([[1, 0], [1, 1]])
+    assert M_sheared.coeffs[1] == Matrix([[0, 0], [1, 1]])
+
+
 def test_series_matrix_valuations():
     """
     Tests that SeriesMatrix correctly identifies the lowest non-zero
@@ -97,8 +155,6 @@ def test_series_matrix_valuations():
     assert vals[0, 1] == 1  # Appeared in C1
     assert vals[1, 0] == 2  # Appeared in C2
     assert vals[1, 1] == sp.oo  # Never appeared
-
-    print("Valuations correctly extracted!")
 
 
 def test_divide_by_t():
@@ -148,5 +204,3 @@ def test_ramify():
     assert S_ramified.coeffs[3] == M1  # tau^3
     assert S_ramified.coeffs[4] == Matrix.zeros(dim)
     assert S_ramified.coeffs[5] == Matrix.zeros(dim)
-
-    print("Ramify correctly stretched the series and updated the indices!")

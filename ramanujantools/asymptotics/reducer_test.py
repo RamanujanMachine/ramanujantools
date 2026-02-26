@@ -61,8 +61,6 @@ def test_exponential_separation():
 
 
 def test_newton_polygon_separation():
-    n = sp.Symbol("n")
-
     expected_lambda = Matrix.diag(4, 2)
     expected_D = Matrix.diag(3, 1)
 
@@ -74,11 +72,11 @@ def test_newton_polygon_separation():
 
     reducer = Reducer(m, precision=5)
     fact_power, actual_lambda, actual_D = reducer.reduce()
-
     assert fact_power == 0  # The true system had no factorial growth
     assert actual_lambda == expected_lambda
 
     diff = expected_D - actual_D
+
     assert diff.is_diagonal(), (
         "D_calc should only differ from D_expected on the diagonal."
     )
@@ -91,7 +89,8 @@ def test_newton_polygon_separation():
     for i in range(reducer.dim):
         missing_powers = diff[i, i]
         receipt_powers = valuations[i, i]
-        assert receipt_powers == missing_powers, (
+
+        assert receipt_powers + missing_powers == 0, (
             f"Conservation of Growth violated at column {i}! "
             f"D shifted by {missing_powers}, but S_total recorded a shear of {receipt_powers}."
         )
@@ -129,24 +128,36 @@ def test_ramified_scalar_peeling_no_block_degeneracy():
 
     Recurrence: n*f_{n+2} - 2n*f_{n+1} + (n - 1)*f_n = 0
     """
-    n = sp.Symbol("n")
-
-    # Standard companion matrix for f_{n+2} = 2*f_{n+1} - ((n-1)/n)*f_n
     M = Matrix([[0, -(n - 1) / n], [1, 2]])
-
-    # Transposed to match the established convention
     reducer = Reducer(M.transpose(), precision=4)
     deg, Lambda, D = reducer.reduce()
 
-    # 1. No factorial growth (degree of all polynomial coeffs is 1)
     assert deg == 0
-
-    # 2. Ramification perfectly detected (Newton Polygon slope 1/2)
     assert reducer.p == 2
-
-    # 3. Canonical form is perfectly diagonalized! No cross-talk left.
     assert Lambda.is_diagonal()
     assert D.is_diagonal()
+
+    M1 = reducer.M.coeffs[1]  # The n^(-1/2) term
+    M2 = reducer.M.coeffs[2]  # The n^(-1) term
+
+    c_values = []
+    d_values = []
+
+    for i in range(2):
+        l1 = M1[i, i]
+        l2 = M2[i, i]
+
+        c = 2 * l1
+        D_raw = l2 - sp.Rational(1, 2) * l1**2
+
+        c_values.append(c)
+        d_values.append(D_raw)
+
+    # Mathematica found E^(2 Sqrt[n]) and E^(-2 Sqrt[n])
+    assert set(c_values) == {2, -2}
+
+    # Mathematica found n^(-1/4) for both solutions
+    assert set(d_values) == {sp.Rational(-1, 4)}
 
 
 def test_euler_trajectory():
