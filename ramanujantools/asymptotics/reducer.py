@@ -35,7 +35,7 @@ class Reducer:
             [Matrix.eye(self.dim)], p=self.p, precision=self.precision
         )
 
-        self.is_canonical = False
+        self._is_reduced = False
 
     def _symbolic_to_series(self, matrix: Matrix) -> SeriesMatrix:
         """
@@ -92,14 +92,14 @@ class Reducer:
 
         return Y
 
-    def reduce(self) -> tuple[sp.Number, Matrix, Matrix]:
+    def reduce(self) -> Reducer:
         """
         The main state-machine loop. Runs until the system is fully diagonalized.
         """
         max_iterations = max(20, self.dim * 3)
         iterations = 0
 
-        while not self.is_canonical and iterations < max_iterations:
+        while not self._is_reduced and iterations < max_iterations:
             M0 = self.M.coeffs[0]
 
             if M0.is_zero_matrix:
@@ -111,7 +111,7 @@ class Reducer:
 
             if k_target is None:
                 # If every single matrix in the tail is scalar, the system is fully decoupled!
-                self.is_canonical = True
+                self._is_reduced = True
                 break
 
             M_target = self.M.coeffs[k_target]
@@ -128,7 +128,7 @@ class Reducer:
 
             iterations += 1
 
-        if not self.is_canonical:
+        if not self._is_reduced:
             raise RuntimeError("Failed to reach canonical form within iteration limit.")
 
         return self.canonical_data()
@@ -159,7 +159,7 @@ class Reducer:
             self.S_total = self.S_total * G
             self.M = self.M.coboundary(G)
 
-        self.is_canonical = True
+        self._is_reduced = True
 
     def _compute_shear_slope(self) -> sp.Rational:
         """
@@ -258,8 +258,8 @@ class Reducer:
             Lambda: The exponential growth base matrix (e^Q).
             D: The algebraic growth matrix (n^D).
         """
-        if not self.is_canonical:
-            raise RuntimeError("System is not canonical yet. Call reduce() first.")
+        if not self._is_reduced:
+            self.reduce()
 
         Lambda = self.M.coeffs[0]
 
@@ -278,8 +278,8 @@ class Reducer:
         representing the asymptotic growth of each fundamental solution.
         The returned list strictly preserves the diagonal order of the canonical matrices.
         """
-        if not self.is_canonical:
-            raise RuntimeError("System is not canonical yet. Call reduce() first.")
+        if not self._is_reduced:
+            self.reduce()
 
         d = self.factorial_power
         n = self.var

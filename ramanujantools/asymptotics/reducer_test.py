@@ -1,3 +1,5 @@
+import pytest
+
 import sympy as sp
 from sympy.abc import n
 
@@ -8,7 +10,7 @@ from ramanujantools.asymptotics.reducer import Reducer
 def test_fibonacci():
     M = Matrix([[0, 1], [1, 1]])
     reducer = Reducer(M)
-    deg, Lambda, D = reducer.reduce()
+    deg, Lambda, D = reducer.canonical_data()
     assert deg == 0
     assert D == Matrix.zeros(2)
     assert Lambda == Matrix([[1 / 2 + sp.sqrt(5) / 2, 0], [0, 1 / 2 - sp.sqrt(5) / 2]])
@@ -33,7 +35,7 @@ def test_tribonacci():
     )
 
     M = Matrix([[0, 0, 1], [1, 0, 1], [0, 1, 1]])
-    deg, Lambda, D = Reducer(M).reduce()
+    deg, Lambda, D = Reducer(M).canonical_data()
     assert deg == 0
     assert D == Matrix.zeros(3)
     assert expected_lambda.simplify() == Lambda.simplify()
@@ -53,7 +55,7 @@ def test_exponential_separation():
 
     # Run the Reducer
     reducer = Reducer(M, precision=5)
-    fact_power, actual_lambda, actual_D = reducer.reduce()
+    fact_power, actual_lambda, actual_D = reducer.canonical_data()
 
     assert fact_power == 0
     assert actual_lambda == expected_lambda
@@ -71,7 +73,7 @@ def test_newton_polygon_separation():
     m = expected_canonical.coboundary(U)
 
     reducer = Reducer(m, precision=5)
-    fact_power, actual_lambda, actual_D = reducer.reduce()
+    fact_power, actual_lambda, actual_D = reducer.canonical_data()
     assert fact_power == 0  # The true system had no factorial growth
     assert actual_lambda == expected_lambda
 
@@ -110,7 +112,7 @@ def test_ramification():
 
     # Run the Reducer
     reducer = Reducer(M, precision=4)
-    fact_power, Lambda, D = reducer.reduce()
+    fact_power, Lambda, D = reducer.canonical_data()
 
     assert reducer.p == 2
 
@@ -130,7 +132,7 @@ def test_ramified_scalar_peeling_no_block_degeneracy():
     """
     M = Matrix([[0, -(n - 1) / n], [1, 2]])
     reducer = Reducer(M.transpose(), precision=4)
-    deg, Lambda, D = reducer.reduce()
+    deg, Lambda, D = reducer.canonical_data()
 
     assert deg == 0
     assert reducer.p == 2
@@ -165,6 +167,27 @@ def test_ramified_scalar_peeling_no_block_degeneracy():
     ] == reducer.asymptotic_expressions()
 
 
+@pytest.mark.parametrize(
+    "U",
+    [
+        Matrix.eye(2),
+        Matrix([[2, 0], [0, 5]]),
+        Matrix([[0, 1], [1, 0]]),
+        Matrix([[1, 1 / n], [0, 1]]),
+        Matrix([[1, 0], [1 / (n**2), 1]]),
+    ],
+)
+def test_gauge_invariance(U):
+    M = Matrix([[0, -(n - 1) / n], [1, 2]])
+    reducer_original = Reducer(M)
+    original_asymptotics = reducer_original.canonical_data()
+
+    transformed_asymptotics = Reducer(M.coboundary(U)).canonical_data()
+    assert original_asymptotics == transformed_asymptotics, (
+        f"Invariance failed for gauge U = {U}"
+    )
+
+
 def test_euler_trajectory():
     p3 = -8 * n - 11
     p2 = 24 * n**3 + 105 * n**2 + 124 * n + 25
@@ -175,7 +198,7 @@ def test_euler_trajectory():
 
     reducer = Reducer(M.transpose(), precision=6)
 
-    deg, Lambda, D = reducer.reduce()
+    deg, Lambda, D = reducer.canonical_data()
 
     assert deg == 2
     assert reducer.p == 3
