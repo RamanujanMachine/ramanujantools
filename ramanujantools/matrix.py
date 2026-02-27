@@ -486,49 +486,25 @@ class Matrix(sp.Matrix):
         Overloads SymPy's jordan_form to automatically sort the Jordan blocks
         in descending order based on the absolute magnitude of the eigenvalues.
         """
-        # Call SymPy's underlying method (always calc_transform to sort P's columns)
-        result = super().jordan_form(calc_transform=calc_transform, **kwargs)
-        P, J = result
+        P, J = super().jordan_form(calc_transform=True, **kwargs)
 
         dim = self.shape[0]
-        blocks = []
-        col = 0
+        starts = [i for i in range(dim) if i == 0 or J[i - 1, i] == 0]
+        ends = starts[1:] + [dim]
+        blocks = [(J[s, s], P[:, s:e], J[s:e, s:e]) for s, e in zip(starts, ends)]
 
-        # 1. Extract the Jordan blocks and their corresponding column spaces
-        while col < dim:
-            size = 1
-            # A block continues as long as there is a '1' on the superdiagonal
-            while col + size < dim and J[col + size - 1, col + size] == 1:
-                size += 1
-
-            eigenvalue = J[col, col]
-            blocks.append(
-                {
-                    "size": size,
-                    "eval": eigenvalue,
-                    "P_cols": P[:, col : col + size],
-                    "J_block": J[col : col + size, col : col + size],
-                }
-            )
-            col += size
-
-        # 2. Sort the blocks by absolute magnitude
-        def sort_key(block):
+        def sort_key(b):
             try:
-                # Evaluate complex symbolic roots to floats for accurate comparison
-                val = complex(block["eval"].evalf())
-                return abs(val)
+                return abs(complex(b[0].evalf()))
             except TypeError:
-                # Fallback to 0 if the root contains purely abstract un-evaluable symbols
                 return 0
 
         blocks.sort(key=sort_key, reverse=True)
 
-        # 3. Reassemble the sorted matrices using the current class type (ramanujantools.Matrix)
-        P_sorted = type(self).hstack(*[b["P_cols"] for b in blocks])
-        J_sorted = type(self).diag(*[b["J_block"] for b in blocks])
+        J_sorted = Matrix.diag(*[b[2] for b in blocks])
 
         if not calc_transform:
             return J_sorted
 
+        P_sorted = Matrix.hstack(*[b[1] for b in blocks])
         return P_sorted, J_sorted
