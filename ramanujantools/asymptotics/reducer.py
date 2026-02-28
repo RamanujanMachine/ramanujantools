@@ -12,7 +12,30 @@ class Reducer:
     canonical fundamental matrix for linear difference systems.
     """
 
-    def __init__(self, matrix: Matrix, precision: int = 5, p: int = 1) -> None:
+    def __init__(
+        self,
+        series: SeriesMatrix,
+        var: sp.Symbol,
+        factorial_power: int = 0,
+        precision: int = 5,
+        p: int = 1,
+    ) -> None:
+        """Strict constructor. Expects a pre-normalized SeriesMatrix."""
+        self.M = series
+        self.var = var
+        self.factorial_power = factorial_power
+        self.precision = precision
+        self.p = p
+        self.dim = series.coeffs[0].shape[0]
+        self.S_total = SeriesMatrix(
+            [Matrix.eye(self.dim)], p=self.p, precision=self.precision
+        )
+        self._is_reduced = False
+        self.children = []  # To hold our recursive sub-reducers
+        self._is_reduced = False
+
+    @classmethod
+    def from_matrix(cls, matrix: Matrix, precision: int = 5, p: int = 1) -> Reducer:
         if not matrix.is_square():
             raise ValueError("Input matrix must be square.")
 
@@ -20,109 +43,134 @@ class Reducer:
         if len(free_syms) > 1:
             raise ValueError("Input matrix must depend on at most one variable.")
 
-        self.precision = precision
-        self.p = p
-        self.dim = matrix.shape[0]
+        dim = matrix.shape[0]
+        var = sp.Symbol("n") if len(free_syms) == 0 else free_syms[0]
+        factorial_power = max(matrix.degrees(var))
 
-        self.var = sp.Symbol("n") if len(free_syms) == 0 else free_syms[0]
-        self.factorial_power = max(matrix.degrees(self.var))
-        normalized_matrix = matrix / (self.var**self.factorial_power)
+        normalized_matrix = matrix / (var**factorial_power)
+        series = cls._symbolic_to_series(normalized_matrix, var, p, precision, dim)
 
-        self.M = self._symbolic_to_series(normalized_matrix)
-
-        # The accumulated global gauge transformation S(n)
-        self.S_total = SeriesMatrix(
-            [Matrix.eye(self.dim)], p=self.p, precision=self.precision
+        return cls(
+            series=series,
+            var=var,
+            factorial_power=factorial_power,
+            precision=precision,
+            p=p,
         )
 
-        self._is_reduced = False
-
-    def _symbolic_to_series(self, matrix: Matrix) -> SeriesMatrix:
-        """
-        Expands a symbolic matrix M(n) at n=oo into a formal series in t = n^(-1/p).
-        """
+    @classmethod
+    def _symbolic_to_series(
+        cls, matrix: Matrix, var: sp.Symbol, p: int, precision: int, dim: int
+    ) -> SeriesMatrix:
         if not matrix.free_symbols:
-            coeffs = [matrix] + [
-                Matrix.zeros(self.dim, self.dim) for _ in range(self.precision - 1)
-            ]
-            return SeriesMatrix(coeffs, p=self.p, precision=self.precision)
+            coeffs = [matrix] + [Matrix.zeros(dim, dim) for _ in range(precision - 1)]
+            return SeriesMatrix(coeffs, p=p, precision=precision)
 
         t = sp.Symbol("t", positive=True)
-        M_t = matrix.subs({self.var: t ** (-self.p)})
+        M_t = matrix.subs({var: t ** (-p)})
 
         coeffs = []
-        for i in range(self.precision):
+        for i in range(precision):
             coeff_matrix = M_t.applyfunc(
-                lambda x: sp.series(x, t, 0, self.precision).coeff(t, i)
+                lambda x: sp.series(x, t, 0, precision).coeff(t, i)
             )
-
-            if coeff_matrix.has(t) or coeff_matrix.has(self.var):
+            if coeff_matrix.has(t) or coeff_matrix.has(var):
                 raise ValueError(
                     f"Coefficient {i} failed to evaluate to a constant matrix."
                 )
-
             coeffs.append(coeff_matrix)
 
-        return SeriesMatrix(coeffs, p=self.p, precision=self.precision)
+        return SeriesMatrix(coeffs, p=p, precision=precision)
 
     @staticmethod
-    def _solve_sylvester_diagonal(J: Matrix, R: Matrix) -> Matrix:
-        """
-        Solves the Sylvester equation: J*Y - Y*J = R for Y.
-        Assumption: J is a diagonal matrix with DISTINCT eigenvalues.
-        """
-        rows, cols = J.shape
-        Y = Matrix.zeros(rows, cols)
+    def _solve_sylvester(A: Matrix, B: Matrix, C: Matrix) -> Matrix:
+        """Solves the Sylvester equation: A*X - X*B = C for X using Kronecker flattening."""
+        m, n = A.shape[0], B.shape[0]
+        sys_mat, C_vec = sp.zeros(m * n, m * n), sp.zeros(m * n, 1)
 
-        eigenvalues = [J[i, i] for i in range(rows)]
+        for j in range(n):
+            for i in range(m):
+                row_idx = j * m + i
+                C_vec[row_idx, 0] = C[i, j]
+                for k in range(m):  # A * X term
+                    sys_mat[row_idx, j * m + k] += A[i, k]
+                for k in range(n):  # -X * B term
+                    sys_mat[row_idx, k * m + i] -= B[k, j]
 
-        for i in range(rows):
-            for j in range(cols):
-                if i == j:
-                    continue
+        vec_X = sys_mat.LUsolve(C_vec)
 
-                diff = eigenvalues[i] - eigenvalues[j]
-                if diff == sp.S.Zero:
-                    # We hit duplicate roots. Simple scalar division won't work.
-                    raise NotImplementedError(
-                        "Duplicate eigenvalues detected! Block Sylvester solver required."
-                    )
+        X = Matrix.zeros(m, n)
+        for j in range(n):
+            for i in range(m):
+                X[i, j] = vec_X[j * m + i, 0]
+        return X
 
-                Y[i, j] = R[i, j] / diff
+    def _get_blocks(self, J_target: Matrix) -> list[tuple[int, int, sp.Expr]]:
+        """Finds the boundaries (start_idx, end_idx, eigenvalue) of independent blocks."""
+        blocks = []
+        if self.dim == 0:
+            return blocks
+        current_eval, start_idx = J_target[0, 0], 0
 
-        return Y
+        for i in range(1, self.dim):
+            if J_target[i, i] != current_eval:
+                blocks.append((start_idx, i, current_eval))
+                current_eval, start_idx = J_target[i, i], i
+
+        blocks.append((start_idx, self.dim, current_eval))
+        return blocks
 
     def reduce(self) -> Reducer:
-        """
-        The main state-machine loop. Runs until the system is fully diagonalized.
-        """
         max_iterations = max(20, self.dim * 3)
         iterations = 0
 
         while not self._is_reduced and iterations < max_iterations:
             M0 = self.M.coeffs[0]
-
             if M0.is_zero_matrix:
                 self.M = self.M.divide_by_t()
-                self.factorial_power -= 1
+                self.factorial_power -= sp.Rational(1, self.p)
                 continue
 
             k_target = self.M.get_first_non_scalar_index()
-
             if k_target is None:
-                # If every single matrix in the tail is scalar, the system is fully decoupled!
                 self._is_reduced = True
                 break
 
             M_target = self.M.coeffs[k_target]
             P, J_target = M_target.jordan_form()
 
-            S_step = SeriesMatrix([P], p=self.p, precision=self.precision)
-            self.S_total = self.S_total * S_step
+            self.S_total = self.S_total * SeriesMatrix(
+                [P], p=self.p, precision=self.precision
+            )
             self.M = self.M.similarity_transform(P, J_target if k_target == 0 else None)
 
-            if J_target.is_diagonal():
+            unique_evals = list(
+                dict.fromkeys([J_target[i, i] for i in range(self.dim)])
+            )
+
+            if len(unique_evals) > 1:
                 self.split(k_target, J_target)
+                blocks = self._get_blocks(J_target)
+                for s_idx, e_idx, _ in blocks:
+                    sub_coeffs = [
+                        self.M.coeffs[k][s_idx:e_idx, s_idx:e_idx]
+                        for k in range(self.precision)
+                    ]
+                    sub_series = SeriesMatrix(
+                        sub_coeffs, p=self.p, precision=self.precision
+                    )
+                    sub_reducer = Reducer(
+                        series=sub_series,
+                        var=self.var,
+                        factorial_power=self.factorial_power,
+                        precision=self.precision,
+                        p=self.p,
+                    )
+                    sub_reducer.reduce()
+                    self.children.append(sub_reducer)
+
+                self._is_reduced = True
+                return self
             else:
                 self.shear()
 
@@ -130,36 +178,40 @@ class Reducer:
 
         if not self._is_reduced:
             raise RuntimeError("Failed to reach canonical form within iteration limit.")
-
-        return self.canonical_data()
+        return self
 
     def split(self, k_target: int, J_target: Matrix) -> None:
-        """
-        Executes the generalized Splitting Lemma.
-        Uses the first non-scalar matrix J_target (at t^k_target)
-        to block-diagonalize the higher-order tail.
-        """
+        dim, blocks = self.dim, self._get_blocks(J_target)
+
         for m in range(1, self.precision - k_target):
-            target_idx = k_target + m
-            R_k = self.M.coeffs[target_idx]
-
-            if R_k.is_diagonal():
-                continue
-
-            R_off = R_k - Matrix.diag(*[R_k[i, i] for i in range(self.dim)])
-            Y_mat = self._solve_sylvester_diagonal(J_target, -R_off)
-
-            G_coeffs = (
-                [Matrix.eye(self.dim)]
-                + [Matrix.zeros(self.dim, self.dim)] * (m - 1)
-                + [Y_mat]
+            R_k, Y_mat, needs_gauge = (
+                self.M.coeffs[k_target + m],
+                Matrix.zeros(dim, dim),
+                False,
             )
-            G = SeriesMatrix(G_coeffs, p=self.p, precision=self.precision)
 
-            self.S_total = self.S_total * G
-            self.M = self.M.coboundary(G)
+            for s_i, e_i, eval_i in blocks:
+                J_ii = J_target[s_i:e_i, s_i:e_i]
+                for s_j, e_j, eval_j in blocks:
+                    if eval_i == eval_j:
+                        continue
 
-        self._is_reduced = True
+                    J_jj, R_ij = J_target[s_j:e_j, s_j:e_j], R_k[s_i:e_i, s_j:e_j]
+
+                    if not R_ij.is_zero_matrix:
+                        needs_gauge = True
+                        Y_ij = self._solve_sylvester(J_ii, J_jj, -R_ij)
+                        for r in range(e_i - s_i):
+                            for c in range(e_j - s_j):
+                                Y_mat[s_i + r, s_j + c] = Y_ij[r, c]
+
+            if needs_gauge:
+                padded_G = (
+                    [Matrix.eye(dim)] + [Matrix.zeros(dim, dim)] * (m - 1) + [Y_mat]
+                )
+                padded_G += [Matrix.zeros(dim, dim)] * (self.precision - len(padded_G))
+                G = SeriesMatrix(padded_G, p=self.p, precision=self.precision)
+                self.S_total, self.M = self.S_total * G, self.M.coboundary(G)
 
     def _compute_shear_slope(self) -> sp.Rational:
         """
@@ -222,31 +274,27 @@ class Reducer:
         return max(sp.S.Zero, g)
 
     def shear(self) -> None:
-        """
-        Applies the Newton Polygon shearing transformation to split nilpotent Jordan blocks,
-        ramifying the system if fractional Puiseux powers are required.
-        """
         g = self._compute_shear_slope()
 
         if g == sp.S.Zero:
-            raise NotImplementedError(
-                "Permanent Jordan block detected! Exponential extraction for "
-                "regular singularities is not yet fully implemented."
-            )
+            # Solid bedrock! Block is unsplittable. Stop shearing and let extraction handle log(n).
+            self._is_reduced = True
+            return
 
         if not g.is_integer:
             g, b = g.as_numer_denom()
-
-            self.M = self.M.ramify(b)
-            self.S_total = self.S_total.ramify(b)
-
+            self.M, self.S_total = self.M.ramify(b), self.S_total.ramify(b)
             self.p *= b
             self.precision *= b
 
         t = sp.Symbol("t", positive=True)
-
         S_sym = Matrix.diag(*[t ** (i * g) for i in range(self.dim)])
-        S_series = self._symbolic_to_series(S_sym)
+
+        # Use the updated classmethod
+        S_series = self.__class__._symbolic_to_series(
+            S_sym, self.var, self.p, self.precision, self.dim
+        )
+
         self.S_total = self.S_total * S_series
         self.M = self.M.shear_coboundary(g)
 
@@ -273,38 +321,37 @@ class Reducer:
         return self.factorial_power, Lambda, D
 
     def asymptotic_expressions(self) -> list[sp.Expr]:
-        """
-        Converts the canonical matrices into concrete SymPy expressions
-        representing the asymptotic growth of each fundamental solution.
-        The returned list strictly preserves the diagonal order of the canonical matrices.
-        """
+        # 1. Recursive Delegation
+        if self.children:
+            return [
+                sol for child in self.children for sol in child.asymptotic_expressions()
+            ]
+
         if not self._is_reduced:
             self.reduce()
 
-        d = self.factorial_power
-        n = self.var
-        t = sp.Symbol("t", positive=True)
+        d, n, t = self.factorial_power, self.var, sp.Symbol("t", positive=True)
+        solutions, jordan_depth = [], 0
 
-        solutions = []
         for i in range(self.dim):
             lambda_val = self.M.coeffs[0][i, i]
-
             if lambda_val == sp.S.Zero:
                 solutions.append(sp.S.Zero)
                 continue
 
-            L_t = sp.S.One
+            # Logarithmic Trigger for permanent chains
+            is_jordan_link = any(
+                self.M.coeffs[k][i - 1, i] != sp.S.Zero for k in range(self.precision)
+            )
+            jordan_depth = jordan_depth + 1 if (i > 0 and is_jordan_link) else 0
 
-            # We only need up to p terms to find the exponential roots and the algebraic tail D.
+            L_t = sp.S.One
             max_k = min(self.precision, self.p + 1)
             for k in range(1, max_k):
                 L_t += (self.M.coeffs[k][i, i] / lambda_val) * (t**k)
 
-            # Formal Exponential Integration: Taylor series of log(L(t))
             log_series = sp.series(sp.log(L_t), t, 0, self.p + 1)
-
-            Q_n = sp.S.Zero
-            D_val = sp.S.Zero
+            Q_n, D_val = sp.S.Zero, sp.S.Zero
 
             for k in range(1, self.p + 1):
                 c_k = log_series.coeff(t, k)
@@ -312,15 +359,17 @@ class Reducer:
                     continue
 
                 if k < self.p:
-                    # Fractional powers integrate to build the exponential polynomial e^Q
                     power = 1 - sp.Rational(k, self.p)
                     Q_n += (c_k / power) * (n**power)
                 elif k == self.p:
-                    # The n^{-1} term integrates to log(n), becoming the algebraic tail D
                     D_val = c_k
 
-            # u_i(n) = (n!)^d * (lambda_i)^n * exp(Q(n)) * n^{D_i}
             expr = (sp.factorial(n) ** d) * (lambda_val**n) * sp.exp(Q_n) * (n**D_val)
+
+            # Inject the log(n)
+            if jordan_depth > 0:
+                expr = expr * (sp.log(n) ** jordan_depth)
+
             solutions.append(expr)
 
         return solutions
