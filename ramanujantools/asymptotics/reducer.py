@@ -1,15 +1,57 @@
 from __future__ import annotations
 
+from functools import lru_cache
+
 import sympy as sp
 
+
 from ramanujantools import Matrix
-from ramanujantools.asymptotics import SeriesMatrix
+from ramanujantools.asymptotics import GrowthRate, SeriesMatrix
+
+
+class PrecisionExhaustedError(Exception):
+    """Base class for all precision-related asymptotic engine bounds."""
+
+    def __init__(self, required_precision: int, message: str):
+        self.required_precision = required_precision
+        super().__init__(
+            f"{message} [REQUIRED_STARTING_PRECISION: {required_precision}]"
+        )
+
+
+class ShearOverflowError(PrecisionExhaustedError):
+    """Raised when a shear transformation pushes data beyond the current array bounds."""
+
+    pass
+
+
+class EigenvalueBlindnessError(PrecisionExhaustedError):
+    """Raised when the matrix appears nilpotent at the current precision."""
+
+    pass
+
+
+class RowNullityError(PrecisionExhaustedError):
+    """Raised when a physical variable completely vanishes from the formal solution space."""
+
+    pass
+
+
+class InputTruncationError(PrecisionExhaustedError):
+    """Raised when the starting precision is too low to fully ingest the input matrix."""
+
+    pass
 
 
 class Reducer:
     """
     Implements the Birkhoff-Trjitzinsky algorithm to compute the formal
     canonical fundamental matrix for linear difference systems.
+
+    Sources:
+        "Analytic Theory of Singular Difference Equations" by George D Birkhoff and Waldemar J Trjitzinsky
+        "Resurrecting the Asymptotics of Linear Recurrences" by Jet Wimp and Doron Zeilberger
+        "Galois theory of difference equations" by Marius van der Put and Michael Singer, chapter 7.2.
     """
 
     def __init__(
@@ -31,8 +73,7 @@ class Reducer:
             [Matrix.eye(self.dim)], p=self.p, precision=self.precision
         )
         self._is_reduced = False
-        self.children = []  # To hold our recursive sub-reducers
-        self._is_reduced = False
+        self.children = []
 
     @classmethod
     def from_matrix(cls, matrix: Matrix, precision: int = 5, p: int = 1) -> Reducer:
@@ -48,6 +89,17 @@ class Reducer:
         factorial_power = max(matrix.degrees(var))
 
         normalized_matrix = matrix / (var**factorial_power)
+        required_precision = (
+            -min([d for d in normalized_matrix.degrees(var) if d > -sp.oo], default=0)
+            * p
+            + 1
+        )
+        if precision < required_precision:
+            raise InputTruncationError(
+                required_precision=required_precision,
+                message=f"Input Truncation! The deepest term requires a minimum precision of {required_precision}.",
+            )
+
         series = cls._symbolic_to_series(normalized_matrix, var, p, precision, dim)
 
         return cls(
@@ -92,9 +144,9 @@ class Reducer:
             for i in range(m):
                 row_idx = j * m + i
                 C_vec[row_idx, 0] = C[i, j]
-                for k in range(m):  # A * X term
+                for k in range(m):
                     sys_mat[row_idx, j * m + k] += A[i, k]
-                for k in range(n):  # -X * B term
+                for k in range(n):
                     sys_mat[row_idx, k * m + i] -= B[k, j]
 
         vec_X = sys_mat.LUsolve(C_vec)
@@ -123,12 +175,21 @@ class Reducer:
     def reduce(self) -> Reducer:
         max_iterations = max(20, self.dim * 3)
         iterations = 0
+        zeros_shifted = 0
 
         while not self._is_reduced and iterations < max_iterations:
             M0 = self.M.coeffs[0]
+
             if M0.is_zero_matrix:
+                if zeros_shifted >= self.precision:
+                    raise ValueError(
+                        f"Series exhausted after {zeros_shifted} shifts. Precision too low."
+                    )
+
                 self.M = self.M.divide_by_t()
                 self.factorial_power -= sp.Rational(1, self.p)
+                zeros_shifted += 1
+                iterations += 1
                 continue
 
             k_target = self.M.get_first_non_scalar_index()
@@ -138,12 +199,10 @@ class Reducer:
 
             M_target = self.M.coeffs[k_target]
             P, J_target = M_target.jordan_form()
-
             self.S_total = self.S_total * SeriesMatrix(
-                [P], p=self.p, precision=self.precision
+                [P], p=self.p, precision=self.S_total.precision
             )
             self.M = self.M.similarity_transform(P, J_target if k_target == 0 else None)
-
             unique_evals = list(
                 dict.fromkeys([J_target[i, i] for i in range(self.dim)])
             )
@@ -183,6 +242,14 @@ class Reducer:
     def split(self, k_target: int, J_target: Matrix) -> None:
         dim, blocks = self.dim, self._get_blocks(J_target)
 
+        max_sub_dim = max((e - s) for s, e, _ in blocks)
+        buffer_needed = 0 if max_sub_dim == 1 else (max_sub_dim * max_sub_dim)
+        needed_precision = self.p + 1 + buffer_needed
+
+        if self.precision > needed_precision:
+            self.M = self.M.truncate(needed_precision)
+            self.precision = needed_precision
+
         for m in range(1, self.precision - k_target):
             R_k, Y_mat, needs_gauge = (
                 self.M.coeffs[k_target + m],
@@ -201,26 +268,36 @@ class Reducer:
                     if not R_ij.is_zero_matrix:
                         needs_gauge = True
                         Y_ij = self._solve_sylvester(J_ii, J_jj, -R_ij)
+
                         for r in range(e_i - s_i):
                             for c in range(e_j - s_j):
                                 Y_mat[s_i + r, s_j + c] = Y_ij[r, c]
 
             if needs_gauge:
+                Y_mat = Y_mat.applyfunc(lambda x: sp.cancel(sp.radsimp(sp.cancel(x))))
+
                 padded_G = (
                     [Matrix.eye(dim)] + [Matrix.zeros(dim, dim)] * (m - 1) + [Y_mat]
                 )
                 padded_G += [Matrix.zeros(dim, dim)] * (self.precision - len(padded_G))
+
                 G = SeriesMatrix(padded_G, p=self.p, precision=self.precision)
-                self.S_total, self.M = self.S_total * G, self.M.coboundary(G)
+
+                # SEVERED LINK: We DO NOT multiply self.S_total * G.
+                # G is a near-identity matrix; it cannot affect the leading tail.
+                self.M = self.M.coboundary(G)
+
+                self.M = SeriesMatrix(
+                    [
+                        c.applyfunc(lambda x: sp.cancel(sp.expand(x)))
+                        for c in self.M.coeffs
+                    ],
+                    p=self.p,
+                    precision=self.precision,
+                )
 
     def _compute_shear_slope(self) -> sp.Rational:
-        """
-        Constructs the exact Lower Convex Hull of the matrix valuations and returns
-        the shearing slope 'g' (the steepest negative slope on the lower hull).
-        """
         lambda_val = self.M.coeffs[0][0, 0]
-
-        # Delegate the algebraic shift directly to the SeriesMatrix
         shifted_series = self.M.shift_leading_eigenvalue(lambda_val)
         vals = shifted_series.valuations()
 
@@ -231,7 +308,6 @@ class Reducer:
                 if v != sp.oo:
                     points.append((j - i, v))
 
-        # Group by x, keeping only the lowest y for each vertical line
         lowest_points = {}
         for x, y in points:
             if x not in lowest_points or y < lowest_points[x]:
@@ -240,7 +316,6 @@ class Reducer:
         sorted_x = sorted(lowest_points.keys())
         hull_points = [(x, lowest_points[x]) for x in sorted_x]
 
-        # Build the exact Lower Convex Hull using a Monotone Chain
         lower_hull = []
         for p in hull_points:
             while len(lower_hull) >= 2:
@@ -248,36 +323,80 @@ class Reducer:
                 p2 = lower_hull[-1]
                 p3 = p
 
-                # Calculate slopes between the last two segments
                 slope1 = sp.Rational(p2[1] - p1[1], p2[0] - p1[0])
                 slope2 = sp.Rational(p3[1] - p2[1], p3[0] - p2[0])
 
-                # If the slope decreases or stays the same, the point p2 is an interior
-                # point (not strictly convex) and must be discarded.
                 if slope2 <= slope1:
                     lower_hull.pop()
                 else:
                     break
             lower_hull.append(p)
 
-        # The steepest negative slope is mathematically guaranteed to be
-        # the very first segment of the lower convex hull!
         if len(lower_hull) < 2:
             return sp.S.Zero
 
         p1, p2 = lower_hull[0], lower_hull[1]
         steepest_slope = sp.Rational(p2[1] - p1[1], p2[0] - p1[0])
-
-        # We return the positive scalar g
         g = -steepest_slope
 
         return max(sp.S.Zero, g)
+
+    def _check_shear_overflow(self, g: sp.Rational | int) -> None:
+        """
+        Detects if a shear transformation will push non-zero terms past the
+        allocated precision buffer of S_total.
+        Uses a Global Maximum check to account for column-mixing by P matrices.
+        """
+        # Find the absolute deepest term ANYWHERE in the matrix
+        global_deepest_k = 0
+        for k in range(self.S_total.precision):
+            if not self.S_total.coeffs[k].is_zero_matrix:
+                global_deepest_k = k
+
+        # Find the heaviest possible shift applied to any column
+        # For a shear matrix S = diag(1, t^g, t^2g, ...), the max shift is on the last column
+        max_shift = (self.dim - 1) * g
+
+        # Check if the worst-case scenario breaks the boundary
+        if global_deepest_k + max_shift >= self.S_total.precision:
+            required_precision = int(global_deepest_k + max_shift + 1)
+            outer_required = int(sp.ceiling(required_precision / self.p))
+
+            raise ShearOverflowError(
+                required_precision=outer_required,
+                message=f"Global Shear Overflow! Deepest matrix term is at index {global_deepest_k}. "
+                f"Max upcoming shift is {global_deepest_k + max_shift}, "
+                f"S_total precision is only {self.S_total.precision}.",
+            )
+
+    def _check_eigenvalue_blindness(self, lambda_val: sp.Expr) -> None:
+        """
+        The Blindness Radar: Detects if the matrix is completely nilpotent at the current precision.
+        """
+        if lambda_val == sp.S.Zero:
+            raise EigenvalueBlindnessError(
+                required_precision=self.precision + self.dim,
+                message="Zero Eigenvalue Drop! System is completely nilpotent at current precision.",
+            )
+
+    def _check_cfm_validity(self, cfm: sp.Matrix) -> None:
+        """
+        The Nullity Radar: The final algebraic proof of the Canonical Fundamental Matrix.
+        """
+        # Row Existence: No physical variable can completely vanish.
+        # If an entire row is 0, a critical coupling term was starved of precision.
+        for row in range(self.dim):
+            if all(cfm[row, col] == sp.S.Zero for col in range(self.dim)):
+                raise RowNullityError(
+                    required_precision=self.precision + self.dim,
+                    message=f"Row Nullity Violation! Physical variable at row {row} vanished completely.",
+                )
 
     def shear(self) -> None:
         g = self._compute_shear_slope()
 
         if g == sp.S.Zero:
-            # Solid bedrock! Block is unsplittable. Stop shearing and let extraction handle log(n).
+            self._check_eigenvalue_blindness(self.M.coeffs[0][0, 0])
             self._is_reduced = True
             return
 
@@ -287,70 +406,61 @@ class Reducer:
             self.p *= b
             self.precision *= b
 
+        self._check_shear_overflow(g)
+
         t = sp.Symbol("t", positive=True)
         S_sym = Matrix.diag(*[t ** (i * g) for i in range(self.dim)])
-
-        # Use the updated classmethod
-        S_series = self.__class__._symbolic_to_series(
-            S_sym, self.var, self.p, self.precision, self.dim
+        S_series = Reducer._symbolic_to_series(
+            S_sym, self.var, self.p, self.S_total.precision, self.dim
         )
 
         self.S_total = self.S_total * S_series
-        self.M = self.M.shear_coboundary(g)
 
-    def canonical_data(self) -> tuple[sp.Number, Matrix, Matrix]:
+        self.M, h = self.M.shear_coboundary(g)
+
+        if h != 0:
+            self.factorial_power += sp.Rational(h, self.p)
+
+    @lru_cache
+    def asymptotic_growth(self) -> list[GrowthRate | None]:
         """
-        Extracts the canonical growth matrices.
-        Returns:
-            factorial_power: The exponent d for the factorial growth (n!)^d.
-            Lambda: The exponential growth base matrix (e^Q).
-            D: The algebraic growth matrix (n^D).
+        Extracts the raw, unmapped asymptotic components of the internal canonical basis.
+        Returns a list of strongly-typed GrowthRate objects.
         """
         if not self._is_reduced:
             self.reduce()
 
-        Lambda = self.M.coeffs[0]
-
-        # If precision is at least 2, we can extract D. Otherwise, D is 0.
-        if self.precision > 1:
-            M1 = self.M.coeffs[1]
-            D = Lambda.inv() * M1
-        else:
-            D = Matrix.zeros(self.dim)
-
-        return self.factorial_power, Lambda, D
-
-    def asymptotic_expressions(self) -> list[sp.Expr]:
-        # 1. Recursive Delegation
         if self.children:
-            return [
-                sol for child in self.children for sol in child.asymptotic_expressions()
-            ]
-
-        if not self._is_reduced:
-            self.reduce()
+            return [sol for child in self.children for sol in child.asymptotic_growth()]
 
         d, n, t = self.factorial_power, self.var, sp.Symbol("t", positive=True)
-        solutions, jordan_depth = [], 0
+        growths, jordan_depth = [], 0
 
         for i in range(self.dim):
-            lambda_val = self.M.coeffs[0][i, i]
-            if lambda_val == sp.S.Zero:
-                solutions.append(sp.S.Zero)
-                continue
+            lambda_val = sp.cancel(sp.expand(self.M.coeffs[0][i, i]))
+            self._check_eigenvalue_blindness(lambda_val)
 
-            # Logarithmic Trigger for permanent chains
-            is_jordan_link = any(
-                self.M.coeffs[k][i - 1, i] != sp.S.Zero for k in range(self.precision)
-            )
-            jordan_depth = jordan_depth + 1 if (i > 0 and is_jordan_link) else 0
+            is_jordan_link = False
+            if i > 0 and lambda_val == sp.cancel(
+                sp.expand(self.M.coeffs[0][i - 1, i - 1])
+            ):
+                is_jordan_link = any(
+                    sp.cancel(sp.expand(self.M.coeffs[k][i - 1, i])) != sp.S.Zero
+                    for k in range(self.precision)
+                )
+            jordan_depth = jordan_depth + 1 if is_jordan_link else 0
 
-            L_t = sp.S.One
+            x = sp.S.Zero
             max_k = min(self.precision, self.p + 1)
             for k in range(1, max_k):
-                L_t += (self.M.coeffs[k][i, i] / lambda_val) * (t**k)
+                x += (self.M.coeffs[k][i, i] / lambda_val) * (t**k)
 
-            log_series = sp.series(sp.log(L_t), t, 0, self.p + 1)
+            log_series = sp.S.Zero
+            for j in range(1, self.p + 1):
+                log_series += ((-1) ** (j + 1) / sp.Rational(j)) * (x**j)
+
+            log_series = sp.expand(log_series)
+
             Q_n, D_val = sp.S.Zero, sp.S.Zero
 
             for k in range(1, self.p + 1):
@@ -358,18 +468,90 @@ class Reducer:
                 if c_k == sp.S.Zero:
                     continue
 
+                c_k = sp.cancel(sp.expand(c_k))
+
                 if k < self.p:
                     power = 1 - sp.Rational(k, self.p)
                     Q_n += (c_k / power) * (n**power)
                 elif k == self.p:
                     D_val = c_k
 
-            expr = (sp.factorial(n) ** d) * (lambda_val**n) * sp.exp(Q_n) * (n**D_val)
+            growths.append(
+                GrowthRate(
+                    lambda_val=lambda_val,
+                    Q_n=Q_n,
+                    D_val=D_val,
+                    jordan_depth=jordan_depth,
+                    d=d,
+                )
+            )
 
-            # Inject the log(n)
-            if jordan_depth > 0:
-                expr = expr * (sp.log(n) ** jordan_depth)
+        return growths
 
-            solutions.append(expr)
+    def asymptotic_expressions(self) -> list[sp.Expr]:
+        """
+        Builds the 'classic' scalar expressions from the raw internal growth components.
+        This perfectly preserves backward compatibility with older scalar tests.
+        """
+        growths = self.asymptotic_growth()
+        n = self.var
+        exprs = []
 
-        return solutions
+        for g in growths:
+            if g is None:
+                exprs.append(sp.S.Zero)
+                continue
+
+            expr = (
+                (sp.factorial(n) ** g.d)
+                * (g.lambda_val**n)
+                * sp.exp(g.Q_n)
+                * (n**g.D_val)
+            )
+
+            if g.jordan_depth > 0:
+                expr = expr * (sp.log(n) ** g.jordan_depth)
+
+            exprs.append(sp.simplify(expr).rewrite(sp.factorial))
+
+        return exprs
+
+    @lru_cache
+    def canonical_fundamental_matrix(self) -> Matrix:
+        """
+        Maps the internal basis through the S_total gauge to output the Canonical Fundamental Matrix.
+        """
+        growths = self.asymptotic_growth()
+        n = self.var
+        vectors = []
+
+        for i, g in enumerate(growths):
+            if g is None:
+                vectors.append(sp.zeros(self.dim, 1))
+                continue
+
+            vec_solution = Matrix.zeros(self.dim, 1)
+            for row in range(self.dim):
+                for k in range(self.S_total.precision):
+                    coeff = self.S_total.coeffs[k][row, i]
+                    if coeff != sp.S.Zero:
+                        coeff = sp.cancel(sp.expand(coeff))
+
+                        true_D = sp.simplify(g.D_val - g.d - sp.Rational(k, self.p))
+
+                        expr = (
+                            coeff
+                            * (sp.factorial(n) ** g.d)
+                            * (g.lambda_val**n)
+                            * sp.exp(g.Q_n)
+                            * (n**true_D)
+                            * sp.log(n) ** g.jordan_depth
+                        )
+
+                        vec_solution[row, 0] = sp.simplify(expr).rewrite(sp.factorial)
+                        break
+            vectors.append(vec_solution)
+
+        cfm = Matrix.hstack(*vectors)
+        self._check_cfm_validity(cfm)
+        return cfm

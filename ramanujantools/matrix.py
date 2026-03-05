@@ -360,13 +360,16 @@ class Matrix(sp.Matrix):
         Deflates a polynomial such that all coefficients approach a finite number.
         Assumes polynomial only contain n as a free symbol.
         """
-        from ramanujantools import LinearRecurrence
-
+        current_degree = 0
         charpoly_coeffs = poly.all_coeffs()
-        degree = LinearRecurrence.poincare_deflation_degree(charpoly_coeffs)
-        print(charpoly_coeffs, degree)
+        for i in range(len(charpoly_coeffs)):
+            coeff = charpoly_coeffs[i]
+            numerator, denominator = coeff.as_numer_denom()
+            degree = sp.Poly(numerator, n).degree() - sp.Poly(denominator, n).degree()
+            if (current_degree * i) < degree:
+                current_degree = -(degree // -i)  # ceil div trick
         coeffs = [
-            (charpoly_coeffs[i] / (n ** (degree * i))).limit(n, "oo")
+            (charpoly_coeffs[i] / (n ** (current_degree * i))).limit(n, "oo")
             for i in range(len(charpoly_coeffs))
         ]
         return sp.PurePoly(coeffs, poly.gen)
@@ -508,3 +511,36 @@ class Matrix(sp.Matrix):
 
         P_sorted = Matrix.hstack(*[b[1] for b in blocks])
         return P_sorted, J_sorted
+
+    @lru_cache
+    def asymptotics(self) -> Matrix:
+        """
+        Returns the Canonical Fundamnetal Matrix (CFM) of the linear system of difference equations defined by self.
+        The CFM is defined as a formal set of solutions for the system such that they are asymptotically distinct.
+        More documentation in Reducer.
+        """
+        from ramanujantools.asymptotics.reducer import Reducer, PrecisionExhaustedError
+
+        degrees = [d for d in self.degrees() if d != -sp.oo]
+        S = max(degrees) - min(degrees) if degrees else 1
+
+        # The theoretical upper bound for required Taylor terms
+        max_precision = (self.shape[0] ** 2) * max(S, 1) + self.shape[0]
+        precision = self.shape[0]
+
+        while precision <= max_precision:
+            try:
+                # Transposing as Reducer is column-based
+                reducer = Reducer.from_matrix(self.transpose(), precision=precision)
+                return reducer.canonical_fundamental_matrix().transpose()
+
+            except PrecisionExhaustedError as e:
+                # The math engine strictly dictates the exact array size it needs to proceed
+                precision = max(precision + 1, e.required_precision)
+
+        raise RuntimeError(
+            f"Precision ceiling reached (max_precision={max_precision}).\n"
+            f"The engine hit the absolute maximum ramification bound for a dimension {self.shape[0]} system.\n"
+            f"This means the input matrix either has unusually high polynomial degrees (high Poincaré rank), "
+            f"or the system is fundamentally degenerate."
+        )

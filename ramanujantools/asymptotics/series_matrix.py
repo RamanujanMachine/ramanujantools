@@ -51,24 +51,13 @@ class SeriesMatrix:
 
         for k in range(self.precision):
             coeff_sum = Matrix.zeros(*self.shape)
-            # Standard discrete convolution: sum_{m=0}^k A_m * B_{k-m}
             for m in range(k + 1):
                 coeff_sum += self.coeffs[m] * other.coeffs[k - m]
-            new_coeffs[k] = coeff_sum
+
+            # DEFLATE + CRUSH ALGEBRA: Force (sqrt(3))^2 to become 3
+            new_coeffs[k] = coeff_sum.applyfunc(lambda x: sp.cancel(sp.expand(x)))
 
         return SeriesMatrix(new_coeffs, p=self.p, precision=self.precision)
-
-    def __repr__(self) -> str:
-        return (
-            f"SeriesMatrix(shape={self.shape}, precision={self.precision}, p={self.p})"
-        )
-
-    def __str__(self) -> str:
-        """Helper to see the series written out symbolically."""
-        expr = Matrix.zeros(*self.shape)
-        for i, coeff in enumerate(self.coeffs):
-            expr += coeff * (n ** (-sp.Rational(i, self.p)))
-        return str(expr)
 
     def inverse(self) -> SeriesMatrix:
         """
@@ -85,9 +74,25 @@ class SeriesMatrix:
             sum_terms = Matrix.zeros(*self.shape)
             for i in range(1, k + 1):
                 sum_terms += self.coeffs[i] * V_coeffs[k - i]
-            V_coeffs[k] = -V_0 * sum_terms
+
+            # DEFLATE + CRUSH ALGEBRA: Prevent Y^6 from swelling with un-evaluated roots
+            V_coeffs[k] = (-V_0 * sum_terms).applyfunc(
+                lambda x: sp.cancel(sp.expand(x))
+            )
 
         return SeriesMatrix(V_coeffs, p=self.p, precision=self.precision)
+
+    def __repr__(self) -> str:
+        return (
+            f"SeriesMatrix(shape={self.shape}, precision={self.precision}, p={self.p})"
+        )
+
+    def __str__(self) -> str:
+        """Helper to see the series written out symbolically."""
+        expr = Matrix.zeros(*self.shape)
+        for i, coeff in enumerate(self.coeffs):
+            expr += coeff * (n ** (-sp.Rational(i, self.p)))
+        return str(expr)
 
     def shift(self) -> SeriesMatrix:
         """
@@ -160,25 +165,26 @@ class SeriesMatrix:
 
         return SeriesMatrix(new_coeffs, p=self.p, precision=self.precision)
 
-    def coboundary(self, T: "SeriesMatrix") -> "SeriesMatrix":
+    def coboundary(self, T: SeriesMatrix) -> SeriesMatrix:
         """
         Computes the right-acting discrete coboundary T(n+1)^{-1} * M(n) * T(n).
         Assumes T is an invertible formal power series (det(T_0) != 0).
         """
-        return T.shift().inverse() * self * T
+        T_shifted = T.shift()
+        T_inv = T_shifted.inverse()
+        left_mult = T_inv * self
+        res = left_mult * T
+        return res
 
-    def shear_coboundary(self, g: int) -> "SeriesMatrix":
-        """
-        Computes the exact discrete coboundary S(n+1)^{-1} * M(n) * S(n)
-        for a diagonal shear matrix S = diag(1, t^g, t^{2g}, ...).
+    def truncate(self, new_precision: int) -> SeriesMatrix:
+        """Sheds trailing precision terms to optimize performance."""
+        if new_precision >= self.precision:
+            return self
+        return SeriesMatrix(
+            self.coeffs[:new_precision], p=self.p, precision=new_precision
+        )
 
-        This bypasses singular matrix inversion by analytically fusing the
-        algebraic Laurent shift t^{(j-i)g} and the discrete Taylor correction
-        (1 + t^p)^{ig/p} into a single, highly efficient array pass.
-        """
-        import sympy as sp
-        from ramanujantools import Matrix
-
+    def shear_coboundary(self, g: int) -> tuple[SeriesMatrix, int]:
         row_corrections = []
         for i in range(self.shape[0]):
             exponent = sp.Rational(i * g, self.p)
@@ -194,23 +200,48 @@ class SeriesMatrix:
                     coeffs[idx] = bin_coeff
             row_corrections.append(coeffs)
 
-        new_coeffs = [Matrix.zeros(*self.shape) for _ in range(self.precision)]
+        power_dict = {}
 
-        for k in range(self.precision):
+        for m in range(self.precision):
             for i in range(self.shape[0]):
                 for j in range(self.shape[0]):
-                    val = sp.S.Zero
+                    val_M = self.coeffs[m][i, j]
+                    if val_M == sp.S.Zero:
+                        continue
+
                     shift = int((j - i) * g)
+                    for c in range(self.precision):
+                        val_C = row_corrections[i][c]
+                        if val_C == sp.S.Zero:
+                            continue
 
-                    # We need m + shift + c = k  =>  m = k - c - shift
-                    for c in range(k + 1):
-                        m = k - c - shift
-                        if 0 <= m < self.precision:
-                            val += row_corrections[i][c] * self.coeffs[m][i, j]
+                        power = m + c + shift
+                        if power not in power_dict:
+                            power_dict[power] = Matrix.zeros(*self.shape)
+                        power_dict[power][i, j] += val_C * val_M
 
-                    new_coeffs[k][i, j] = val
+        # Unconstrained min_power to catch both negative poles AND positive zero-gaps
+        min_power = None
+        for p_val in sorted(power_dict.keys()):
+            if not power_dict[p_val].is_zero_matrix:
+                min_power = p_val
+                break
 
-        return SeriesMatrix(new_coeffs, p=self.p, precision=self.precision)
+        if min_power is None:
+            min_power = 0
+
+        h = -min_power
+
+        new_coeffs = []
+        for k in range(self.precision):
+            target_power = k - h
+            if target_power in power_dict:
+                # Deflate immediately upon shifting
+                new_coeffs.append(power_dict[target_power].applyfunc(sp.cancel))
+            else:
+                new_coeffs.append(Matrix.zeros(*self.shape))
+
+        return SeriesMatrix(new_coeffs, p=self.p, precision=self.precision), h
 
     def shift_leading_eigenvalue(self, lambda_val: sp.Expr) -> SeriesMatrix:
         """
