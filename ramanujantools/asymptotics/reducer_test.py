@@ -3,7 +3,8 @@ import sympy as sp
 from sympy.abc import n
 
 from ramanujantools import Matrix
-from ramanujantools.asymptotics.reducer import (
+from ramanujantools.asymptotics import (
+    GrowthRate,
     EigenvalueBlindnessError,
     RowNullityError,
     ShearOverflowError,
@@ -40,7 +41,7 @@ def test_tribonacci():
     growths = Reducer.from_matrix(M).asymptotic_growth()
     assert len(growths) == 3
 
-    actual_bases = [g.lambda_val for g in growths]
+    actual_bases = [g.exp_base for g in growths]
 
     for expected, actual in zip(expected_bases, actual_bases):
         assert abs(sp.N(expected - actual, 50)) < 1e-40, (
@@ -137,7 +138,10 @@ def test_row_nullity():
     reducer = Reducer.from_matrix(m, precision=5)
 
     # Craft a physically impossible CFM where Variable 1 has completely vanished
-    broken_cfm = Matrix([[n**2, n**3], [0, 0]])
+    broken_cfm = [
+        [GrowthRate(polynomial_degree=2), GrowthRate(polynomial_degree=3)],
+        [GrowthRate(), GrowthRate()],
+    ]
 
     with pytest.raises(RowNullityError) as e:
         reducer._check_cfm_validity(broken_cfm)
@@ -204,7 +208,7 @@ def test_ramification_structural_mechanics():
 
     for element in cfm:
         # Extract all base-exponent pairs (e.g., n**(1/3) -> base=n, exp=1/3)
-        for power in element.atoms(sp.Pow):
+        for power in element.as_expr(n).atoms(sp.Pow):
             base, exp = power.as_base_exp()
             if base == n and isinstance(exp, sp.Rational) and exp.q == 3:
                 found_fractional_power = True
@@ -222,94 +226,30 @@ def test_euler_trajectory():
     p0 = (n + 1) ** 4 * (n + 2) ** 2 * (8 * n + 19)
 
     M = Matrix([[0, 0, -p0 / p3], [1, 0, -p1 / p3], [0, 1, -p2 / p3]])
+
+    expected = [
+        n ** (sp.Rational(22, 3))
+        * sp.exp(-3 * n ** (sp.Rational(2, 3)) + n ** (sp.Rational(1, 3)))
+        * sp.factorial(n) ** 2,
+        n ** (sp.Rational(22, 3))
+        * sp.exp(
+            -(n ** (sp.Rational(1, 3)))
+            * (6 * sp.I * n ** (sp.Rational(1, 3)) + sp.sqrt(3) + sp.I)
+            / (sp.sqrt(3) - sp.I)
+        )
+        * sp.factorial(n) ** 2,
+        n ** (sp.Rational(22, 3))
+        * sp.exp(
+            n ** (sp.Rational(1, 3))
+            * (
+                3 * sp.sqrt(3) * n ** (sp.Rational(1, 3))
+                + 3 * sp.I * n ** (sp.Rational(1, 3))
+                + 2 * sp.I
+            )
+            / (sp.sqrt(3) - sp.I)
+        )
+        * sp.factorial(n) ** 2,
+    ]
     reducer = Reducer.from_matrix(M.transpose(), precision=9)
-    expected = Matrix(
-        [
-            [
-                -sp.exp(-3 * n ** sp.Rational(2, 3) + n ** sp.Rational(1, 3))
-                * sp.factorial(n) ** 2
-                / (2 * n ** sp.Rational(2, 3)),
-                -(n ** sp.Rational(4, 3))
-                * sp.exp(-3 * n ** sp.Rational(2, 3) + n ** sp.Rational(1, 3))
-                * sp.factorial(n) ** 2
-                / 2,
-                -(n ** sp.Rational(10, 3))
-                * sp.exp(-3 * n ** sp.Rational(2, 3) + n ** sp.Rational(1, 3))
-                * sp.factorial(n) ** 2
-                / 2,
-            ],
-            [
-                -sp.I
-                * sp.exp(
-                    -sp.I
-                    * n ** sp.Rational(1, 3)
-                    * (6 * n ** sp.Rational(1, 3) + 1 - sp.sqrt(3) * sp.I)
-                    / (sp.sqrt(3) - sp.I)
-                )
-                * sp.factorial(n) ** 2
-                / (n ** sp.Rational(2, 3) * (sp.sqrt(3) - sp.I)),
-                -sp.I
-                * n ** sp.Rational(4, 3)
-                * sp.exp(
-                    -sp.I
-                    * n ** sp.Rational(1, 3)
-                    * (6 * n ** sp.Rational(1, 3) + 1 - sp.sqrt(3) * sp.I)
-                    / (sp.sqrt(3) - sp.I)
-                )
-                * sp.factorial(n) ** 2
-                / (sp.sqrt(3) - sp.I),
-                -sp.I
-                * n ** sp.Rational(10, 3)
-                * sp.exp(
-                    -sp.I
-                    * n ** sp.Rational(1, 3)
-                    * (6 * n ** sp.Rational(1, 3) + 1 - sp.sqrt(3) * sp.I)
-                    / (sp.sqrt(3) - sp.I)
-                )
-                * sp.factorial(n) ** 2
-                / (sp.sqrt(3) - sp.I),
-            ],
-            [
-                sp.I
-                * sp.exp(
-                    n ** sp.Rational(1, 3)
-                    * (
-                        3 * sp.sqrt(3) * n ** sp.Rational(1, 3)
-                        + 3 * sp.I * n ** sp.Rational(1, 3)
-                        + 2 * sp.I
-                    )
-                    / (sp.sqrt(3) - sp.I)
-                )
-                * sp.factorial(n) ** 2
-                / (n ** sp.Rational(2, 3) * (sp.sqrt(3) + sp.I)),
-                sp.I
-                * n ** sp.Rational(4, 3)
-                * sp.exp(
-                    n ** sp.Rational(1, 3)
-                    * (
-                        3 * sp.sqrt(3) * n ** sp.Rational(1, 3)
-                        + 3 * sp.I * n ** sp.Rational(1, 3)
-                        + 2 * sp.I
-                    )
-                    / (sp.sqrt(3) - sp.I)
-                )
-                * sp.factorial(n) ** 2
-                / (sp.sqrt(3) + sp.I),
-                sp.I
-                * n ** sp.Rational(10, 3)
-                * sp.exp(
-                    n ** sp.Rational(1, 3)
-                    * (
-                        3 * sp.sqrt(3) * n ** sp.Rational(1, 3)
-                        + 3 * sp.I * n ** sp.Rational(1, 3)
-                        + 2 * sp.I
-                    )
-                    / (sp.sqrt(3) - sp.I)
-                )
-                * sp.factorial(n) ** 2
-                / (sp.sqrt(3) + sp.I),
-            ],
-        ]
-    )
-    actual = reducer.canonical_fundamental_matrix().transpose()
-    assert Matrix.zeros(*actual.shape) == (actual - expected).simplify()
+    actual = reducer.asymptotic_expressions()
+    assert expected == actual

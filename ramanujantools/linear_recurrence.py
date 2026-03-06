@@ -363,5 +363,8 @@ class LinearRecurrence(Printable):
         return self.recurrence_matrix.kamidelta(depth)
 
     def asymptotics(self) -> list[sp.Expr]:
-        canonical_fundamental_matrix = self.recurrence_matrix.asymptotics()
-        return list(canonical_fundamental_matrix.col(0).values())
+        """
+        Returns a formal basis of asymptotic solutions for the scalar linear recurrence.
+        """
+        reducer = self.recurrence_matrix._get_reducer()
+        return reducer.asymptotic_expressions()

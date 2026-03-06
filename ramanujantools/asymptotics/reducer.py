@@ -49,7 +49,7 @@ class Reducer:
     canonical fundamental matrix for linear difference systems.
 
     Sources:
-        "Analytic Theory of Singular Difference Equations" by George D Birkhoff and Waldemar J Trjitzinsky
+        "Analytic Theory of Singular Difference Equations" by George factorial_power Birkhoff and Waldemar J Trjitzinsky
         "Resurrecting the Asymptotics of Linear Recurrences" by Jet Wimp and Doron Zeilberger
         "Galois theory of difference equations" by Marius van der Put and Michael Singer, chapter 7.2.
     """
@@ -90,7 +90,14 @@ class Reducer:
 
         normalized_matrix = matrix / (var**factorial_power)
         required_precision = (
-            -min([d for d in normalized_matrix.degrees(var) if d > -sp.oo], default=0)
+            -min(
+                [
+                    factorial_power
+                    for factorial_power in normalized_matrix.degrees(var)
+                    if factorial_power > -sp.oo
+                ],
+                default=0,
+            )
             * p
             + 1
         )
@@ -138,7 +145,7 @@ class Reducer:
     def _solve_sylvester(A: Matrix, B: Matrix, C: Matrix) -> Matrix:
         """Solves the Sylvester equation: A*X - X*B = C for X using Kronecker flattening."""
         m, n = A.shape[0], B.shape[0]
-        sys_mat, C_vec = sp.zeros(m * n, m * n), sp.zeros(m * n, 1)
+        sys_mat, C_vec = Matrix.zeros(m * n, m * n), Matrix.zeros(m * n, 1)
 
         for j in range(n):
             for i in range(m):
@@ -297,8 +304,8 @@ class Reducer:
                 )
 
     def _compute_shear_slope(self) -> sp.Rational:
-        lambda_val = self.M.coeffs[0][0, 0]
-        shifted_series = self.M.shift_leading_eigenvalue(lambda_val)
+        exp_base = self.M.coeffs[0][0, 0]
+        shifted_series = self.M.shift_leading_eigenvalue(exp_base)
         vals = shifted_series.valuations()
 
         points = []
@@ -369,24 +376,24 @@ class Reducer:
                 f"S_total precision is only {self.S_total.precision}.",
             )
 
-    def _check_eigenvalue_blindness(self, lambda_val: sp.Expr) -> None:
+    def _check_eigenvalue_blindness(self, exp_base: sp.Expr) -> None:
         """
-        The Blindness Radar: Detects if the matrix is completely nilpotent at the current precision.
+        Detects if the matrix is completely nilpotent at the current precision.
         """
-        if lambda_val == sp.S.Zero:
+        if exp_base == sp.S.Zero:
             raise EigenvalueBlindnessError(
                 required_precision=self.precision + self.dim,
                 message="Zero Eigenvalue Drop! System is completely nilpotent at current precision.",
             )
 
-    def _check_cfm_validity(self, cfm: sp.Matrix) -> None:
+    def _check_cfm_validity(self, grid: list[list["GrowthRate"]]) -> None:
         """
-        The Nullity Radar: The final algebraic proof of the Canonical Fundamental Matrix.
+        Checks that no physical variable can completely vanish.
+        If an entire row is 0, a critical coupling term was starved of precision.
         """
-        # Row Existence: No physical variable can completely vanish.
-        # If an entire row is 0, a critical coupling term was starved of precision.
         for row in range(self.dim):
-            if all(cfm[row, col] == sp.S.Zero for col in range(self.dim)):
+            # A cell is algebraically zero if its base eigenvalue (exp_base) is 0
+            if all(cell.exp_base == sp.S.Zero for cell in grid[row]):
                 raise RowNullityError(
                     required_precision=self.precision + self.dim,
                     message=f"Row Nullity Violation! Physical variable at row {row} vanished completely.",
@@ -433,27 +440,31 @@ class Reducer:
         if self.children:
             return [sol for child in self.children for sol in child.asymptotic_growth()]
 
-        d, n, t = self.factorial_power, self.var, sp.Symbol("t", positive=True)
-        growths, jordan_depth = [], 0
+        factorial_power, n, t = (
+            self.factorial_power,
+            self.var,
+            sp.Symbol("t", positive=True),
+        )
+        growths, log_power = [], 0
 
         for i in range(self.dim):
-            lambda_val = sp.cancel(sp.expand(self.M.coeffs[0][i, i]))
-            self._check_eigenvalue_blindness(lambda_val)
+            exp_base = sp.cancel(sp.expand(self.M.coeffs[0][i, i]))
+            self._check_eigenvalue_blindness(exp_base)
 
             is_jordan_link = False
-            if i > 0 and lambda_val == sp.cancel(
+            if i > 0 and exp_base == sp.cancel(
                 sp.expand(self.M.coeffs[0][i - 1, i - 1])
             ):
                 is_jordan_link = any(
                     sp.cancel(sp.expand(self.M.coeffs[k][i - 1, i])) != sp.S.Zero
                     for k in range(self.precision)
                 )
-            jordan_depth = jordan_depth + 1 if is_jordan_link else 0
+            log_power = log_power + 1 if is_jordan_link else 0
 
             x = sp.S.Zero
             max_k = min(self.precision, self.p + 1)
             for k in range(1, max_k):
-                x += (self.M.coeffs[k][i, i] / lambda_val) * (t**k)
+                x += (self.M.coeffs[k][i, i] / exp_base) * (t**k)
 
             log_series = sp.S.Zero
             for j in range(1, self.p + 1):
@@ -461,7 +472,7 @@ class Reducer:
 
             log_series = sp.expand(log_series)
 
-            Q_n, D_val = sp.S.Zero, sp.S.Zero
+            sub_exp, polynomial_degree = sp.S.Zero, sp.S.Zero
 
             for k in range(1, self.p + 1):
                 c_k = log_series.coeff(t, k)
@@ -472,17 +483,17 @@ class Reducer:
 
                 if k < self.p:
                     power = 1 - sp.Rational(k, self.p)
-                    Q_n += (c_k / power) * (n**power)
+                    sub_exp += (c_k / power) * (n**power)
                 elif k == self.p:
-                    D_val = c_k
+                    polynomial_degree = c_k
 
             growths.append(
                 GrowthRate(
-                    lambda_val=lambda_val,
-                    Q_n=Q_n,
-                    D_val=D_val,
-                    jordan_depth=jordan_depth,
-                    d=d,
+                    exp_base=exp_base,
+                    sub_exp=sub_exp,
+                    polynomial_degree=polynomial_degree,
+                    log_power=log_power,
+                    factorial_power=factorial_power,
                 )
             )
 
@@ -493,65 +504,57 @@ class Reducer:
         Builds the 'classic' scalar expressions from the raw internal growth components.
         This perfectly preserves backward compatibility with older scalar tests.
         """
+        return [
+            g.as_expr(self.var) if g is not None else sp.S.Zero
+            for g in self.asymptotic_growth()
+        ]
+
+    def canonical_growth_matrix(self) -> list[list[GrowthRate]]:
         growths = self.asymptotic_growth()
-        n = self.var
-        exprs = []
+        matrix_grid = []
 
-        for g in growths:
-            if g is None:
-                exprs.append(sp.S.Zero)
-                continue
+        for row in range(self.dim):
+            row_growths = []
+            for i, g in enumerate(growths):
+                if g is None:
+                    row_growths.append(GrowthRate())
+                    continue
 
-            expr = (
-                (sp.factorial(n) ** g.d)
-                * (g.lambda_val**n)
-                * sp.exp(g.Q_n)
-                * (n**g.D_val)
-            )
-
-            if g.jordan_depth > 0:
-                expr = expr * (sp.log(n) ** g.jordan_depth)
-
-            exprs.append(sp.simplify(expr).rewrite(sp.factorial))
-
-        return exprs
-
-    @lru_cache
-    def canonical_fundamental_matrix(self) -> Matrix:
-        """
-        Maps the internal basis through the S_total gauge to output the Canonical Fundamental Matrix.
-        """
-        growths = self.asymptotic_growth()
-        n = self.var
-        vectors = []
-
-        for i, g in enumerate(growths):
-            if g is None:
-                vectors.append(sp.zeros(self.dim, 1))
-                continue
-
-            vec_solution = Matrix.zeros(self.dim, 1)
-            for row in range(self.dim):
+                cell_growth = GrowthRate()
                 for k in range(self.S_total.precision):
                     coeff = self.S_total.coeffs[k][row, i]
                     if coeff != sp.S.Zero:
-                        coeff = sp.cancel(sp.expand(coeff))
-
-                        true_D = sp.simplify(g.D_val - g.d - sp.Rational(k, self.p))
-
-                        expr = (
-                            coeff
-                            * (sp.factorial(n) ** g.d)
-                            * (g.lambda_val**n)
-                            * sp.exp(g.Q_n)
-                            * (n**true_D)
-                            * sp.log(n) ** g.jordan_depth
+                        shift_growth = GrowthRate(
+                            exp_base=sp.S.One,
+                            polynomial_degree=-sp.Rational(k, self.p)
+                            - g.factorial_power,
                         )
 
-                        vec_solution[row, 0] = sp.simplify(expr).rewrite(sp.factorial)
+                        cell_growth = g * shift_growth
                         break
-            vectors.append(vec_solution)
 
-        cfm = Matrix.hstack(*vectors)
-        self._check_cfm_validity(cfm)
+                row_growths.append(cell_growth)
+            matrix_grid.append(row_growths)
+
+        self._check_cfm_validity(matrix_grid)
+        return matrix_grid
+
+    @classmethod
+    def _growth_to_expr_matrix(
+        cls, growth_matrix: list[list[GrowthRate]], var: sp.Symbol
+    ) -> Matrix:
+        dim = len(growth_matrix)
+        cfm = Matrix.zeros(dim, dim)
+
+        for row in range(dim):
+            for col in range(dim):
+                cfm[row, col] = growth_matrix[row][col].as_expr(var)
+
         return cfm
+
+    def canonical_fundamental_matrix(self) -> Matrix:
+        """
+        Converts the smart GrowthRate grid into a formal SymPy Matrix of expressions.
+        This provides the final, human-readable fundamental solution set.
+        """
+        return Reducer._growth_to_expr_matrix(self.canonical_growth_matrix(), self.var)

@@ -14,6 +14,7 @@ from ramanujantools.flint_core import flint_ctx, SymbolicMatrix, NumericMatrix
 
 if TYPE_CHECKING:
     from ramanujantools import Limit
+    from ramanujantools.asymptotics import GrowthRate, Reducer
 
 
 class Matrix(sp.Matrix):
@@ -513,29 +514,30 @@ class Matrix(sp.Matrix):
         return P_sorted, J_sorted
 
     @lru_cache
-    def asymptotics(self) -> Matrix:
+    def _get_reducer(self) -> Reducer:
         """
-        Returns the Canonical Fundamnetal Matrix (CFM) of the linear system of difference equations defined by self.
-        The CFM is defined as a formal set of solutions for the system such that they are asymptotically distinct.
-        More documentation in Reducer.
+        Pre-conditions the matrix via CVM and safely executes the precision
+        backoff loop to return a fully solved Reducer instance.
         """
         from ramanujantools.asymptotics.reducer import Reducer, PrecisionExhaustedError
 
-        degrees = [d for d in self.degrees() if d != -sp.oo]
-        S = max(degrees) - min(degrees) if degrees else 1
+        U = self.companion_coboundary_matrix()
+        cvm_matrix = self.coboundary(U)
 
-        # The theoretical upper bound for required Taylor terms
+        degrees = [d for d in cvm_matrix.degrees() if d != -sp.oo]
+        S = max(degrees) - min(degrees) if degrees else 1
         max_precision = (self.shape[0] ** 2) * max(S, 1) + self.shape[0]
         precision = self.shape[0]
 
         while precision <= max_precision:
             try:
-                # Transposing as Reducer is column-based
-                reducer = Reducer.from_matrix(self.transpose(), precision=precision)
-                return reducer.canonical_fundamental_matrix().transpose()
-
+                # Transpose for the Reducer's column-vector assumption
+                reducer = Reducer.from_matrix(
+                    cvm_matrix.transpose(), precision=precision
+                )
+                reducer.reduce()
+                return reducer
             except PrecisionExhaustedError as e:
-                # The math engine strictly dictates the exact array size it needs to proceed
                 precision = max(precision + 1, e.required_precision)
 
         raise RuntimeError(
@@ -544,3 +546,58 @@ class Matrix(sp.Matrix):
             f"This means the input matrix either has unusually high polynomial degrees (high Poincaré rank), "
             f"or the system is fundamentally degenerate."
         )
+
+    @lru_cache
+    def _asymptotic_growth_matrix(self) -> list[list[GrowthRate]]:
+        """
+        Internally computes the grid of Asymptotic GrowthRate objects for the original matrix
+        by utilizing the Companion Vector Matrix (CVM) to minimize Poincaré rank.
+        """
+        from ramanujantools.asymptotics.growth_rate import GrowthRate
+
+        free_syms = list(self.free_symbols)
+        var = sp.Symbol("n") if not free_syms else free_syms[0]
+        dim = self.shape[0]
+
+        # 1. Fetch the solved Reducer via the shared engine loop
+        reducer = self._get_reducer()
+
+        # We still need U to map the solutions back
+        U = self.companion_coboundary_matrix()
+
+        cvm_grid_T = reducer.canonical_growth_matrix()
+        cvm_grid = list(map(list, zip(*cvm_grid_T)))
+
+        U_inv = U.inv()
+        physical_grid = []
+
+        for row in range(dim):
+            physical_row = []
+            for col in range(dim):
+                dominant_growth = GrowthRate.zero()
+                for k in range(dim):
+                    u_growth = GrowthRate.from_rational(U_inv[k, col], var)
+                    dominant_growth += cvm_grid[row][k] * u_growth
+
+                physical_row.append(dominant_growth)
+            physical_grid.append(physical_row)
+
+        return physical_grid
+
+    @lru_cache
+    def asymptotics(self) -> Matrix:
+        """
+        Returns the Canonical Fundamental Matrix (CFM) of the linear system of difference equations defined by self.
+        The CFM is defined as a formal set of solutions for the system such that they are asymptotically distinct.
+        More documentation in Reducer.
+        """
+        from ramanujantools.asymptotics.reducer import Reducer
+
+        free_syms = list(self.free_symbols)
+        var = sp.Symbol("n") if not free_syms else free_syms[0]
+
+        # Fetch the mathematically pure grid of smart objects
+        growth_matrix = self._asymptotic_growth_matrix()
+
+        # Render the final human-readable expressions
+        return Reducer._growth_to_expr_matrix(growth_matrix, var)

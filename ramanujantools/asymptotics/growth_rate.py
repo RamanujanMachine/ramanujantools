@@ -1,76 +1,102 @@
+from __future__ import annotations
+
 import sympy as sp
-from dataclasses import dataclass
 
 
-@dataclass(frozen=True)
 class GrowthRate:
-    lambda_val: sp.Expr
-    Q_n: sp.Expr
-    D_val: sp.Expr
-    jordan_depth: int
-    d: sp.Expr | int
+    r"""
+    Represents the formal asymptotic growth rate of a solution to a linear difference equation.
 
-    def __add__(self, other):
+    The asymptotic behavior is captured by the Birkhoff-Trjitzinsky formal series representation,
+    which defines a canonical basis solution $E(n)$ as:
+    $$E(n) = (n!)^{d} \cdot \lambda^n \cdot e^{Q(n)} \cdot n^{D} \cdot (\log n)^{m}$$
+
+    This class mathematically isolates the distinct orders of infinity (the exponents and bases)
+    into a structured object. It acts as an element in a Tropical Semiring, where addition (`+`)
+    filters for the strictly dominant growth rate, and multiplication (`*`) algebraically
+    combines the formal exponents.
+
+    By default, an uninitialized `GrowthRate` represents the additive identity (a "zero" or
+    "dead" growth), as $\lambda = 0$ collapses the entire expression to zero.
+
+    Args:
+        factorial_power: The exponent $d$ applied to the factorial term $(n!)^d$.
+            Strictly dominates all other growth components.
+        exp_base: The base $\lambda$ of the primary exponential growth $\lambda^n$.
+            Evaluated by its absolute magnitude. A value of $0$ nullifies the entire solution.
+        sub_exp: The fractional exponent $Q(n)$ applied to $e^{Q(n)}$.
+            Must be strictly sub-linear (e.g., contains fractional powers like $n^{1/p}$).
+        polynomial_degree: The exponent $D$ applied to the polynomial term $n^D$.
+            Can be a fractional rational shift introduced by gauge transformations.
+        log_power: The exponent $m$ applied to the logarithmic term $(\log n)^m$.
+            Typically represents the Jordan block depth of degenerate eigenvalues.
+    """
+
+    def __init__(
+        self,
+        factorial_power: sp.Integer = sp.S.Zero,
+        exp_base: sp.Expr = sp.S.Zero,
+        sub_exp: sp.Expr = sp.S.Zero,
+        polynomial_degree: sp.Expr = sp.S.Zero,
+        log_power: sp.Integer = sp.S.Zero,
+    ):
+        self.factorial_power: sp.Expr = factorial_power
+        self.exp_base: sp.Expr = exp_base
+        self.sub_exp: sp.Expr = sub_exp
+        self.polynomial_degree: sp.Expr = polynomial_degree
+        self.log_power: int = log_power
+
+    def __add__(self, other: GrowthRate) -> GrowthRate:
         """Addition acts as a max() filter, keeping only the dominant GrowthRate."""
         if not isinstance(other, GrowthRate):
-            return self
+            raise NotImplementedError("Can only add GrowthRate to GrowthRate")
         return self if self > other else other
 
-    def __radd__(self, other):
+    def __radd__(self, other: GrowthRate) -> GrowthRate:
         return self.__add__(other)
 
-    def __mul__(self, other):
-        """
-        Multiplication by a rational function shifts the polynomial degree.
-        Multiplication by 0 kills the term entirely.
-        """
-        if other == 0 or other == sp.S.Zero:
-            return 0
-
-        syms = self.Q_n.free_symbols.union(getattr(other, "free_symbols", set()))
-        n = list(syms)[0] if syms else sp.Symbol("n")
-
-        try:
-            num, den = sp.numer(other), sp.denom(other)
-            degree_shift = sp.degree(num, n) - sp.degree(den, n)
-        except Exception:
-            degree_shift = 0
+    def __mul__(self, other: GrowthRate) -> GrowthRate:
+        """Strictly combines two GrowthRates by adding their formal exponents."""
+        if not isinstance(other, GrowthRate):
+            raise NotImplementedError("Can only multiply GrowthRate by GrowthRate")
 
         return GrowthRate(
-            lambda_val=self.lambda_val,
-            Q_n=self.Q_n,
-            D_val=sp.simplify(self.D_val + degree_shift),
-            jordan_depth=self.jordan_depth,
-            d=self.d,
+            factorial_power=sp.simplify(self.factorial_power + other.factorial_power),
+            exp_base=sp.simplify(self.exp_base * other.exp_base),
+            sub_exp=sp.simplify(self.sub_exp + other.sub_exp),
+            polynomial_degree=sp.simplify(
+                self.polynomial_degree + other.polynomial_degree
+            ),
+            log_power=self.log_power + other.log_power,
         )
 
-    def __rmul__(self, other):
+    def __rmul__(self, other: GrowthRate) -> GrowthRate:
         return self.__mul__(other)
 
-    def __eq__(self, other):
+    def __eq__(self, other: GrowthRate) -> bool:
         """Safely checks equality by proving the difference is mathematically zero."""
         if not isinstance(other, GrowthRate):
             return False
 
         return (
-            sp.simplify(self.d - other.d).is_zero
-            and sp.simplify(self.Q_n - other.Q_n).is_zero
-            and sp.simplify(self.lambda_val - other.lambda_val).is_zero
-            and sp.simplify(self.D_val - other.D_val).is_zero
-            and self.jordan_depth == other.jordan_depth
+            self.factorial_power == other.factorial_power
+            and self.exp_base == other.exp_base
+            and self.sub_exp == other.sub_exp
+            and self.polynomial_degree == other.polynomial_degree
+            and self.log_power == other.log_power
         )
 
-    def __gt__(self, other):
+    def __gt__(self, other: GrowthRate) -> bool:
         if not isinstance(other, GrowthRate):
             return True
 
         syms = (
-            getattr(self.Q_n, "free_symbols", set())
-            | getattr(other.Q_n, "free_symbols", set())
-            | getattr(self.D_val, "free_symbols", set())
-            | getattr(other.D_val, "free_symbols", set())
-            | getattr(self.d, "free_symbols", set())
-            | getattr(other.d, "free_symbols", set())
+            getattr(self.factorial_power, "free_symbols", set())
+            | getattr(self.sub_exp, "free_symbols", set())
+            | getattr(other.sub_exp, "free_symbols", set())
+            | getattr(self.polynomial_degree, "free_symbols", set())
+            | getattr(other.polynomial_degree, "free_symbols", set())
+            | getattr(other.factorial_power, "free_symbols", set())
         )
         n_sym = list(syms)[0] if syms else sp.Symbol("n")
 
@@ -103,23 +129,55 @@ class GrowthRate:
 
             return None
 
-        cmp_d = is_greater(self.d, other.d)
+        cmp_d = is_greater(self.factorial_power, other.factorial_power)
         if cmp_d is not None:
             return cmp_d
 
-        cmp_lam = is_greater(sp.Abs(self.lambda_val), sp.Abs(other.lambda_val))
+        cmp_lam = is_greater(sp.Abs(self.exp_base), sp.Abs(other.exp_base))
         if cmp_lam is not None:
             return cmp_lam
 
-        cmp_Q = is_greater(self.Q_n, other.Q_n)
+        cmp_Q = is_greater(self.sub_exp, other.sub_exp)
         if cmp_Q is not None:
             return cmp_Q
 
-        cmp_D = is_greater(self.D_val, other.D_val)
+        cmp_D = is_greater(self.polynomial_degree, other.polynomial_degree)
         if cmp_D is not None:
             return cmp_D
 
-        return self.jordan_depth > other.jordan_depth
+        return self.log_power > other.log_power
 
-    def __ge__(self, other):
+    def __ge__(self, other: GrowthRate) -> bool:
         return self > other or self == other
+
+    def __repr__(self) -> str:
+        return (
+            f"GrowthRate(factorial_power={self.factorial_power}, exp_base={self.exp_base}, "
+            f"sub_exp={self.sub_exp}, polynomial_degree={self.polynomial_degree}, log_power={self.log_power})"
+        )
+
+    def __str__(self) -> str:
+        return str(self.as_expr(sp.Symbol("n")))
+
+    def as_expr(self, n: sp.Symbol) -> sp.Expr:
+        """Renders the formal growth as a SymPy expression."""
+        expr = (
+            (sp.factorial(n) ** self.factorial_power)
+            * (self.exp_base**n)
+            * sp.exp(self.sub_exp)
+            * (n**self.polynomial_degree)
+        )
+        if self.log_power > 0:
+            expr *= sp.log(n) ** self.log_power
+
+        return sp.simplify(expr).rewrite(sp.factorial)
+
+    def simplify(self) -> GrowthRate:
+        """Returns a new GrowthRate with all components simplified."""
+        return GrowthRate(
+            factorial_power=sp.simplify(self.factorial_power),
+            exp_base=sp.simplify(self.exp_base),
+            sub_exp=sp.simplify(self.sub_exp),
+            polynomial_degree=sp.simplify(self.polynomial_degree),
+            log_power=self.log_power,
+        )
