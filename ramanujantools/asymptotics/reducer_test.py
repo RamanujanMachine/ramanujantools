@@ -180,7 +180,6 @@ def test_ramification_exact_expressions():
     """
     M = Matrix([[0, 1], [1 / n, 0]])
     exprs = Reducer.from_matrix(M, precision=4).asymptotic_expressions()
-    print(exprs)
 
     expected_exprs = [
         (-1) ** n * n ** sp.Rational(1, 4) / sp.sqrt(sp.factorial(n)),
