@@ -535,8 +535,7 @@ class Matrix(sp.Matrix):
                 reducer = Reducer.from_matrix(
                     cvm_matrix.transpose(), precision=precision
                 )
-                reducer.reduce()
-                return reducer
+                return reducer.reduce()
             except PrecisionExhaustedError as e:
                 precision = max(precision + 1, e.required_precision)
 

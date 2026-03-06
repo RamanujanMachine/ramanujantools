@@ -22,9 +22,9 @@ class Reducer:
     canonical fundamental matrix for linear difference systems.
 
     Sources:
-        "Analytic Theory of Singular Difference Equations" by George factorial_power Birkhoff and Waldemar J Trjitzinsky
-        "Resurrecting the Asymptotics of Linear Recurrences" by Jet Wimp and Doron Zeilberger
-        "Galois theory of difference equations" by Marius van der Put and Michael Singer, chapter 7.2.
+        - Analytic Theory of Singular Difference Equations: George D Birkhoff and Waldemar J Trjitzinsky
+        - Resurrecting the Asymptotics of Linear Recurrences: Jet Wimp and Doron Zeilberger
+        - Galois theory of difference equations, chapter 7.2: Marius van der Put and Michael Singer
     """
 
     def __init__(
@@ -35,6 +35,10 @@ class Reducer:
         precision: int = 5,
         p: int = 1,
     ) -> None:
+        """
+        Initializes the Reducer with a pre-conditioned formal power series.
+        Usually called internally by `Reducer.from_matrix()`.
+        """
         self.M = series
         self.var = var
         self.factorial_power = factorial_power
@@ -49,6 +53,11 @@ class Reducer:
 
     @classmethod
     def from_matrix(cls, matrix: Matrix, precision: int = 5, p: int = 1) -> Reducer:
+        """
+        Initializes the Birkhoff-Trjitzinsky engine from a standard linear system matrix.
+        Normalizes the matrix to isolate the factorial growth bound before converting
+        it into a formal Taylor series.
+        """
         if not matrix.is_square():
             raise ValueError("Input matrix must be square.")
 
@@ -151,7 +160,13 @@ class Reducer:
         blocks.append((start_idx, self.dim, current_eval))
         return blocks
 
+    @lru_cache
     def reduce(self) -> Reducer:
+        """
+        The core Birkhoff-Trjitzinsky reduction loop.
+        Iteratively applies block diagonalization (split) or ramified shears
+        until the matrix reaches a terminal canonical form.
+        """
         max_iterations = max(20, self.dim * 3)
         iterations = 0
         zeros_shifted = 0
@@ -219,6 +234,11 @@ class Reducer:
         return self
 
     def split(self, k_target: int, J_target: Matrix) -> None:
+        """
+        Performs block diagonalization.
+        When a leading coefficient matrix has distinct eigenvalues, this method uses
+        Sylvester equations to decouple the system into independent smaller Jordan blocks.
+        """
         dim, blocks = self.dim, self._get_blocks(J_target)
 
         max_sub_dim = max((e - s) for s, e, _ in blocks)
@@ -276,6 +296,10 @@ class Reducer:
                 )
 
     def _compute_shear_slope(self) -> sp.Rational:
+        """
+        Calculates the steepest valid slope for a shear transformation by constructing
+        a Newton Polygon from the valuation matrix of the shifted series.
+        """
         exp_base = self.M.coeffs[0][0, 0]
         shifted_series = self.M.shift_leading_eigenvalue(exp_base)
         vals = shifted_series.valuations()
@@ -372,6 +396,11 @@ class Reducer:
                 )
 
     def shear(self) -> None:
+        """
+        Applies a ramification and shear transformation.
+        Used when the leading matrix is nilpotent, this shifts the polynomial degrees
+        of the variables to expose the hidden sub-exponential growths.
+        """
         g = self._compute_shear_slope()
 
         if g == sp.S.Zero:
@@ -400,7 +429,6 @@ class Reducer:
         if h != 0:
             self.factorial_power += sp.Rational(h, self.p)
 
-    @lru_cache
     def asymptotic_growth(self) -> list[GrowthRate | None]:
         """
         Extracts the raw, unmapped asymptotic components of the internal canonical basis.
@@ -482,16 +510,35 @@ class Reducer:
         ]
 
     def canonical_growth_matrix(self) -> list[list[GrowthRate]]:
+        r"""
+        Constructs the 2D Canonical Fundamental Matrix (CFM) using the internal algebra
+        of `GrowthRate` objects.
+
+        This method maps the raw, 1D independent asymptotic solutions back into the
+        physical coordinates of the original system by applying the accumulated
+        gauge transformations $S_{\text{total}}(t)$.
+
+        Mathematically, it computes the dominant asymptotic term for each cell in:
+        $$Y(n) = S_{\text{total}}(n^{-1/p}) \cdot \text{diag}(E_1(n), \dots, E_N(n))$$
+
+        For a specific physical variable (row) and independent solution (column), the
+        gauge matrix $S_{\text{total}}$ shifts the polynomial degree of the solution based
+        on its first non-zero Taylor coefficient at index $k$. The exact fractional shift
+        applied to the polynomial degree is:
+        $$\Delta D = -\frac{k}{p} - d$$
+        where $p$ is the ramification index and $d$ is the global factorial power.
+
+        Returns:
+            A 2D list of `GrowthRate` objects. Each column $j$ represents an independent
+            solution vector, and each row $i$ represents the asymptotic behavior of the
+            $i$-th physical variable for that solution.
+        """
         growths = self.asymptotic_growth()
         matrix_grid = []
 
         for row in range(self.dim):
             row_growths = []
             for i, g in enumerate(growths):
-                if g is None:
-                    row_growths.append(GrowthRate())
-                    continue
-
                 cell_growth = GrowthRate()
                 for k in range(self.S_total.precision):
                     coeff = self.S_total.coeffs[k][row, i]

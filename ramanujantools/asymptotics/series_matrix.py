@@ -7,10 +7,21 @@ from ramanujantools import Matrix
 
 
 class SeriesMatrix:
+    r"""
+    Represents a formal power series (or Puiseux series) with matrix coefficients.
+
+    The series is expanded in terms of a local parameter $t = n^{-1/p}$, taking the form:
+    $$M(t) = A_0 + A_1 t + A_2 t^2 + \dots + A_k t^k + \mathcal{O}(t^{k+1})$$
+
+    This class provides the core algebraic ring operations (addition, Cauchy multiplication,
+    formal inversion) and gauge transformations (shifts, shears, coboundaries) required
+    for the Birkhoff-Trjitzinsky reduction algorithm.
+    """
+
     def __init__(self, coeffs, p=1, precision=None):
         """
-        Represents a formal matrix series: A_0 + A_1*t + A_2*t^2 + ...
-        where t = n^(-1/p).
+        Constructs a SeriesMatrix from a list of matrix coefficients,
+        with optional ramification `p` such that $t = n^{-1/p}$.
 
         Args:
             coeffs: List of Matrix objects [A_0, A_1, A_2, ...]
@@ -60,10 +71,16 @@ class SeriesMatrix:
         return SeriesMatrix(new_coeffs, p=self.p, precision=self.precision)
 
     def inverse(self) -> SeriesMatrix:
-        """
-        Computes the formal inverse series V = S^(-1).
-        S * V = I  =>  S_0*V_k + S_1*V_{k-1} + ... = 0
-        V_k = -S_0^(-1) * (S_1*V_{k-1} + S_2*V_{k-2} + ...)
+        r"""
+        Computes the formal inverse series $V(t) = S(t)^{-1}$.
+
+        By definition, $S(t) \cdot V(t) = I$. Expanding this into a Cauchy product
+        and equating the coefficients for $t^k$ yields the recurrence relation:
+        $$\sum_{i=0}^{k} S_i V_{k-i} = 0 \quad \text{for } k > 0$$
+
+        Isolating the $k$-th coefficient $V_k$ provides the explicit update rule used
+        by this method:
+        $$V_k = -S_0^{-1} \sum_{i=1}^{k} S_i V_{k-i}$$
         """
         V_coeffs = [Matrix.zeros(*self.shape) for _ in range(self.precision)]
 
@@ -95,11 +112,18 @@ class SeriesMatrix:
         return str(expr)
 
     def shift(self) -> SeriesMatrix:
-        """
-        The n -> n + 1 operator.
-        Since t = n^(-1/p), substituting n -> n+1 means:
-        t_new = (t^(-p) + 1)^(-1/p) = t * (1 + t^p)^(-1/p)
-        We expand this using the generalized binomial theorem.
+        r"""
+        Applies the discrete shift operator $n \to n + 1$ to the formal series.
+
+        Given the local parameter $t = n^{-1/p}$, substituting $n+1$ yields the new parameter:
+        $$t_{\text{new}} = (n + 1)^{-1/p} = (t^{-p} + 1)^{-1/p} = t(1 + t^p)^{-1/p}$$
+
+        Applying this substitution to the $m$-th term of the series ($A_m t^m$) and expanding
+        it using the generalized binomial theorem gives:
+        $$A_m t_{\text{new}}^m = A_m t^m (1 + t^p)^{-m/p} = \sum_{j=0}^{\infty} A_m \binom{-m/p}{j} t^{m + pj}$$
+
+        This method computes this expansion up to the defined precision and accumulates
+        the shifted coefficients.
         """
         new_coeffs = [Matrix.zeros(*self.shape) for _ in range(self.precision)]
 
@@ -123,6 +147,11 @@ class SeriesMatrix:
         return SeriesMatrix(new_coeffs, p=self.p, precision=self.precision)
 
     def divide_by_t(self) -> SeriesMatrix:
+        """
+        Factors out a power of t from the entire series.
+        Mathematically equivalent to M(t) / t. This physically shifts all matrix
+        coefficients one index to the left and pads the tail with a zero matrix.
+        """
         coeffs = self.coeffs[1:] + [Matrix.zeros(*self.shape)]
         return SeriesMatrix(coeffs, p=self.p, precision=self.precision)
 
@@ -184,7 +213,8 @@ class SeriesMatrix:
             self.coeffs[:new_precision], p=self.p, precision=new_precision
         )
 
-    def shear_coboundary(self, g: int) -> tuple[SeriesMatrix, int]:
+    def _shear_row_corrections(self, g: int) -> list[list[sp.Expr]]:
+        """Pre-computes the generalized binomial coefficients for the row shifts."""
         row_corrections = []
         for i in range(self.shape[0]):
             exponent = sp.Rational(i * g, self.p)
@@ -199,7 +229,18 @@ class SeriesMatrix:
                 if idx < self.precision:
                     coeffs[idx] = bin_coeff
             row_corrections.append(coeffs)
+        return row_corrections
 
+    def shear_coboundary(self, g: int) -> tuple[SeriesMatrix, int]:
+        """
+        Applies a shearing transformation S(t) to the series to expose sub-exponential
+        growth, where $S(t) = diag(1, t^g, t^{2g}, \\dots)$.
+
+        Returns:
+            A tuple containing the sheared SeriesMatrix and the integer `h` representing
+            the overall degree shift (used to adjust the global factorial power).
+        """
+        row_corrections = self._shear_row_corrections(g)
         power_dict = {}
 
         for m in range(self.precision):
@@ -220,7 +261,6 @@ class SeriesMatrix:
                             power_dict[power] = Matrix.zeros(*self.shape)
                         power_dict[power][i, j] += val_C * val_M
 
-        # Unconstrained min_power to catch both negative poles AND positive zero-gaps
         min_power = None
         for p_val in sorted(power_dict.keys()):
             if not power_dict[p_val].is_zero_matrix:
@@ -270,9 +310,11 @@ class SeriesMatrix:
 
     def get_first_non_scalar_index(self) -> int | None:
         """
-        Scans the series and returns the index of the first non-scalar matrix.
-        A matrix is scalar if it is diagonal and all diagonal entries are identical.
-        Returns None if the entire series consists of scalar matrices.
+        Scans the series to find the index $k$ of the first matrix $A_k$ that is not a scalar matrix
+        (i.e., not a multiple of the identity matrix).
+
+        In the Birkhoff-Trjitzinsky algorithm, if the entire series consists only of
+        scalar matrices, the system is fundamentally reduced and the algorithm terminates.
         """
         for k, C in enumerate(self.coeffs):
             # A matrix is scalar if it's diagonal and has <= 1 unique diagonal elements

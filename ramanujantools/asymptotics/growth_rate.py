@@ -163,13 +163,11 @@ class GrowthRate:
         """Renders the formal growth as a SymPy expression."""
         expr = (
             (sp.factorial(n) ** self.factorial_power)
-            * (self.exp_base**n)
+            * (self.exp_base**n if self.exp_base != 0 else 0)
             * sp.exp(self.sub_exp)
             * (n**self.polynomial_degree)
+            * sp.log(n) ** self.log_power
         )
-        if self.log_power > 0:
-            expr *= sp.log(n) ** self.log_power
-
         return sp.simplify(expr).rewrite(sp.factorial)
 
     def simplify(self) -> GrowthRate:
