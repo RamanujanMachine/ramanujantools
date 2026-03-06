@@ -429,7 +429,7 @@ class Reducer:
         if h != 0:
             self.factorial_power += sp.Rational(h, self.p)
 
-    def asymptotic_growth(self) -> list[GrowthRate | None]:
+    def asymptotic_growth(self) -> list[GrowthRate]:
         """
         Extracts the raw, unmapped asymptotic components of the internal canonical basis.
         Returns a list of strongly-typed GrowthRate objects.

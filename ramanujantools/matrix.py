@@ -163,7 +163,7 @@ class Matrix(sp.Matrix):
         i.e, points where $|m| = 0$
 
         Returns:
-            A list of substitution dicts that result in the matrix having a zero determinant.
+            A list of substitution dicts t+hat result in the matrix having a zero determinant.
             That is, for each dict in result, `self.subs(dict).det() == 0`
         """
         return sp.solve(self.det(), dict=True)
@@ -190,6 +190,7 @@ class Matrix(sp.Matrix):
             )
         ).factor()
 
+    @lru_cache
     def companion_coboundary_matrix(self, symbol: sp.Symbol = n) -> Matrix:
         r"""
         Constructs a new matrix U such that `self.coboundary(U)` is a companion matrix.
@@ -197,7 +198,8 @@ class Matrix(sp.Matrix):
         if not (self.is_square()):
             raise ValueError("Only square matrices can have a coboundary relation")
         N = self.rows
-        ctx = flint_ctx(self.free_symbols, fmpz=True)
+        free_symbols = self.free_symbols.union({symbol})
+        ctx = flint_ctx(free_symbols, fmpz=True)
         flint_self = SymbolicMatrix.from_sympy(self, ctx)
         vectors = [SymbolicMatrix.from_sympy(Matrix(N, 1, [1] + (N - 1) * [0]), ctx)]
         for _ in range(1, N):
@@ -514,17 +516,18 @@ class Matrix(sp.Matrix):
         return P_sorted, J_sorted
 
     @lru_cache
-    def _get_reducer(self) -> Reducer:
+    def _get_reducer(self) -> tuple[Reducer, Matrix]:
         """
         Pre-conditions the matrix via CVM and safely executes the precision
-        backoff loop to return a fully solved Reducer instance.
+        backoff loop to return a fully solved Reducer instance and the CVM transformation matrix U.
         """
-        from ramanujantools.asymptotics.reducer import Reducer, PrecisionExhaustedError
+        from ramanujantools.asymptotics import Reducer, PrecisionExhaustedError
 
-        U = self.companion_coboundary_matrix()
-        cvm_matrix = self.coboundary(U)
+        var = sp.Symbol("n") if not self.free_symbols else list(self.free_symbols)[0]
+        U = self.companion_coboundary_matrix(var)
+        cvm_matrix = self.coboundary(U, var)
 
-        degrees = [d for d in cvm_matrix.degrees() if d != -sp.oo]
+        degrees = [d for d in cvm_matrix.degrees(var) if d != -sp.oo]
         S = max(degrees) - min(degrees) if degrees else 1
         max_precision = (self.shape[0] ** 2) * max(S, 1) + self.shape[0]
         precision = self.shape[0]
@@ -555,48 +558,75 @@ class Matrix(sp.Matrix):
         from ramanujantools.asymptotics.growth_rate import GrowthRate
 
         free_syms = list(self.free_symbols)
-        var = sp.Symbol("n") if not free_syms else free_syms[0]
+        var = n if not free_syms else free_syms[0]
         dim = self.shape[0]
 
-        # 1. Fetch the solved Reducer via the shared engine loop
         reducer = self._get_reducer()
-
-        # We still need U to map the solutions back
-        U = self.companion_coboundary_matrix()
+        U = self.companion_coboundary_matrix(var)
+        U_inv = U.inv()
 
         cvm_grid_T = reducer.canonical_growth_matrix()
         cvm_grid = list(map(list, zip(*cvm_grid_T)))
 
-        U_inv = U.inv()
         physical_grid = []
-
         for row in range(dim):
             physical_row = []
             for col in range(dim):
-                dominant_growth = GrowthRate.zero()
+                dominant_growth = GrowthRate()
                 for k in range(dim):
-                    u_growth = GrowthRate.from_rational(U_inv[k, col], var)
-                    dominant_growth += cvm_grid[row][k] * u_growth
-
+                    u_val = U_inv[k, col]
+                    if u_val != sp.S.Zero:
+                        num, den = sp.numer(u_val), sp.denom(u_val)
+                        degree_shift = sp.degree(num, var) - sp.degree(den, var)
+                        u_growth = GrowthRate(
+                            exp_base=sp.S.One,
+                            polynomial_degree=sp.simplify(degree_shift),
+                        )
+                        dominant_growth += cvm_grid[row][k] * u_growth
                 physical_row.append(dominant_growth)
             physical_grid.append(physical_row)
 
         return physical_grid
 
-    @lru_cache
-    def asymptotics(self) -> Matrix:
+    def canonical_fundamental_matrix(self) -> Matrix:
         """
-        Returns the Canonical Fundamental Matrix (CFM) of the linear system of difference equations defined by self.
+        Returns the Canonical Fundamental Matrix (CFM) of the linear system of difference equations defined by self,
+        with regard to multiplication to the right: $M(0) * M(1) * ... * M(n-1)$.
         The CFM is defined as a formal set of solutions for the system such that they are asymptotically distinct.
         More documentation in Reducer.
         """
         from ramanujantools.asymptotics.reducer import Reducer
 
         free_syms = list(self.free_symbols)
-        var = sp.Symbol("n") if not free_syms else free_syms[0]
+        var = n if not free_syms else free_syms[0]
 
         # Fetch the mathematically pure grid of smart objects
         growth_matrix = self._asymptotic_growth_matrix()
 
         # Render the final human-readable expressions
         return Reducer._growth_to_expr_matrix(growth_matrix, var)
+
+    def asymptotics(self) -> list[sp.Expr]:
+        """
+        Returns the dominant asymptotic bounds for each physical variable in the system.
+
+        This calculates the L_infinity norm equivalent for the rows of the Canonical
+        Fundamental Matrix, safely filtering out sub-dominant trajectories to return
+        the absolute upper bound of the sequence's growth at infinity.
+        """
+        var = sp.Symbol("n") if not self.free_symbols else list(self.free_symbols)[0]
+
+        growth_grid = self._asymptotic_growth_matrix()
+        bounds = []
+
+        for row in growth_grid:
+            # Safely find the dominant growth using your custom __gt__ operator
+            dominant_growth = row[0]
+            for current in row[1:]:
+                if current > dominant_growth:
+                    dominant_growth = current
+
+            # The as_expr() method inherently handles the zero-base safety check
+            bounds.append(dominant_growth.as_expr(var))
+
+        return bounds

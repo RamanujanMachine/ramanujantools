@@ -366,5 +366,4 @@ class LinearRecurrence(Printable):
         """
         Returns a formal basis of asymptotic solutions for the scalar linear recurrence.
         """
-        reducer = self.recurrence_matrix._get_reducer()
-        return reducer.asymptotic_expressions()
+        return self.recurrence_matrix.asymptotics()
