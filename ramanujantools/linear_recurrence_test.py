@@ -10,14 +10,14 @@ def f(c, index=n):
 
 
 def test_repr():
-    expected = "LinearRecurrence([n, 1, 3 - n**2])"
-    r = eval(expected)
-    assert expected == repr(r)
+    sp.expected = "LinearRecurrence([n, 1, 3 - n**2])"
+    r = eval(sp.expected)
+    assert sp.expected == repr(r)
 
 
 def test_relation():
-    expected = [1, n, n**2, n**3 - 7, 13 * n - 12]
-    assert expected == LinearRecurrence(expected).relation
+    sp.expected = [1, n, n**2, n**3 - 7, 13 * n - 12]
+    assert sp.expected == LinearRecurrence(sp.expected).relation
 
 
 def test_matrix():
@@ -174,10 +174,10 @@ def test_compose_solution_space_polynomials():
         initial_values,
         Matrix([solution[:shift]]),
     )
-    expected = solution[shift:]
+    sp.expected = solution[shift:]
     actual = rr.evaluate_solution(composed_initial_values, start + shift, end)
 
-    assert expected == actual
+    assert sp.expected == actual
 
 
 def test_fold_is_compose():
@@ -228,3 +228,14 @@ def test_euler_gompertz_independent():
 
     limit = r.limit(200, 1)
     assert Matrix([[0, 0, 17], [-3, -2, 7]]) == limit.identify(constant(limit.mp))
+
+
+def test_fibonacci_asymptotics():
+    r = LinearRecurrence([-1, 1, 1])
+
+    expected_exprs = [
+        (sp.Rational(1, 2) + sp.sqrt(5) / 2) ** n,
+        (sp.Rational(1, 2) - sp.sqrt(5) / 2) ** n,
+    ]
+
+    assert expected_exprs == r.asymptotics()

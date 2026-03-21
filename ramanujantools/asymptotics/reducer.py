@@ -9,7 +9,6 @@ from ramanujantools import Matrix
 from ramanujantools.asymptotics import (
     GrowthRate,
     SeriesMatrix,
-    ShearOverflowError,
     EigenvalueBlindnessError,
     RowNullityError,
     InputTruncationError,
@@ -52,12 +51,9 @@ class Reducer:
         self.children = []
 
     @classmethod
-    def from_matrix(cls, matrix: Matrix, precision: int = 5, p: int = 1) -> Reducer:
-        """
-        Initializes the Birkhoff-Trjitzinsky engine from a standard linear system matrix.
-        Normalizes the matrix to isolate the factorial growth bound before converting
-        it into a formal Taylor series.
-        """
+    def from_matrix(
+        cls, matrix: Matrix, precision: int = 5, p: int = 1, force: bool = False
+    ) -> "Reducer":
         if not matrix.is_square():
             raise ValueError("Input matrix must be square.")
 
@@ -65,12 +61,17 @@ class Reducer:
         if len(free_syms) > 1:
             raise ValueError("Input matrix must depend on at most one variable.")
 
-        dim = matrix.shape[0]
         var = sp.Symbol("n") if len(free_syms) == 0 else free_syms[0]
         factorial_power = max(matrix.degrees(var))
 
         normalized_matrix = matrix / (var**factorial_power)
-        required_precision = (
+
+        # --- TRIGGER BACKOFF VIA POINCARE BOUND ---
+        degrees = [d for d in normalized_matrix.degrees(var) if d != -sp.oo]
+        S = max(degrees) - min(degrees) if degrees else 1
+        poincare_bound = S * 2 + 1
+
+        negative_bound = (
             -min(
                 [
                     factorial_power
@@ -82,13 +83,20 @@ class Reducer:
             * p
             + 1
         )
-        if precision < required_precision:
+
+        required_precision = max(poincare_bound, negative_bound)
+
+        # THE BYPASS: Only raise the starvation error if the user isn't forcing the precision
+        if not force and precision < required_precision:
             raise InputTruncationError(
                 required_precision=required_precision,
-                message=f"Input Truncation! The deepest term requires a minimum precision of {required_precision}.",
+                message=f"Poincaré bound requires {required_precision} terms to prevent silent rational Taylor truncation.",
             )
 
-        series = cls._symbolic_to_series(normalized_matrix, var, p, precision, dim)
+        print(f"\n[DEBUG FROM_MATRIX] Expanding Taylor Series to prec={precision} ...")
+
+        # Use your newly moved Matrix method!
+        series = normalized_matrix.to_series_matrix(var, p, precision)
 
         return cls(
             series=series,
@@ -97,30 +105,6 @@ class Reducer:
             precision=precision,
             p=p,
         )
-
-    @classmethod
-    def _symbolic_to_series(
-        cls, matrix: Matrix, var: sp.Symbol, p: int, precision: int, dim: int
-    ) -> SeriesMatrix:
-        if not matrix.free_symbols:
-            coeffs = [matrix] + [Matrix.zeros(dim, dim) for _ in range(precision - 1)]
-            return SeriesMatrix(coeffs, p=p, precision=precision)
-
-        t = sp.Symbol("t", positive=True)
-        M_t = matrix.subs({var: t ** (-p)})
-
-        coeffs = []
-        for i in range(precision):
-            coeff_matrix = M_t.applyfunc(
-                lambda x: sp.series(x, t, 0, precision).coeff(t, i)
-            )
-            if coeff_matrix.has(t) or coeff_matrix.has(var):
-                raise ValueError(
-                    f"Coefficient {i} failed to evaluate to a constant matrix."
-                )
-            coeffs.append(coeff_matrix)
-
-        return SeriesMatrix(coeffs, p=p, precision=precision)
 
     @staticmethod
     def _solve_sylvester(A: Matrix, B: Matrix, C: Matrix) -> Matrix:
@@ -192,6 +176,15 @@ class Reducer:
                 break
 
             M_target = self.M.coeffs[k_target]
+
+            print(
+                f"\n[DEBUG REDUCE] Dim: {self.dim} | Prec: {self.precision} | k_target: {k_target}"
+            )
+            print(f"[DEBUG REDUCE] M_target Matrix at k={k_target}:")
+            sp.pprint(M_target)
+            print("[DEBUG REDUCE] Eigenvalues of M_target:")
+            print(list(M_target.eigenvals().keys()))
+
             P, J_target = M_target.jordan_form()
             self.S_total = self.S_total * SeriesMatrix(
                 [P], p=self.p, precision=self.S_total.precision
@@ -241,13 +234,23 @@ class Reducer:
         """
         dim, blocks = self.dim, self._get_blocks(J_target)
 
+        self._check_split_truncation(blocks)
+
         max_sub_dim = max((e - s) for s, e, _ in blocks)
         buffer_needed = 0 if max_sub_dim == 1 else (max_sub_dim * max_sub_dim)
         needed_precision = self.p + 1 + buffer_needed
 
-        if self.precision > needed_precision:
-            self.M = self.M.truncate(needed_precision)
-            self.precision = needed_precision
+        print(
+            f"\n[DEBUG SPLIT] Current prec: {self.precision} | Needed prec (buffer): {needed_precision}"
+        )
+
+        if self.precision < needed_precision:
+            unramified_required = int(sp.ceiling(needed_precision / self.p))
+
+            raise InputTruncationError(
+                required_precision=unramified_required,
+                message=f"Split decoupling requires {needed_precision} valid terms, but only {self.precision} exist.",
+            )
 
         for m in range(1, self.precision - k_target):
             R_k, Y_mat, needs_gauge = (
@@ -275,16 +278,27 @@ class Reducer:
             if needs_gauge:
                 Y_mat = Y_mat.applyfunc(lambda x: sp.cancel(sp.radsimp(sp.cancel(x))))
 
-                padded_G = (
+                print(f"\n[DEBUG SPLIT] Solving Sylvester at m={m}")
+                print("[DEBUG SPLIT] J_ii:")
+                sp.pprint(J_ii)
+                print("[DEBUG SPLIT] J_jj:")
+                sp.pprint(J_jj)
+                print("[DEBUG SPLIT] R_ij (The matrix to clear):")
+                sp.pprint(R_ij)
+                print("[DEBUG SPLIT] Y_ij (The calculated gauge):")
+                sp.pprint(Y_ij)
+
+                # Apply to M at REDUCED precision
+                padded_G_short = (
                     [Matrix.eye(dim)] + [Matrix.zeros(dim, dim)] * (m - 1) + [Y_mat]
                 )
-                padded_G += [Matrix.zeros(dim, dim)] * (self.precision - len(padded_G))
-
-                G = SeriesMatrix(padded_G, p=self.p, precision=self.precision)
-
-                # SEVERED LINK: We DO NOT multiply self.S_total * G.
-                # G is a near-identity matrix; it cannot affect the leading tail.
-                self.M = self.M.coboundary(G)
+                padded_G_short += [Matrix.zeros(dim, dim)] * (
+                    self.precision - len(padded_G_short)
+                )
+                G_short = SeriesMatrix(
+                    padded_G_short, p=self.p, precision=self.precision
+                )
+                self.M = self.M.coboundary(G_short)
 
                 self.M = SeriesMatrix(
                     [
@@ -310,6 +324,13 @@ class Reducer:
                 v = vals[i, j]
                 if v != sp.oo:
                     points.append((j - i, v))
+
+        print("\n[DEBUG NEWTON] --- Computing Shear Slope ---")
+        print(f"[DEBUG NEWTON] Dim: {self.dim} | Current Prec: {self.precision}")
+        for r in range(self.dim):
+            print(
+                f"[DEBUG NEWTON] Vals Row {r}: {[vals[r, c] for c in range(self.dim)]}"
+            )
 
         lowest_points = {}
         for x, y in points:
@@ -342,35 +363,9 @@ class Reducer:
         steepest_slope = sp.Rational(p2[1] - p1[1], p2[0] - p1[0])
         g = -steepest_slope
 
+        print(f"[DEBUG NEWTON] Lower hull points: {lower_hull}")
+        print(f"[DEBUG NEWTON] Computed slope g = {g}")
         return max(sp.S.Zero, g)
-
-    def _check_shear_overflow(self, g: sp.Rational | int) -> None:
-        """
-        Detects if a shear transformation will push non-zero terms past the
-        allocated precision buffer of S_total.
-        Uses a Global Maximum check to account for column-mixing by P matrices.
-        """
-        # Find the absolute deepest term ANYWHERE in the matrix
-        global_deepest_k = 0
-        for k in range(self.S_total.precision):
-            if not self.S_total.coeffs[k].is_zero_matrix:
-                global_deepest_k = k
-
-        # Find the heaviest possible shift applied to any column
-        # For a shear matrix S = diag(1, t^g, t^2g, ...), the max shift is on the last column
-        max_shift = (self.dim - 1) * g
-
-        # Check if the worst-case scenario breaks the boundary
-        if global_deepest_k + max_shift >= self.S_total.precision:
-            required_precision = int(global_deepest_k + max_shift + 1)
-            outer_required = int(sp.ceiling(required_precision / self.p))
-
-            raise ShearOverflowError(
-                required_precision=outer_required,
-                message=f"Global Shear Overflow! Deepest matrix term is at index {global_deepest_k}. "
-                f"Max upcoming shift is {global_deepest_k + max_shift}, "
-                f"S_total precision is only {self.S_total.precision}.",
-            )
 
     def _check_eigenvalue_blindness(self, exp_base: sp.Expr) -> None:
         """
@@ -381,6 +376,42 @@ class Reducer:
                 required_precision=self.precision + self.dim,
                 message="Zero Eigenvalue Drop! System is completely nilpotent at current precision.",
             )
+
+    def _check_split_truncation(self, blocks: list[tuple[int, int, sp.Expr]]) -> None:
+        """
+        Checks if the current precision is sufficient to solve the Sylvester equations
+        required for block decoupling. Raises InputTruncationError if starved.
+        """
+        max_sub_dim = max((e - s) for s, e, _ in blocks)
+        buffer_needed = 0 if max_sub_dim == 1 else (max_sub_dim * max_sub_dim)
+        needed_precision = self.p + 1 + buffer_needed
+
+        if self.precision < needed_precision:
+            raise InputTruncationError(
+                required_precision=needed_precision,
+                message=f"Split decoupling requires {needed_precision} valid terms, but only {self.precision} exist.",
+            )
+
+    def _check_shear_truncation(self, g: sp.Rational | int) -> tuple[int, int]:
+        """
+        Calculates the matrix shift caused by a shear and checks if it exceeds
+        available precision. Raises InputTruncationError if the engine starves.
+        Returns:
+            tuple[int, int]: (true_valid_precision, max_shift)
+        """
+        max_shift = int(sp.ceiling((self.dim - 1) * g))
+        true_valid_precision = self.precision - max_shift
+
+        if true_valid_precision <= 0:
+            ramified_required = self.precision + max_shift + self.dim
+            unramified_required = int(sp.ceiling(ramified_required / self.p))
+
+            raise InputTruncationError(
+                required_precision=unramified_required,
+                message=f"Shear shifted matrix out of bounds! Consumed {max_shift} terms, only {self.precision} available.",
+            )
+
+        return true_valid_precision, max_shift
 
     def _check_cfm_validity(self, grid: list[list["GrowthRate"]]) -> None:
         """
@@ -414,17 +445,45 @@ class Reducer:
             self.p *= b
             self.precision *= b
 
-        self._check_shear_overflow(g)
+        true_valid_precision, max_shift = self._check_shear_truncation(g)
+
+        print(
+            f"\n[DEBUG SHEAR] Slope g={g}. Shifting deepest column by {max_shift} indices."
+        )
+        if max_shift > 0:
+            padded_coeffs = (
+                self.S_total.coeffs + [Matrix.zeros(self.dim, self.dim)] * max_shift
+            )
+            self.S_total = SeriesMatrix(
+                padded_coeffs, p=self.p, precision=self.S_total.precision + max_shift
+            )
+
+        print(
+            f"[DEBUG SHEAR] S_total array capacity: {self.S_total.precision}. "
+            f"Remaining buffer: {self.S_total.precision - max_shift}"
+        )
 
         t = sp.Symbol("t", positive=True)
         S_sym = Matrix.diag(*[t ** (i * g) for i in range(self.dim)])
-        S_series = Reducer._symbolic_to_series(
-            S_sym, self.var, self.p, self.S_total.precision, self.dim
-        )
+        S_series = S_sym.to_series_matrix(self.var, self.p, self.S_total.precision)
 
         self.S_total = self.S_total * S_series
 
         self.M, h = self.M.shear_coboundary(g)
+
+        max_shift = int(sp.ceiling((self.dim - 1) * g))
+        true_valid_precision = self.precision - max_shift
+
+        if true_valid_precision <= 0:
+            from ramanujantools.asymptotics import InputTruncationError
+
+            raise InputTruncationError(
+                required_precision=self.precision + max_shift + self.dim,
+                message=f"Shear completely starved! Shifted by {max_shift}, only had {self.precision}.",
+            )
+
+        self.M = self.M.truncate(true_valid_precision)
+        self.precision = true_valid_precision
 
         if h != 0:
             self.factorial_power += sp.Rational(h, self.p)
@@ -438,6 +497,10 @@ class Reducer:
             self.reduce()
 
         if self.children:
+            for i, child in enumerate(self.children):
+                print(
+                    f"[DEBUG CFM] Child {i} has its own S_total of precision {child.S_total.precision}. Is it identity? {child.S_total.coeffs[0].is_Identity}"
+                )
             return [sol for child in self.children for sol in child.asymptotic_growth()]
 
         factorial_power, n, t = (
@@ -487,6 +550,14 @@ class Reducer:
                 elif k == self.p:
                     polynomial_degree = c_k
 
+                print(f"\n[DEBUG GROWTH] --- Variable {i} ---")
+                print(f"[DEBUG GROWTH] Exp base: {exp_base}")
+                print(f"[DEBUG GROWTH] x series: {x}")
+                print(f"[DEBUG GROWTH] log_series: {log_series}")
+                print(
+                    f"[DEBUG GROWTH] polynomial_degree coeff (k={self.p}): {polynomial_degree}"
+                )
+
             growths.append(
                 GrowthRate(
                     exp_base=exp_base,
@@ -504,10 +575,6 @@ class Reducer:
         Builds the 'classic' scalar expressions from the raw internal growth components.
         This perfectly preserves backward compatibility with older scalar tests.
         """
-        return [
-            g.as_expr(self.var) if g is not None else sp.S.Zero
-            for g in self.asymptotic_growth()
-        ]
 
     def canonical_growth_matrix(self) -> list[list[GrowthRate]]:
         r"""
@@ -533,30 +600,64 @@ class Reducer:
             solution vector, and each row $i$ represents the asymptotic behavior of the
             $i$-th physical variable for that solution.
         """
-        growths = self.asymptotic_growth()
-        matrix_grid = []
+        if not self._is_reduced:
+            self.reduce()
 
+        # 1. Base Grid Construction (Recursive Block Diagonal or Leaf Nodes)
+        if self.children:
+            base_grid = [
+                [GrowthRate() for _ in range(self.dim)] for _ in range(self.dim)
+            ]
+            offset = 0
+            for child in self.children:
+                c_grid = child.canonical_growth_matrix()  # RECURSIVE CALL
+                c_dim = child.dim
+                for r in range(c_dim):
+                    for c in range(c_dim):
+                        base_grid[offset + r][offset + c] = c_grid[r][c]
+                offset += c_dim
+        else:
+            growths = self.asymptotic_growth()
+            base_grid = [
+                [GrowthRate() if r != c else growths[r] for c in range(self.dim)]
+                for r in range(self.dim)
+            ]
+
+        # 2. Map the assembled block through the local gauge transformation S_total
+        final_grid = []
         for row in range(self.dim):
-            row_growths = []
-            for i, g in enumerate(growths):
+            final_row = []
+            for col in range(self.dim):
                 cell_growth = GrowthRate()
-                for k in range(self.S_total.precision):
-                    coeff = self.S_total.coeffs[k][row, i]
-                    if coeff != sp.S.Zero:
-                        shift_growth = GrowthRate(
-                            exp_base=sp.S.One,
-                            polynomial_degree=-sp.Rational(k, self.p)
-                            - g.factorial_power,
-                        )
 
-                        cell_growth = g * shift_growth
-                        break
+                for k_idx in range(self.dim):
+                    base_cell = base_grid[k_idx][col]
+                    if base_cell.exp_base == sp.S.Zero:
+                        continue
 
-                row_growths.append(cell_growth)
-            matrix_grid.append(row_growths)
+                    # Find the leading shift in S_total for this mapping
+                    for series_k in range(self.S_total.precision):
+                        coeff = self.S_total.coeffs[series_k][row, k_idx]
+                        if coeff != sp.S.Zero:
+                            shift_growth = GrowthRate(
+                                exp_base=sp.S.One,
+                                polynomial_degree=-sp.Rational(series_k, self.p),
+                            )
+                            cell_growth += shift_growth * base_cell
+                            break
 
-        self._check_cfm_validity(matrix_grid)
-        return matrix_grid
+                final_row.append(cell_growth)
+            final_grid.append(final_row)
+
+        sorted_indices = sorted(
+            range(self.dim), key=lambda c: final_grid[-1][c], reverse=True
+        )
+
+        for i in range(self.dim):
+            final_grid[i] = [final_grid[i][c] for c in sorted_indices]
+
+        self._check_cfm_validity(final_grid)
+        return final_grid
 
     @classmethod
     def _growth_to_expr_matrix(

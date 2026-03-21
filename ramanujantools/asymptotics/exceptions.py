@@ -8,12 +8,6 @@ class PrecisionExhaustedError(Exception):
         )
 
 
-class ShearOverflowError(PrecisionExhaustedError):
-    """Raised when a shear transformation pushes data beyond the current array bounds."""
-
-    pass
-
-
 class EigenvalueBlindnessError(PrecisionExhaustedError):
     """Raised when the matrix appears nilpotent at the current precision."""
 

@@ -362,8 +362,9 @@ class LinearRecurrence(Printable):
         """
         return self.recurrence_matrix.kamidelta(depth)
 
-    def asymptotics(self) -> list[sp.Expr]:
-        """
-        Returns a formal basis of asymptotic solutions for the scalar linear recurrence.
-        """
-        return self.recurrence_matrix.asymptotics()
+    def asymptotics(self, precision=None) -> list[sp.Expr]:
+        growth_grid = self.recurrence_matrix._asymptotic_growth_matrix(precision)
+
+        print("\n[DEBUG EXTRACTION] Slicing last column for p_n basis:")
+        p_n_basis = [sol_growths[-1] for sol_growths in growth_grid]
+        return [growth.as_expr(n) for growth in p_n_basis]
