@@ -66,18 +66,15 @@ class SeriesMatrix:
         new_coeffs = [Matrix.zeros(*self.shape) for _ in range(out_precision)]
 
         for i in range(out_precision):
-            # INJECTED CAS SPEED BOOST: Skip empty matrices entirely
             if self.coeffs[i].is_zero_matrix:
                 continue
 
             for j in range(out_precision - i):
-                # INJECTED CAS SPEED BOOST: Skip empty matrices entirely
                 if other.coeffs[j].is_zero_matrix:
                     continue
 
                 new_coeffs[i + j] += self.coeffs[i] * other.coeffs[j]
 
-        # DEFLATE + CRUSH ALGEBRA: Force (sqrt(3))^2 to become 3
         new_coeffs = [
             c.applyfunc(lambda x: sp.cancel(sp.expand(x))) for c in new_coeffs
         ]

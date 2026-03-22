@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+import logging
 from functools import lru_cache
 
 import sympy as sp
 
-
 from ramanujantools import Matrix
 from ramanujantools.asymptotics import GrowthRate, SeriesMatrix
+
+logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler())
 
 
 class PrecisionExhaustedError(Exception):
@@ -19,8 +22,8 @@ class PrecisionExhaustedError(Exception):
 
 class Reducer:
     """
-    Implements the Birkhoff-Trjitzinsky algorithm to compute the formal
     canonical fundamental matrix for linear difference systems.
+    Implements the Birkhoff-Trjitzinsky algorithm to compute the formal
 
     Sources:
         - Analytic Theory of Singular Difference Equations: George D Birkhoff and Waldemar J Trjitzinsky
@@ -93,9 +96,7 @@ class Reducer:
                 message=f"Poincaré bound requires {required_precision} terms to prevent silent rational Taylor truncation.",
             )
 
-        print(f"\n[DEBUG FROM_MATRIX] Expanding Taylor Series to prec={precision} ...")
-
-        # Use your newly moved Matrix method!
+        logger.debug(f"FROM_MATRIX: Expanding Taylor Series to {precision=} ...")
         series = normalized_matrix.to_series_matrix(var, p, precision)
 
         return cls(
@@ -183,13 +184,11 @@ class Reducer:
 
             M_target = self.M.coeffs[k_target]
 
-            print(
-                f"\n[DEBUG REDUCE] Dim: {self.dim} | Prec: {self.precision} | k_target: {k_target}"
+            logger.debug(f"REDUCE: {self.dim=} | {self.precision=} | {k_target=}")
+            logger.debug(f"REDUCE: at {k_target=}: {M_target=}")
+            logger.debug(
+                f"REDUCE: Eigenvalues of M_target: {list(M_target.eigenvals().keys())}"
             )
-            print(f"[DEBUG REDUCE] M_target Matrix at k={k_target}:")
-            sp.pprint(M_target)
-            print("[DEBUG REDUCE] Eigenvalues of M_target:")
-            print(list(M_target.eigenvals().keys()))
 
             P, J_target = M_target.jordan_form()
             self.S_total = self.S_total * SeriesMatrix(
@@ -268,17 +267,12 @@ class Reducer:
             if needs_gauge:
                 Y_mat = Y_mat.applyfunc(lambda x: sp.cancel(sp.radsimp(sp.cancel(x))))
 
-                print(f"\n[DEBUG SPLIT] Solving Sylvester at m={m}")
-                print("[DEBUG SPLIT] J_ii:")
-                sp.pprint(J_ii)
-                print("[DEBUG SPLIT] J_jj:")
-                sp.pprint(J_jj)
-                print("[DEBUG SPLIT] R_ij (The matrix to clear):")
-                sp.pprint(R_ij)
-                print("[DEBUG SPLIT] Y_ij (The calculated gauge):")
-                sp.pprint(Y_ij)
+                logger.debug(f"SPLIT: Solving Sylvester at m={m} ...")
+                logger.debug(f"SPLIT: {J_ii=}")
+                logger.debug(f"SPLIT: {J_jj=}")
+                logger.debug(f"SPLIT: {R_ij=}")
+                logger.debug(f"SPLIT: {Y_ij=}")
 
-                # Apply to M at REDUCED precision
                 padded_G_short = (
                     [Matrix.eye(dim)] + [Matrix.zeros(dim, dim)] * (m - 1) + [Y_mat]
                 )
@@ -290,14 +284,52 @@ class Reducer:
                 )
                 self.M = self.M.coboundary(G_short)
 
-                self.M = SeriesMatrix(
-                    [
-                        c.applyfunc(lambda x: sp.cancel(sp.expand(x)))
-                        for c in self.M.coeffs
-                    ],
-                    p=self.p,
-                    precision=self.precision,
-                )
+    def shear(self) -> None:
+        """
+        Applies a ramification and shear transformation.
+        Used when the leading matrix is nilpotent, this shifts the polynomial degrees
+        of the variables to expose the hidden sub-exponential growths.
+        """
+        g = self._compute_shear_slope()
+
+        if g == sp.S.Zero:
+            self._check_eigenvalue_blindness(self.M.coeffs[0][0, 0])
+            self._is_reduced = True
+            return
+
+        if not g.is_integer:
+            g, b = g.as_numer_denom()
+            self.M, self.S_total = self.M.ramify(b), self.S_total.ramify(b)
+            self.p *= b
+            self.precision *= b
+
+        true_valid_precision, max_shift = self._check_shear_truncation(g)
+
+        logger.debug(f"SHEAR: Computed slope {g=}. Max shift: {max_shift=} terms.")
+        if max_shift > 0:
+            padded_coeffs = (
+                self.S_total.coeffs + [Matrix.zeros(self.dim, self.dim)] * max_shift
+            )
+            self.S_total = SeriesMatrix(
+                padded_coeffs, p=self.p, precision=self.S_total.precision + max_shift
+            )
+
+        logger.debug(
+            f"SHEAR: S_total array capacity: {self.S_total.precision=}. "
+            f"Remaining buffer: {self.S_total.precision - max_shift}"
+        )
+
+        t = sp.Symbol("t", positive=True)
+        S_sym = Matrix.diag(*[t ** (i * g) for i in range(self.dim)])
+        S_series = S_sym.to_series_matrix(self.var, self.p, self.S_total.precision)
+
+        self.S_total = self.S_total * S_series
+
+        self.M, h = self.M.shear_coboundary(g, true_valid_precision)
+        self.precision = true_valid_precision
+
+        if h != 0:
+            self.factorial_power += sp.Rational(h, self.p)
 
     def _compute_shear_slope(self) -> sp.Rational:
         """
@@ -315,12 +347,7 @@ class Reducer:
                 if v != sp.oo:
                     points.append((j - i, v))
 
-        print("\n[DEBUG NEWTON] --- Computing Shear Slope ---")
-        print(f"[DEBUG NEWTON] Dim: {self.dim} | Current Prec: {self.precision}")
-        for r in range(self.dim):
-            print(
-                f"[DEBUG NEWTON] Vals Row {r}: {[vals[r, c] for c in range(self.dim)]}"
-            )
+        logger.debug(f"NEWTON: {self.dim=} | {self.precision=}")
 
         lowest_points = {}
         for x, y in points:
@@ -353,8 +380,8 @@ class Reducer:
         steepest_slope = sp.Rational(p2[1] - p1[1], p2[0] - p1[0])
         g = -steepest_slope
 
-        print(f"[DEBUG NEWTON] Lower hull points: {lower_hull}")
-        print(f"[DEBUG NEWTON] Computed slope g = {g}")
+        logger.debug(f"NEWTON: Lower hull points: {lower_hull}")
+        logger.debug(f"NEWTON: Computed slope {g=}")
         return max(sp.S.Zero, g)
 
     def _check_eigenvalue_blindness(self, exp_base: sp.Expr) -> None:
@@ -415,55 +442,6 @@ class Reducer:
                     message=f"Row Nullity Violation! Physical variable at row {row} vanished completely.",
                 )
 
-    def shear(self) -> None:
-        """
-        Applies a ramification and shear transformation.
-        Used when the leading matrix is nilpotent, this shifts the polynomial degrees
-        of the variables to expose the hidden sub-exponential growths.
-        """
-        g = self._compute_shear_slope()
-
-        if g == sp.S.Zero:
-            self._check_eigenvalue_blindness(self.M.coeffs[0][0, 0])
-            self._is_reduced = True
-            return
-
-        if not g.is_integer:
-            g, b = g.as_numer_denom()
-            self.M, self.S_total = self.M.ramify(b), self.S_total.ramify(b)
-            self.p *= b
-            self.precision *= b
-
-        true_valid_precision, max_shift = self._check_shear_truncation(g)
-
-        print(
-            f"\n[DEBUG SHEAR] Slope g={g}. Shifting deepest column by {max_shift} indices."
-        )
-        if max_shift > 0:
-            padded_coeffs = (
-                self.S_total.coeffs + [Matrix.zeros(self.dim, self.dim)] * max_shift
-            )
-            self.S_total = SeriesMatrix(
-                padded_coeffs, p=self.p, precision=self.S_total.precision + max_shift
-            )
-
-        print(
-            f"[DEBUG SHEAR] S_total array capacity: {self.S_total.precision}. "
-            f"Remaining buffer: {self.S_total.precision - max_shift}"
-        )
-
-        t = sp.Symbol("t", positive=True)
-        S_sym = Matrix.diag(*[t ** (i * g) for i in range(self.dim)])
-        S_series = S_sym.to_series_matrix(self.var, self.p, self.S_total.precision)
-
-        self.S_total = self.S_total * S_series
-
-        self.M, h = self.M.shear_coboundary(g, true_valid_precision)
-        self.precision = true_valid_precision
-
-        if h != 0:
-            self.factorial_power += sp.Rational(h, self.p)
-
     def asymptotic_growth(self) -> list[GrowthRate]:
         """
         Extracts the raw, unmapped asymptotic components of the internal canonical basis.
@@ -474,8 +452,9 @@ class Reducer:
 
         if self.children:
             for i, child in enumerate(self.children):
-                print(
-                    f"[DEBUG CFM] Child {i} has its own S_total of precision {child.S_total.precision}. Is it identity? {child.S_total.coeffs[0].is_Identity}"
+                logger.debug(
+                    f"CFM: Child {i} has precision {child.S_total.precision=}. "
+                    f"Is it identity? {child.S_total.coeffs[0].is_Identity}"
                 )
             return [sol for child in self.children for sol in child.asymptotic_growth()]
 
@@ -526,12 +505,8 @@ class Reducer:
                 elif k == self.p:
                     polynomial_degree = c_k
 
-                print(f"\n[DEBUG GROWTH] --- Variable {i} ---")
-                print(f"[DEBUG GROWTH] Exp base: {exp_base}")
-                print(f"[DEBUG GROWTH] x series: {x}")
-                print(f"[DEBUG GROWTH] log_series: {log_series}")
-                print(
-                    f"[DEBUG GROWTH] polynomial_degree coeff (k={self.p}): {polynomial_degree}"
+                logger.debug(
+                    f"GROWTH: Variable {i=}, {k=}, {c_k=}, {exp_base=}, {x=}, {log_series=}, {polynomial_degree=}"
                 )
 
             growths.append(
@@ -545,12 +520,6 @@ class Reducer:
             )
 
         return growths
-
-    def asymptotic_expressions(self) -> list[sp.Expr]:
-        """
-        Builds the 'classic' scalar expressions from the raw internal growth components.
-        This perfectly preserves backward compatibility with older scalar tests.
-        """
 
     def canonical_growth_matrix(self) -> list[list[GrowthRate]]:
         r"""
@@ -635,22 +604,10 @@ class Reducer:
         self._check_cfm_validity(final_grid)
         return final_grid
 
-    @classmethod
-    def _growth_to_expr_matrix(
-        cls, growth_matrix: list[list[GrowthRate]], var: sp.Symbol
-    ) -> Matrix:
-        dim = len(growth_matrix)
-        cfm = Matrix.zeros(dim, dim)
-
-        for row in range(dim):
-            for col in range(dim):
-                cfm[row, col] = growth_matrix[row][col].as_expr(var)
-
-        return cfm
-
     def canonical_fundamental_matrix(self) -> Matrix:
         """
         Converts the smart GrowthRate grid into a formal SymPy Matrix of expressions.
         This provides the final, human-readable fundamental solution set.
         """
-        return Reducer._growth_to_expr_matrix(self.canonical_growth_matrix(), self.var)
+        growth_matrix = self.canonical_growth_matrix()
+        return Matrix([[c.as_expr(self.var) for c in r] for r in growth_matrix])

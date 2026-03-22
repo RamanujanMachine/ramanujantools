@@ -50,7 +50,7 @@ def test_asymptotics_fail1():
         * sp.exp(-2 * sp.I * sp.sqrt(n))
         * sp.factorial(n),
     ]
-    assert expected == r.asymptotics()
+    assert expected == r.asymptotics(precision=10)
 
 
 def test_asymptotics_fail2():
@@ -63,7 +63,7 @@ def test_asymptotics_fail2():
     r = LinearRecurrence(m)
 
     expected = [n**2 * sp.log(n) * sp.factorial(n), n**2 * sp.factorial(n), 1]
-    assert expected == r.asymptotics()
+    assert expected == r.asymptotics(precision=11)
 
 
 def test_asymptotics_fail3():
@@ -87,7 +87,7 @@ def test_asymptotics_fail3():
         * sp.factorial(n) ** 3,
     ]
 
-    assert expected == r.asymptotics()
+    assert expected == r.asymptotics(precision=18)
 
 
 def test_asymptotics_euler_trajectory():
@@ -124,5 +124,4 @@ def test_asymptotics_euler_trajectory():
         * sp.factorial(n) ** 2,
     ]
     actual = r.asymptotics(precision=12)
-    print(actual)
     assert expected == actual

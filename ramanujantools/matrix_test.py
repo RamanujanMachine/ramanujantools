@@ -8,7 +8,6 @@ from sympy.abc import x, y, n
 from ramanujantools import Matrix, Limit, simplify
 from ramanujantools.pcf import PCF
 from ramanujantools.cmf import pFq
-from ramanujantools.asymptotics import GrowthRate
 
 
 def test_eq_optimized_path_called():

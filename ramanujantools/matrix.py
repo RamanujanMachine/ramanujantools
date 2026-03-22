@@ -573,12 +573,9 @@ class Matrix(sp.Matrix):
         Pre-conditions the matrix via CVM and safely executes the precision
         backoff loop to return a fully solved Reducer instance and the CVM transformation matrix U.
         """
-        from ramanujantools.asymptotics import Reducer, PrecisionExhaustedError
+        from ramanujantools.asymptotics import PrecisionExhaustedError
 
         if precision is not None:
-            print(
-                f"[DEBUG STABILITY] Explicit precision {precision} requested. Bypassing stability loop."
-            )
             return self._get_reducer_at_precision(precision, force=True)
 
         var = sp.Symbol("n") if not self.free_symbols else list(self.free_symbols)[0]
@@ -594,68 +591,42 @@ class Matrix(sp.Matrix):
         last_expr_matrix = None
         current_reducer = None
 
-        print(f"\n[DEBUG STABILITY] Starting backoff. Max boundary: {max_precision}")
-
         while current_precision <= max_precision:
             try:
-                print(f"[DEBUG STABILITY] Attempting precision: {current_precision}")
                 reducer = self._get_reducer_at_precision(current_precision, force=False)
 
-                growth_grid = reducer.canonical_growth_matrix()
-                expr_matrix = Reducer._growth_to_expr_matrix(growth_grid, var)
+                expr_matrix = reducer.canonical_fundamental_matrix()
 
                 if last_expr_matrix is not None:
                     diff = (expr_matrix - last_expr_matrix).applyfunc(sp.expand)
                     if diff.is_zero_matrix:
-                        print(
-                            f"[DEBUG STABILITY] Math stabilized at precision {current_precision}! Output is solid."
-                        )
                         return current_reducer
 
-                print(
-                    f"[DEBUG STABILITY] Math shifted. Stepping up to {current_precision + step_size}."
-                )
                 last_expr_matrix = expr_matrix
                 current_reducer = reducer
                 current_precision += step_size
 
             except PrecisionExhaustedError as e:
                 required = getattr(e, "required_precision", current_precision + 1)
-                print(
-                    f"[DEBUG STABILITY] Starved! Error requested precision {required}."
-                )
                 current_precision = max(current_precision + 1, required)
                 last_expr_matrix = None
 
-        print(
-            "[DEBUG STABILITY] Hit maximum ramification bound. Returning safest computed matrix."
-        )
         return current_reducer
 
     @lru_cache
-    def _asymptotic_growth_matrix(self, precision) -> list[list["GrowthRate"]]:
+    def _asymptotic_growth_matrix(self, precision) -> list[list[GrowthRate]]:
         from ramanujantools.asymptotics.growth_rate import GrowthRate
 
         free_syms = list(self.free_symbols)
-        var = sp.Symbol("n") if not free_syms else free_syms[0]
+        var = n if not free_syms else free_syms[0]
         dim = self.shape[0]
 
         reducer = self._get_reducer(precision)
         U = self.companion_coboundary_matrix(var)
         U_inv = U.inv()
 
-        # Print the Transformation Matrix
-        print("\n[DEBUG TRANSLATION] U_inv matrix:")
-        sp.pprint(U_inv)
-
         cvm_grid_T = reducer.canonical_growth_matrix()
         cvm_grid = list(map(list, zip(*cvm_grid_T)))
-
-        # Print the CVM Grid (The formal solutions)
-        print("\n[DEBUG TRANSLATION] CVM Grid (Before Multiplication):")
-        for r_idx, r in enumerate(cvm_grid):
-            expr_row = [c.as_expr(var) for c in r]
-            print(f"  CVM Row {r_idx}: {expr_row}")
 
         physical_grid = []
         for row in range(dim):
@@ -675,12 +646,6 @@ class Matrix(sp.Matrix):
                 physical_row.append(dominant_growth)
             physical_grid.append(physical_row)
 
-        # Print the final mixed physical grid
-        print("\n[DEBUG TRANSLATION] Final Physical Grid:")
-        for r_idx, r in enumerate(physical_grid):
-            expr_row = [c.as_expr(var) for c in r]
-            print(f"  Phys Row {r_idx}: {expr_row}")
-
         return physical_grid
 
     def canonical_fundamental_matrix(self, precision=None) -> Matrix:
@@ -690,16 +655,11 @@ class Matrix(sp.Matrix):
         The CFM is defined as a formal set of solutions for the system such that they are asymptotically distinct.
         More documentation in Reducer.
         """
-        from ramanujantools.asymptotics.reducer import Reducer
-
         free_syms = list(self.free_symbols)
         var = n if not free_syms else free_syms[0]
 
-        # Fetch the mathematically pure grid of smart objects
         growth_matrix = self._asymptotic_growth_matrix(precision=precision)
-
-        # Render the final human-readable expressions
-        return Reducer._growth_to_expr_matrix(growth_matrix, var)
+        return Matrix([[c.as_expr(var) for c in r] for r in growth_matrix])
 
     def asymptotics(self, precision=None) -> list[sp.Expr]:
         """
@@ -709,19 +669,7 @@ class Matrix(sp.Matrix):
         Fundamental Matrix, safely filtering out sub-dominant trajectories to return
         the absolute upper bound of the sequence's growth at infinity.
         """
-        var = sp.Symbol("n") if not self.free_symbols else list(self.free_symbols)[0]
+        var = n if not self.free_symbols else list(self.free_symbols)[0]
 
         growth_grid = self._asymptotic_growth_matrix(precision=precision)
-        bounds = []
-
-        for row in growth_grid:
-            # Safely find the dominant growth using your custom __gt__ operator
-            dominant_growth = row[0]
-            for current in row[1:]:
-                if current > dominant_growth:
-                    dominant_growth = current
-
-            # The as_expr() method inherently handles the zero-base safety check
-            bounds.append(dominant_growth.as_expr(var))
-
-        return bounds
+        return [max(row).as_expr(var) for row in growth_grid]
