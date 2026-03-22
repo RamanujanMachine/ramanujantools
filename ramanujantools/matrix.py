@@ -573,7 +573,7 @@ class Matrix(sp.Matrix):
         Pre-conditions the matrix via CVM and safely executes the precision
         backoff loop to return a fully solved Reducer instance and the CVM transformation matrix U.
         """
-        from ramanujantools.asymptotics import Reducer
+        from ramanujantools.asymptotics import Reducer, PrecisionExhaustedError
 
         if precision is not None:
             print(
@@ -619,7 +619,7 @@ class Matrix(sp.Matrix):
                 current_reducer = reducer
                 current_precision += step_size
 
-            except Exception as e:
+            except PrecisionExhaustedError as e:
                 required = getattr(e, "required_precision", current_precision + 1)
                 print(
                     f"[DEBUG STABILITY] Starved! Error requested precision {required}."

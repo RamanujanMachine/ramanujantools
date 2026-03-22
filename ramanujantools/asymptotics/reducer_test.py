@@ -3,13 +3,7 @@ import sympy as sp
 from sympy.abc import n
 
 from ramanujantools import Matrix
-from ramanujantools.asymptotics import (
-    GrowthRate,
-    EigenvalueBlindnessError,
-    RowNullityError,
-    InputTruncationError,
-    Reducer,
-)
+from ramanujantools.asymptotics import GrowthRate, PrecisionExhaustedError, Reducer
 
 
 def asymptotic_expressions(asymptotic_growth: list[GrowthRate]) -> list[sp.Expr]:
@@ -132,7 +126,7 @@ def test_nilpotent_ghost():
     precision = 3
 
     # Must explicitly trigger the Blindness Radar
-    with pytest.raises(EigenvalueBlindnessError) as e:
+    with pytest.raises(PrecisionExhaustedError) as e:
         reducer = Reducer.from_matrix(m.transpose(), precision=precision)
         reducer.canonical_fundamental_matrix()
 
@@ -155,7 +149,7 @@ def test_row_nullity():
         [GrowthRate(), GrowthRate()],
     ]
 
-    with pytest.raises(RowNullityError) as e:
+    with pytest.raises(PrecisionExhaustedError) as e:
         reducer._check_cfm_validity(broken_cfm)
 
     assert e.value.required_precision == 7  # precision + dim
@@ -177,7 +171,7 @@ def test_input_trancation():
         ]
     )
 
-    with pytest.raises(InputTruncationError) as e:
+    with pytest.raises(PrecisionExhaustedError) as e:
         from ramanujantools.asymptotics.reducer import Reducer
 
         Reducer.from_matrix(m, precision=3).canonical_fundamental_matrix()

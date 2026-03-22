@@ -6,13 +6,15 @@ import sympy as sp
 
 
 from ramanujantools import Matrix
-from ramanujantools.asymptotics import (
-    GrowthRate,
-    SeriesMatrix,
-    EigenvalueBlindnessError,
-    RowNullityError,
-    InputTruncationError,
-)
+from ramanujantools.asymptotics import GrowthRate, SeriesMatrix
+
+
+class PrecisionExhaustedError(Exception):
+    def __init__(self, required_precision: int, message: str):
+        self.required_precision = required_precision
+        super().__init__(
+            f"{message} [REQUIRED_STARTING_PRECISION: {required_precision}]"
+        )
 
 
 class Reducer:
@@ -88,7 +90,7 @@ class Reducer:
 
         # THE BYPASS: Only raise the starvation error if the user isn't forcing the precision
         if not force and precision < required_precision:
-            raise InputTruncationError(
+            raise PrecisionExhaustedError(
                 required_precision=required_precision,
                 message=f"Poincaré bound requires {required_precision} terms to prevent silent rational Taylor truncation.",
             )
@@ -247,7 +249,7 @@ class Reducer:
         if self.precision < needed_precision:
             unramified_required = int(sp.ceiling(needed_precision / self.p))
 
-            raise InputTruncationError(
+            raise PrecisionExhaustedError(
                 required_precision=unramified_required,
                 message=f"Split decoupling requires {needed_precision} valid terms, but only {self.precision} exist.",
             )
@@ -372,7 +374,7 @@ class Reducer:
         Detects if the matrix is completely nilpotent at the current precision.
         """
         if exp_base == sp.S.Zero:
-            raise EigenvalueBlindnessError(
+            raise PrecisionExhaustedError(
                 required_precision=self.precision + self.dim,
                 message="Zero Eigenvalue Drop! System is completely nilpotent at current precision.",
             )
@@ -380,14 +382,14 @@ class Reducer:
     def _check_split_truncation(self, blocks: list[tuple[int, int, sp.Expr]]) -> None:
         """
         Checks if the current precision is sufficient to solve the Sylvester equations
-        required for block decoupling. Raises InputTruncationError if starved.
+        required for block decoupling. Raises PrecisionExhaustedError if starved.
         """
         max_sub_dim = max((e - s) for s, e, _ in blocks)
         buffer_needed = 0 if max_sub_dim == 1 else (max_sub_dim * max_sub_dim)
         needed_precision = self.p + 1 + buffer_needed
 
         if self.precision < needed_precision:
-            raise InputTruncationError(
+            raise PrecisionExhaustedError(
                 required_precision=needed_precision,
                 message=f"Split decoupling requires {needed_precision} valid terms, but only {self.precision} exist.",
             )
@@ -395,7 +397,7 @@ class Reducer:
     def _check_shear_truncation(self, g: sp.Rational | int) -> tuple[int, int]:
         """
         Calculates the matrix shift caused by a shear and checks if it exceeds
-        available precision. Raises InputTruncationError if the engine starves.
+        available precision. Raises PrecisionExhaustedError if the engine starves.
         Returns:
             tuple[int, int]: (true_valid_precision, max_shift)
         """
@@ -406,7 +408,7 @@ class Reducer:
             ramified_required = self.precision + max_shift + self.dim
             unramified_required = int(sp.ceiling(ramified_required / self.p))
 
-            raise InputTruncationError(
+            raise PrecisionExhaustedError(
                 required_precision=unramified_required,
                 message=f"Shear shifted matrix out of bounds! Consumed {max_shift} terms, only {self.precision} available.",
             )
@@ -421,7 +423,7 @@ class Reducer:
         for row in range(self.dim):
             # A cell is algebraically zero if its base eigenvalue (exp_base) is 0
             if all(cell.exp_base == sp.S.Zero for cell in grid[row]):
-                raise RowNullityError(
+                raise PrecisionExhaustedError(
                     required_precision=self.precision + self.dim,
                     message=f"Row Nullity Violation! Physical variable at row {row} vanished completely.",
                 )
@@ -475,9 +477,9 @@ class Reducer:
         true_valid_precision = self.precision - max_shift
 
         if true_valid_precision <= 0:
-            from ramanujantools.asymptotics import InputTruncationError
+            from ramanujantools.asymptotics import PrecisionExhaustedError
 
-            raise InputTruncationError(
+            raise PrecisionExhaustedError(
                 required_precision=self.precision + max_shift + self.dim,
                 message=f"Shear completely starved! Shifted by {max_shift}, only had {self.precision}.",
             )
