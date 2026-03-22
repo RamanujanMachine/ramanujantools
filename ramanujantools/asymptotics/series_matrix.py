@@ -51,24 +51,38 @@ class SeriesMatrix:
         new_coeffs = [self.coeffs[i] + other.coeffs[i] for i in range(new_precision)]
         return SeriesMatrix(new_coeffs, p=self.p, precision=new_precision)
 
-    def __mul__(self, other: SeriesMatrix) -> SeriesMatrix:
+    def __mul__(self, other: "SeriesMatrix") -> "SeriesMatrix":
         """
         Computes the Cauchy product of two Formal Power Series matrices.
+        Automatically bounds the result to the lowest precision of the two operands.
         """
-        if self.p != other.p or self.precision != other.precision:
-            raise ValueError("SeriesMatrix parameters must match for multiplication.")
+        if self.p != other.p:
+            raise ValueError(
+                "SeriesMatrix ramification indices (p) must match for multiplication."
+            )
 
-        new_coeffs = [Matrix.zeros(*self.shape) for _ in range(self.precision)]
+        # Mathematically, the product of O(t^A) and O(t^B) is valid up to O(t^min(A, B))
+        out_precision = min(self.precision, other.precision)
+        new_coeffs = [Matrix.zeros(*self.shape) for _ in range(out_precision)]
 
-        for k in range(self.precision):
-            coeff_sum = Matrix.zeros(*self.shape)
-            for m in range(k + 1):
-                coeff_sum += self.coeffs[m] * other.coeffs[k - m]
+        for i in range(out_precision):
+            # INJECTED CAS SPEED BOOST: Skip empty matrices entirely
+            if self.coeffs[i].is_zero_matrix:
+                continue
 
-            # DEFLATE + CRUSH ALGEBRA: Force (sqrt(3))^2 to become 3
-            new_coeffs[k] = coeff_sum.applyfunc(lambda x: sp.cancel(sp.expand(x)))
+            for j in range(out_precision - i):
+                # INJECTED CAS SPEED BOOST: Skip empty matrices entirely
+                if other.coeffs[j].is_zero_matrix:
+                    continue
 
-        return SeriesMatrix(new_coeffs, p=self.p, precision=self.precision)
+                new_coeffs[i + j] += self.coeffs[i] * other.coeffs[j]
+
+        # DEFLATE + CRUSH ALGEBRA: Force (sqrt(3))^2 to become 3
+        new_coeffs = [
+            c.applyfunc(lambda x: sp.cancel(sp.expand(x))) for c in new_coeffs
+        ]
+
+        return SeriesMatrix(new_coeffs, p=self.p, precision=out_precision)
 
     def inverse(self) -> SeriesMatrix:
         r"""
@@ -231,10 +245,17 @@ class SeriesMatrix:
             row_corrections.append(coeffs)
         return row_corrections
 
-    def shear_coboundary(self, g: int) -> tuple[SeriesMatrix, int]:
+    def shear_coboundary(
+        self, g: sp.Rational | int, target_precision: int | None = None
+    ) -> tuple[SeriesMatrix, int]:
         """
         Applies a shearing transformation S(t) to the series to expose sub-exponential
         growth, where $S(t) = diag(1, t^g, t^{2g}, \\dots)$.
+
+        Args:
+            g: The shear slope.
+            target_precision: If provided, truncates the resulting series to this length,
+                              saving heavy CAS simplification on discarded tail terms.
 
         Returns:
             A tuple containing the sheared SeriesMatrix and the integer `h` representing
@@ -261,27 +282,23 @@ class SeriesMatrix:
                             power_dict[power] = Matrix.zeros(*self.shape)
                         power_dict[power][i, j] += val_C * val_M
 
-        min_power = None
-        for p_val in sorted(power_dict.keys()):
-            if not power_dict[p_val].is_zero_matrix:
-                min_power = p_val
-                break
-
-        if min_power is None:
-            min_power = 0
-
+        min_power = min(power_dict.keys()) if power_dict else 0
         h = -min_power
 
+        output_precision = (
+            target_precision if target_precision is not None else self.precision
+        )
         new_coeffs = []
-        for k in range(self.precision):
+        for k in range(output_precision):
             target_power = k - h
             if target_power in power_dict:
-                # Deflate immediately upon shifting
+                # Deflate immediately upon shifting.
+                # Bounding this loop skips sp.cancel on dead terms!
                 new_coeffs.append(power_dict[target_power].applyfunc(sp.cancel))
             else:
                 new_coeffs.append(Matrix.zeros(*self.shape))
 
-        return SeriesMatrix(new_coeffs, p=self.p, precision=self.precision), h
+        return SeriesMatrix(new_coeffs, p=self.p, precision=output_precision), h
 
     def shift_leading_eigenvalue(self, lambda_val: sp.Expr) -> SeriesMatrix:
         """

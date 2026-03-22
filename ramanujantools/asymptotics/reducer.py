@@ -32,9 +32,9 @@ class Reducer:
         self,
         series: SeriesMatrix,
         var: sp.Symbol,
-        factorial_power: int = 0,
-        precision: int = 5,
-        p: int = 1,
+        factorial_power: int,
+        precision: int,
+        p: int,
     ) -> None:
         """
         Initializes the Reducer with a pre-conditioned formal power series.
@@ -54,7 +54,7 @@ class Reducer:
 
     @classmethod
     def from_matrix(
-        cls, matrix: Matrix, precision: int = 5, p: int = 1, force: bool = False
+        cls, matrix: Matrix, precision: int = 5, force: bool = False
     ) -> "Reducer":
         if not matrix.is_square():
             raise ValueError("Input matrix must be square.")
@@ -63,12 +63,12 @@ class Reducer:
         if len(free_syms) > 1:
             raise ValueError("Input matrix must depend on at most one variable.")
 
+        p = 1
         var = sp.Symbol("n") if len(free_syms) == 0 else free_syms[0]
         factorial_power = max(matrix.degrees(var))
 
         normalized_matrix = matrix / (var**factorial_power)
 
-        # --- TRIGGER BACKOFF VIA POINCARE BOUND ---
         degrees = [d for d in normalized_matrix.degrees(var) if d != -sp.oo]
         S = max(degrees) - min(degrees) if degrees else 1
         poincare_bound = S * 2 + 1
@@ -87,8 +87,6 @@ class Reducer:
         )
 
         required_precision = max(poincare_bound, negative_bound)
-
-        # THE BYPASS: Only raise the starvation error if the user isn't forcing the precision
         if not force and precision < required_precision:
             raise PrecisionExhaustedError(
                 required_precision=required_precision,
@@ -107,6 +105,13 @@ class Reducer:
             precision=precision,
             p=p,
         )
+
+    def _unramified_target(self, ramified_target: int | sp.Expr) -> int:
+        """
+        Converts a local ramified precision requirement back to the
+        global unramified scale for the top-level backoff loop.
+        """
+        return int(sp.ceiling(ramified_target / self.p))
 
     @staticmethod
     def _solve_sylvester(A: Matrix, B: Matrix, C: Matrix) -> Matrix:
@@ -153,11 +158,10 @@ class Reducer:
         Iteratively applies block diagonalization (split) or ramified shears
         until the matrix reaches a terminal canonical form.
         """
-        max_iterations = max(20, self.dim * 3)
         iterations = 0
         zeros_shifted = 0
 
-        while not self._is_reduced and iterations < max_iterations:
+        while not self._is_reduced and iterations < self.dim * self.precision:
             M0 = self.M.coeffs[0]
 
             if M0.is_zero_matrix:
@@ -237,22 +241,6 @@ class Reducer:
         dim, blocks = self.dim, self._get_blocks(J_target)
 
         self._check_split_truncation(blocks)
-
-        max_sub_dim = max((e - s) for s, e, _ in blocks)
-        buffer_needed = 0 if max_sub_dim == 1 else (max_sub_dim * max_sub_dim)
-        needed_precision = self.p + 1 + buffer_needed
-
-        print(
-            f"\n[DEBUG SPLIT] Current prec: {self.precision} | Needed prec (buffer): {needed_precision}"
-        )
-
-        if self.precision < needed_precision:
-            unramified_required = int(sp.ceiling(needed_precision / self.p))
-
-            raise PrecisionExhaustedError(
-                required_precision=unramified_required,
-                message=f"Split decoupling requires {needed_precision} valid terms, but only {self.precision} exist.",
-            )
 
         for m in range(1, self.precision - k_target):
             R_k, Y_mat, needs_gauge = (
@@ -375,7 +363,7 @@ class Reducer:
         """
         if exp_base == sp.S.Zero:
             raise PrecisionExhaustedError(
-                required_precision=self.precision + self.dim,
+                required_precision=self._unramified_target(self.precision + 1),
                 message="Zero Eigenvalue Drop! System is completely nilpotent at current precision.",
             )
 
@@ -390,7 +378,7 @@ class Reducer:
 
         if self.precision < needed_precision:
             raise PrecisionExhaustedError(
-                required_precision=needed_precision,
+                required_precision=self._unramified_target(needed_precision),
                 message=f"Split decoupling requires {needed_precision} valid terms, but only {self.precision} exist.",
             )
 
@@ -405,11 +393,10 @@ class Reducer:
         true_valid_precision = self.precision - max_shift
 
         if true_valid_precision <= 0:
-            ramified_required = self.precision + max_shift + self.dim
-            unramified_required = int(sp.ceiling(ramified_required / self.p))
+            ramified_required = self.precision + max_shift + 1
 
             raise PrecisionExhaustedError(
-                required_precision=unramified_required,
+                required_precision=self._unramified_target(ramified_required),
                 message=f"Shear shifted matrix out of bounds! Consumed {max_shift} terms, only {self.precision} available.",
             )
 
@@ -424,7 +411,7 @@ class Reducer:
             # A cell is algebraically zero if its base eigenvalue (exp_base) is 0
             if all(cell.exp_base == sp.S.Zero for cell in grid[row]):
                 raise PrecisionExhaustedError(
-                    required_precision=self.precision + self.dim,
+                    required_precision=self._unramified_target(self.precision + 1),
                     message=f"Row Nullity Violation! Physical variable at row {row} vanished completely.",
                 )
 
@@ -471,20 +458,7 @@ class Reducer:
 
         self.S_total = self.S_total * S_series
 
-        self.M, h = self.M.shear_coboundary(g)
-
-        max_shift = int(sp.ceiling((self.dim - 1) * g))
-        true_valid_precision = self.precision - max_shift
-
-        if true_valid_precision <= 0:
-            from ramanujantools.asymptotics import PrecisionExhaustedError
-
-            raise PrecisionExhaustedError(
-                required_precision=self.precision + max_shift + self.dim,
-                message=f"Shear completely starved! Shifted by {max_shift}, only had {self.precision}.",
-            )
-
-        self.M = self.M.truncate(true_valid_precision)
+        self.M, h = self.M.shear_coboundary(g, true_valid_precision)
         self.precision = true_valid_precision
 
         if h != 0:
