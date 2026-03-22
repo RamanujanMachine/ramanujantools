@@ -29,6 +29,21 @@ class MeijerG(DFinite):
     def __repr__(self) -> str:
         return f"MeijerG({self.m, self.n, self.p, self.q, self.z})"
 
+    def __getstate__(self):
+        state = super().__getstate__().copy()
+        state.update({
+            'm': self.m,
+            'n': self.n,
+            'p': self.p,
+            'q': self.q,
+            'z': self.z
+        })
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        super().__setstate__(state)
+
     @staticmethod
     def a_axes(p) -> list[sp.Symbol]:
         return sp.symbols(f"a:{p}")

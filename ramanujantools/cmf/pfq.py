@@ -35,6 +35,19 @@ class pFq(DFinite):
     def __repr__(self) -> str:
         return f"pFq({self.p, self.q, self.z})"
 
+    def __getstate__(self):
+        state = super().__getstate__().copy()
+        state.update({
+            'p': self.p,
+            'q': self.q,
+            'z': self.z
+        })
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        super().__setstate__(state)
+
     @staticmethod
     def x_axes(p: int) -> list[sp.Symbol]:
         return sp.symbols(f"x:{p}")
