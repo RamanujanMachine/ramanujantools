@@ -40,7 +40,11 @@ def test_serialization():
     assert isinstance(unpickled_pfq, MeijerG), "Object type mismatch after unpickling."
     assert hasattr(unpickled_pfq, 'p'), 'expected to have attribute p'
     assert hasattr(unpickled_pfq, 'q'), 'expected to have attribute q'
+    assert hasattr(unpickled_pfq, 'm'), 'expected to have attribute m'
+    assert hasattr(unpickled_pfq, 'n'), 'expected to have attribute n'
     assert hasattr(unpickled_pfq, 'z'), 'expected to have attribute z'
     assert unpickled_pfq.p == original_pfq.p, f"p mismatch: {unpickled_pfq.p} != {original_pfq.p}"
     assert unpickled_pfq.q == original_pfq.q, f"q mismatch: {unpickled_pfq.q} != {original_pfq.q}"
+    assert unpickled_pfq.m == original_pfq.m, f"p mismatch: {unpickled_pfq.m} != {original_pfq.m}"
+    assert unpickled_pfq.n == original_pfq.n, f"p mismatch: {unpickled_pfq.n} != {original_pfq.n}"
     assert unpickled_pfq.z == original_pfq.z, f"z mismatch: {unpickled_pfq.z} != {original_pfq.z}"
