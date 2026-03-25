@@ -46,11 +46,11 @@ class MeijerG(DFinite):
         self.p = state['p']
         self.q = state['q']
         self.z = state['z']
-        state.remove('m')
-        state.remove('n')
-        state.remove('p')
-        state.remove('q')
-        state.remove('z')
+        del state['m']
+        del state['n']
+        del state['p']
+        del state['q']
+        del state['z']
         super().__setstate__(state)
 
     @staticmethod

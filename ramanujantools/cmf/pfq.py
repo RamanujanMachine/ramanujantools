@@ -48,9 +48,9 @@ class pFq(DFinite):
         self.p = state['p']
         self.q = state['q']
         self.z = state['z']
-        state.remove('p')
-        state.remove('q')
-        state.remove('z')
+        del state['p']
+        del state['q']
+        del state['z']
         super().__setstate__(state)
 
     @staticmethod
