@@ -41,7 +41,16 @@ class MeijerG(DFinite):
         return state
 
     def __setstate__(self, state):
-        self.__dict__.update(state)
+        self.m = state['m']
+        self.n = state['n']
+        self.p = state['p']
+        self.q = state['q']
+        self.z = state['z']
+        state.remove('m')
+        state.remove('n')
+        state.remove('p')
+        state.remove('q')
+        state.remove('z')
         super().__setstate__(state)
 
     @staticmethod

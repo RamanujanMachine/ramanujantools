@@ -32,9 +32,9 @@ def test_gamma():
 
 
 def test_serialization():
-    original_pfq = MeijerG(p=3, n=2, q=1, m=1, z=-1)
+    original_meijer_g = MeijerG(p=3, n=2, q=1, m=1, z=-1)
 
-    serialized_data = pickle.dumps(original_pfq)
+    serialized_data = pickle.dumps(original_meijer_g)
     unpickled_pfq = pickle.loads(serialized_data)
 
     assert isinstance(unpickled_pfq, MeijerG), "Object type mismatch after unpickling."
@@ -43,8 +43,8 @@ def test_serialization():
     assert hasattr(unpickled_pfq, 'm'), 'expected to have attribute m'
     assert hasattr(unpickled_pfq, 'n'), 'expected to have attribute n'
     assert hasattr(unpickled_pfq, 'z'), 'expected to have attribute z'
-    assert unpickled_pfq.p == original_pfq.p, f"p mismatch: {unpickled_pfq.p} != {original_pfq.p}"
-    assert unpickled_pfq.q == original_pfq.q, f"q mismatch: {unpickled_pfq.q} != {original_pfq.q}"
-    assert unpickled_pfq.m == original_pfq.m, f"p mismatch: {unpickled_pfq.m} != {original_pfq.m}"
-    assert unpickled_pfq.n == original_pfq.n, f"p mismatch: {unpickled_pfq.n} != {original_pfq.n}"
-    assert unpickled_pfq.z == original_pfq.z, f"z mismatch: {unpickled_pfq.z} != {original_pfq.z}"
+    assert unpickled_pfq.p == original_meijer_g.p, f"p mismatch: {unpickled_pfq.p} != {original_meijer_g.p}"
+    assert unpickled_pfq.q == original_meijer_g.q, f"q mismatch: {unpickled_pfq.q} != {original_meijer_g.q}"
+    assert unpickled_pfq.m == original_meijer_g.m, f"m mismatch: {unpickled_pfq.m} != {original_meijer_g.m}"
+    assert unpickled_pfq.n == original_meijer_g.n, f"n mismatch: {unpickled_pfq.n} != {original_meijer_g.n}"
+    assert unpickled_pfq.z == original_meijer_g.z, f"z mismatch: {unpickled_pfq.z} != {original_meijer_g.z}"
