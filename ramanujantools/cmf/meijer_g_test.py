@@ -35,16 +35,16 @@ def test_serialization():
     original_meijer_g = MeijerG(p=3, n=2, q=1, m=1, z=-1)
 
     serialized_data = pickle.dumps(original_meijer_g)
-    unpickled_pfq = pickle.loads(serialized_data)
+    unpickled_meijer_g = pickle.loads(serialized_data)
 
-    assert isinstance(unpickled_pfq, MeijerG), "Object type mismatch after unpickling."
-    assert hasattr(unpickled_pfq, 'p'), 'expected to have attribute p'
-    assert hasattr(unpickled_pfq, 'q'), 'expected to have attribute q'
-    assert hasattr(unpickled_pfq, 'm'), 'expected to have attribute m'
-    assert hasattr(unpickled_pfq, 'n'), 'expected to have attribute n'
-    assert hasattr(unpickled_pfq, 'z'), 'expected to have attribute z'
-    assert unpickled_pfq.p == original_meijer_g.p, f"p mismatch: {unpickled_pfq.p} != {original_meijer_g.p}"
-    assert unpickled_pfq.q == original_meijer_g.q, f"q mismatch: {unpickled_pfq.q} != {original_meijer_g.q}"
-    assert unpickled_pfq.m == original_meijer_g.m, f"m mismatch: {unpickled_pfq.m} != {original_meijer_g.m}"
-    assert unpickled_pfq.n == original_meijer_g.n, f"n mismatch: {unpickled_pfq.n} != {original_meijer_g.n}"
-    assert unpickled_pfq.z == original_meijer_g.z, f"z mismatch: {unpickled_pfq.z} != {original_meijer_g.z}"
+    assert isinstance(unpickled_meijer_g, MeijerG), "Object type mismatch after unpickling."
+    assert hasattr(unpickled_meijer_g, 'p'), 'expected to have attribute p'
+    assert hasattr(unpickled_meijer_g, 'q'), 'expected to have attribute q'
+    assert hasattr(unpickled_meijer_g, 'm'), 'expected to have attribute m'
+    assert hasattr(unpickled_meijer_g, 'n'), 'expected to have attribute n'
+    assert hasattr(unpickled_meijer_g, 'z'), 'expected to have attribute z'
+    assert unpickled_meijer_g.p == original_meijer_g.p, f"p mismatch: {unpickled_meijer_g.p} != {original_meijer_g.p}"
+    assert unpickled_meijer_g.q == original_meijer_g.q, f"q mismatch: {unpickled_meijer_g.q} != {original_meijer_g.q}"
+    assert unpickled_meijer_g.m == original_meijer_g.m, f"m mismatch: {unpickled_meijer_g.m} != {original_meijer_g.m}"
+    assert unpickled_meijer_g.n == original_meijer_g.n, f"n mismatch: {unpickled_meijer_g.n} != {original_meijer_g.n}"
+    assert unpickled_meijer_g.z == original_meijer_g.z, f"z mismatch: {unpickled_meijer_g.z} != {original_meijer_g.z}"
