@@ -463,9 +463,6 @@ class Matrix(sp.Matrix):
         slope = self.gcd_slope(depth)
         return [-1 + error / slope for error in errors]
 
-    def at_infinity(self) -> Matrix:
-        return Matrix(sp.Matrix(self).limit(n, sp.oo))
-
     def degrees(self, symbol: sp.Symbol = None) -> Matrix:
         r"""
         Returns a matrix of the degrees of each cell in the matrix.
