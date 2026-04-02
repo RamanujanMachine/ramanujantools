@@ -63,6 +63,8 @@ class LinearRecurrence(Printable):
         """
         Returns True iff two requrences are identical (even up to gcd).
         """
+        if not isinstance(other, LinearRecurrence):
+            return NotImplemented
         return self.relation == other.relation
 
     def __hash__(self) -> int:
