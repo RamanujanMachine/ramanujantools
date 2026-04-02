@@ -38,17 +38,34 @@ class GrowthRate:
 
     def __init__(
         self,
-        factorial_power: sp.Integer = sp.S.Zero,
+        factorial_power: sp.Rational = sp.S.Zero,
         exp_base: sp.Expr = sp.S.Zero,
         sub_exp: sp.Expr = sp.S.Zero,
         polynomial_degree: sp.Expr = sp.S.Zero,
-        log_power: sp.Integer = sp.S.Zero,
+        log_power: sp.Rational = sp.S.Zero,
     ):
-        self.factorial_power: sp.Expr = factorial_power
-        self.exp_base: sp.Expr = exp_base
-        self.sub_exp: sp.Expr = sub_exp
-        self.polynomial_degree: sp.Expr = polynomial_degree
-        self.log_power: int = log_power
+        self.factorial_power: sp.Expr = sp.S(factorial_power)
+        self.exp_base: sp.Expr = sp.S(exp_base)
+        self.sub_exp: sp.Expr = sp.S(sub_exp)
+        self.polynomial_degree: sp.Expr = sp.S(polynomial_degree)
+        self.log_power: sp.Expr = sp.S(log_power)
+
+        if not self.factorial_power.is_number:
+            raise ValueError("Factorial power must be an integer.")
+
+        if not self.log_power.is_number:
+            raise ValueError("Factorial power must be an integer.")
+
+        syms = (
+            self.exp_base.free_symbols
+            | self.sub_exp.free_symbols
+            | self.polynomial_degree.free_symbols
+        )
+
+        if not syms.issubset({n}):
+            raise ValueError(
+                "Only 'n' can be a free symbol in the growth rate components."
+            )
 
     def __add__(self, other: GrowthRate) -> GrowthRate:
         """Addition acts as a max() filter, keeping only the dominant GrowthRate."""
@@ -93,24 +110,14 @@ class GrowthRate:
         if not isinstance(other, GrowthRate):
             return NotImplemented
 
-        syms = (
-            getattr(self.factorial_power, "free_symbols", set())
-            | getattr(self.sub_exp, "free_symbols", set())
-            | getattr(other.sub_exp, "free_symbols", set())
-            | getattr(self.polynomial_degree, "free_symbols", set())
-            | getattr(other.polynomial_degree, "free_symbols", set())
-            | getattr(other.factorial_power, "free_symbols", set())
-        )
-        n_sym = list(syms)[0] if syms else sp.Symbol("n")
-
-        n_real = sp.Symbol(n_sym.name, real=True, positive=True)
+        n_real = sp.Symbol(n.name, real=True, positive=True)
 
         def is_greater(a, b):
             diff = sp.simplify(a - b)
             if diff.is_zero:
                 return None
 
-            diff_real = diff.subs(n_sym, n_real)
+            diff_real = diff.subs(n, n_real)
             diff_re = sp.re(diff_real)
 
             lim = sp.limit(diff_re, n_real, sp.oo)
