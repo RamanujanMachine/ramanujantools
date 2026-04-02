@@ -162,7 +162,7 @@ class Matrix(sp.Matrix):
         i.e, points where $|m| = 0$
 
         Returns:
-            A list of substitution dicts t+hat result in the matrix having a zero determinant.
+            A list of substitution dicts that result in the matrix having a zero determinant.
             That is, for each dict in result, `self.subs(dict).det() == 0`
         """
         return sp.solve(self.det(), dict=True)
