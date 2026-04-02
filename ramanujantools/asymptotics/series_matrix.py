@@ -300,7 +300,7 @@ class SeriesMatrix:
         """
         new_coeffs = list(self.coeffs)
         # Shift only the M_0 coefficient by the eigenvalue identity matrix
-        new_coeffs[0] = new_coeffs[0] - lambda_val * sp.eye(self.shape[0])
+        new_coeffs[0] = new_coeffs[0] - lambda_val * Matrix.eye(self.shape[0])
 
         return SeriesMatrix(new_coeffs, p=self.p, precision=self.precision)
 
