@@ -61,7 +61,7 @@ class LinearRecurrence(Printable):
 
     def __eq__(self, other: Matrix) -> bool:
         """
-        Returns True iff two requrences are identical (even up to gcd).
+        Returns True iff two recurences are identical (even up to gcd).
         """
         if not isinstance(other, LinearRecurrence):
             return NotImplemented
