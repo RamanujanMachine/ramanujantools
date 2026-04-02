@@ -373,7 +373,7 @@ class LinearRecurrence(Printable):
         return self.recurrence_matrix.kamidelta(depth)
 
     @lru_cache
-    def _get_reducer_at_precision(self, precision: int, force: bool = False) -> Reducer:
+    def _get_reducer_at_precision(self, precision: int) -> Reducer:
         """Pure reduction engine. No boundary logic; just executes the math."""
         from ramanujantools.asymptotics import Reducer
         from ramanujantools.asymptotics.series_matrix import SeriesMatrix
@@ -400,7 +400,7 @@ class LinearRecurrence(Printable):
         logger = logging.getLogger(__name__)
 
         if precision is not None:
-            return self._get_reducer_at_precision(precision, force=True)
+            return self._get_reducer_at_precision(precision)
 
         dim = self.order()
 
@@ -417,7 +417,7 @@ class LinearRecurrence(Printable):
 
         while current_precision <= max_precision:
             try:
-                reducer = self._get_reducer_at_precision(current_precision, force=False)
+                reducer = self._get_reducer_at_precision(current_precision)
 
                 growth_grid = reducer.canonical_growth_matrix()
                 expr_matrix = sp.Matrix(
