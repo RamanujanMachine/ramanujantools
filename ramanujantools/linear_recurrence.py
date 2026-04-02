@@ -1,16 +1,22 @@
 from __future__ import annotations
 
-from functools import cached_property
+from typing import TYPE_CHECKING
+
 import copy
 import itertools
+from functools import cached_property, lru_cache
 from tqdm import tqdm
 
+import mpmath as mp
 import sympy as sp
 from sympy.abc import n
 from sympy.printing.defaults import Printable
 
 from ramanujantools import Matrix, Limit, GenericPolynomial
 from ramanujantools.utils import batched, Batchable
+
+if TYPE_CHECKING:
+    from ramanujantools.asymptotics import Reducer
 
 
 def trim_trailing_zeros(sequence: list[int]) -> list[int]:
@@ -53,11 +59,16 @@ class LinearRecurrence(Printable):
         relation = [sp.factor(sp.simplify(p)) for p in relation]
         self.relation = trim_trailing_zeros(relation)
 
-    def __eq__(self, other: Matrix) -> bool:
+    def __eq__(self, other: LinearRecurrence) -> bool:
         """
-        Returns True iff two requrences are identical (even up to gcd).
+        Returns True iff two recurrences are identical (even up to gcd).
         """
+        if not isinstance(other, LinearRecurrence):
+            return NotImplemented
         return self.relation == other.relation
+
+    def __hash__(self) -> int:
+        return hash(self.recurrence_matrix)
 
     def __neg__(self) -> LinearRecurrence:
         return LinearRecurrence([-c for c in self.relation])
@@ -352,11 +363,94 @@ class LinearRecurrence(Printable):
             result += a_i * other._shift(i)
         return result
 
-    def kamidelta(self, depth=20):
+    def kamidelta(self, depth=20) -> list[mp.mpf]:
         r"""
-        Uses the Kamidelta alogrithm to predict possible delta values of the recurrence.
+        Uses the Kamidelta algorithm to predict possible delta values of the recurrence.
         Effectively calls kamidelta on `recurrence_matrix`.
 
         For more details, see `Matrix.kamidelta`
         """
         return self.recurrence_matrix.kamidelta(depth)
+
+    @lru_cache
+    def _get_reducer_at_precision(self, precision: int) -> Reducer:
+        """Pure reduction engine. No boundary logic; just executes the math."""
+        from ramanujantools.asymptotics import Reducer
+        from ramanujantools.asymptotics.series_matrix import SeriesMatrix
+
+        matrix = self.recurrence_matrix.transpose()
+        factorial_power = max(matrix.degrees(n))
+        normalized_matrix = matrix / (n**factorial_power)
+
+        series = SeriesMatrix.from_matrix(
+            matrix=normalized_matrix, var=n, p=1, precision=precision
+        )
+        reducer = Reducer(
+            series=series, factorial_power=factorial_power, precision=precision, p=1
+        )
+        reducer.reduce()
+        return reducer
+
+    @lru_cache
+    def _get_reducer(self, precision=None) -> Reducer:
+        """Executes the precision backoff loop for the linear recurrence."""
+        from ramanujantools.asymptotics import PrecisionExhaustedError
+        import logging
+
+        logger = logging.getLogger(__name__)
+
+        if precision is not None:
+            return self._get_reducer_at_precision(precision)
+
+        dim = self.order()
+
+        # Calculate bounds directly from the recurrence polynomials!
+        degrees = [d for d in self.recurrence_matrix.degrees(n) if d != -sp.oo]
+        S = max(degrees) - min(degrees)
+        poincare_bound = S * 2 + 1
+        negative_bound = -min(degrees, default=0) + 1
+        current_precision = max(poincare_bound, negative_bound)
+
+        step_size = 2 * dim
+        max_precision = (dim**2) * max(S, 1) + dim + step_size
+
+        last_expr_matrix, current_reducer = None, None
+
+        while current_precision <= max_precision:
+            try:
+                reducer = self._get_reducer_at_precision(current_precision)
+
+                growth_grid = reducer.canonical_growth_matrix()
+                expr_matrix = sp.Matrix(
+                    [[c.as_expr(n) for c in r] for r in growth_grid]
+                )
+
+                if last_expr_matrix is not None:
+                    diff = (expr_matrix - last_expr_matrix).applyfunc(sp.expand)
+                    if diff.is_zero_matrix:
+                        return current_reducer
+
+                last_expr_matrix = expr_matrix
+                current_reducer = reducer
+                current_precision += step_size
+
+            except PrecisionExhaustedError as e:
+                logger.debug(
+                    f"STABILITY: {e} Jumping to {current_precision + step_size}."
+                )
+                current_precision += step_size
+                last_expr_matrix = None
+
+        raise PrecisionExhaustedError(
+            "Asymptotic stability could not be verified for this system. "
+            f"Reached max_precision={max_precision} without 2 consecutive identical states. "
+            "The system may be highly degenerate or require more initial terms."
+        )
+
+    def asymptotics(self, precision=None) -> list[sp.Expr]:
+        """
+        Returns the formal basis of asymptotic solutions for the recurrence sequence p_n.
+        """
+        reducer = self._get_reducer(precision)
+        cfm = reducer.canonical_fundamental_matrix().transpose()
+        return list(cfm.col(-1))

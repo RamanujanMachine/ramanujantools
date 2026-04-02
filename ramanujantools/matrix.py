@@ -189,6 +189,7 @@ class Matrix(sp.Matrix):
             )
         ).factor()
 
+    @lru_cache
     def companion_coboundary_matrix(self, symbol: sp.Symbol = n) -> Matrix:
         r"""
         Constructs a new matrix U such that `self.coboundary(U)` is a companion matrix.
@@ -196,7 +197,8 @@ class Matrix(sp.Matrix):
         if not (self.is_square()):
             raise ValueError("Only square matrices can have a coboundary relation")
         N = self.rows
-        ctx = flint_ctx(self.free_symbols, fmpz=True)
+        free_symbols = self.free_symbols.union({symbol})
+        ctx = flint_ctx(free_symbols, fmpz=True)
         flint_self = SymbolicMatrix.from_sympy(self, ctx)
         vectors = [SymbolicMatrix.from_sympy(Matrix(N, 1, [1] + (N - 1) * [0]), ctx)]
         for _ in range(1, N):
@@ -460,3 +462,55 @@ class Matrix(sp.Matrix):
         errors = self.errors()
         slope = self.gcd_slope(depth)
         return [-1 + error / slope for error in errors]
+
+    def degrees(self, symbol: sp.Symbol = None) -> Matrix:
+        r"""
+        Returns a matrix of the degrees of each cell in the matrix.
+        For a rational function $f = \frac{p}{q}$, the degree is defined as $deg(f) = deg(p) - deg(q)$.
+        """
+        symbol = symbol or n
+        return Matrix(
+            self.rows,
+            self.cols,
+            [
+                sp.Poly(p, symbol).degree() - sp.Poly(q, symbol).degree()
+                for p, q in (cell.as_numer_denom() for cell in self)
+            ],
+        )
+
+    def jordan_form(
+        self, calc_transform=True, **kwargs
+    ) -> tuple[Matrix, Matrix] | Matrix:
+        """
+        Overloads SymPy's jordan_form to automatically sort the Jordan blocks
+        in descending order based on the absolute magnitude of the eigenvalues.
+        """
+        result = super().jordan_form(calc_transform=calc_transform, **kwargs)
+        if calc_transform:
+            P, J = result
+        else:
+            P, J = None, result
+
+        dim = self.shape[0]
+        starts = [i for i in range(dim) if i == 0 or J[i - 1, i] == 0]
+        ends = starts[1:] + [dim]
+        blocks = [
+            (J[s, s], P[:, s:e] if calc_transform else None, J[s:e, s:e])
+            for s, e in zip(starts, ends)
+        ]
+
+        def sort_key(b):
+            try:
+                return abs(complex(b[0].evalf()))
+            except TypeError:
+                return 0
+
+        blocks.sort(key=sort_key, reverse=True)
+
+        J_sorted = Matrix.diag(*[b[2] for b in blocks])
+
+        if not calc_transform:
+            return J_sorted
+
+        P_sorted = Matrix.hstack(*[b[1] for b in blocks])
+        return P_sorted, J_sorted
