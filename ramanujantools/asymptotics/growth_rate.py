@@ -3,7 +3,10 @@ from __future__ import annotations
 import sympy as sp
 from sympy.abc import t, n
 
+from functools import total_ordering
 
+
+@total_ordering
 class GrowthRate:
     r"""
     Represents the formal asymptotic growth rate of a solution to a linear difference equation.
@@ -50,7 +53,7 @@ class GrowthRate:
     def __add__(self, other: GrowthRate) -> GrowthRate:
         """Addition acts as a max() filter, keeping only the dominant GrowthRate."""
         if not isinstance(other, GrowthRate):
-            raise NotImplementedError("Can only add GrowthRate to GrowthRate")
+            return NotImplemented
         return self if self > other else other
 
     def __radd__(self, other: GrowthRate) -> GrowthRate:
@@ -59,7 +62,7 @@ class GrowthRate:
     def __mul__(self, other: GrowthRate) -> GrowthRate:
         """Strictly combines two GrowthRates by adding their formal exponents."""
         if not isinstance(other, GrowthRate):
-            raise NotImplementedError("Can only multiply GrowthRate by GrowthRate")
+            return NotImplemented
 
         return GrowthRate(
             factorial_power=sp.simplify(self.factorial_power + other.factorial_power),
@@ -75,9 +78,8 @@ class GrowthRate:
         return self.__mul__(other)
 
     def __eq__(self, other: GrowthRate) -> bool:
-        """Safely checks equality by proving the difference is mathematically zero."""
         if not isinstance(other, GrowthRate):
-            return False
+            return NotImplemented
 
         return (
             self.factorial_power == other.factorial_power
@@ -89,7 +91,7 @@ class GrowthRate:
 
     def __gt__(self, other: GrowthRate) -> bool:
         if not isinstance(other, GrowthRate):
-            return True
+            return NotImplemented
 
         syms = (
             getattr(self.factorial_power, "free_symbols", set())
@@ -147,9 +149,6 @@ class GrowthRate:
             return cmp_D
 
         return self.log_power > other.log_power
-
-    def __ge__(self, other: GrowthRate) -> bool:
-        return self > other or self == other
 
     def __repr__(self) -> str:
         return (

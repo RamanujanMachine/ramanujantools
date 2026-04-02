@@ -6,6 +6,14 @@ from sympy.abc import n
 from ramanujantools.asymptotics.growth_rate import GrowthRate
 
 
+def test_equality_type_gate():
+    growth_rate = GrowthRate()
+    assert growth_rate is not None
+
+    assert growth_rate.__eq__(1) == NotImplemented
+    assert growth_rate.__eq__("Some String") == NotImplemented
+
+
 def test_tropical_dot_product_simulation():
     """Verify the combined workflow used in the final U_inv * CFM matrix multiplication."""
     g_base = GrowthRate(polynomial_degree=2, exp_base=5)
@@ -28,19 +36,9 @@ def test_simplification():
     assert GrowthRate(polynomial_degree=0) == growth_rate.simplify()
 
 
-def test_equality_type_gate():
-    """Equality must gracefully reject non-GrowthRate objects."""
-    growth_rate = GrowthRate()
-    assert growth_rate is not None
-    assert growth_rate != 0
-    assert growth_rate != "Some String"
-
-
-def test_add_type_rejection():
-    """Multiplication by raw SymPy expressions is no longer allowed and must return NotImplemented."""
+def test_add_type_gate():
     g = GrowthRate()
-    with pytest.raises(NotImplementedError):
-        g.__add__(3)
+    assert g.__add__(3) == NotImplemented
 
 
 def test_add_max_filter():
@@ -59,11 +57,9 @@ def test_add_zero_passthrough():
     assert GrowthRate() + growth_rate == growth_rate
 
 
-def test_mul_type_rejection():
-    """Multiplication by raw SymPy expressions is no longer allowed and must return NotImplemented."""
+def test_mul_type_gate():
     g = GrowthRate()
-    with pytest.raises(NotImplementedError):
-        g.__mul__(n**2)
+    assert g.__mul__(n**2) == NotImplemented
 
 
 def test_mul_growth_combination():
@@ -146,10 +142,3 @@ def test_gt_complex_oscillation_fallthrough():
     g2 = GrowthRate(sub_exp=0, polynomial_degree=1)
 
     assert g1 > g2
-
-
-def test_gt_type_gate():
-    """Any valid growth strictly dominates 0 or None."""
-    g1 = GrowthRate(factorial_power=-100)  # Even heavily collapsing growths
-    assert g1 > 0
-    assert g1 > None
