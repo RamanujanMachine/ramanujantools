@@ -13,11 +13,7 @@ logger.addHandler(logging.NullHandler())
 
 
 class PrecisionExhaustedError(Exception):
-    def __init__(self, required_precision: int, message: str):
-        self.required_precision = required_precision
-        super().__init__(
-            f"{message} [REQUIRED_STARTING_PRECISION: {required_precision}]"
-        )
+    pass
 
 
 class Reducer:
@@ -92,8 +88,7 @@ class Reducer:
         required_precision = max(poincare_bound, negative_bound)
         if not force and precision < required_precision:
             raise PrecisionExhaustedError(
-                required_precision=required_precision,
-                message=f"Poincaré bound requires {required_precision} terms to prevent silent rational Taylor truncation.",
+                "Encountered a silent rational Taylor truncation."
             )
 
         logger.debug(f"FROM_MATRIX: Expanding Taylor Series to {precision=} ...")
@@ -390,8 +385,7 @@ class Reducer:
         """
         if exp_base == sp.S.Zero:
             raise PrecisionExhaustedError(
-                required_precision=self._unramified_target(self.precision + 1),
-                message="Zero Eigenvalue Drop! System is completely nilpotent at current precision.",
+                "Zero Eigenvalue Drop! System is completely nilpotent at current precision.",
             )
 
     def _check_split_truncation(self, blocks: list[tuple[int, int, sp.Expr]]) -> None:
@@ -405,8 +399,7 @@ class Reducer:
 
         if self.precision < needed_precision:
             raise PrecisionExhaustedError(
-                required_precision=self._unramified_target(needed_precision),
-                message=f"Split decoupling requires {needed_precision} valid terms, but only {self.precision} exist.",
+                "Split decoupling has insufficient precision!"
             )
 
     def _check_shear_truncation(self, g: sp.Rational | int) -> tuple[int, int]:
@@ -420,12 +413,7 @@ class Reducer:
         true_valid_precision = self.precision - max_shift
 
         if true_valid_precision <= 0:
-            ramified_required = self.precision + max_shift + 1
-
-            raise PrecisionExhaustedError(
-                required_precision=self._unramified_target(ramified_required),
-                message=f"Shear shifted matrix out of bounds! Consumed {max_shift} terms, only {self.precision} available.",
-            )
+            raise PrecisionExhaustedError("Shear shifted matrix out of bounds!")
 
         return true_valid_precision, max_shift
 
@@ -438,8 +426,7 @@ class Reducer:
             # A cell is algebraically zero if its base eigenvalue (exp_base) is 0
             if all(cell.exp_base == sp.S.Zero for cell in grid[row]):
                 raise PrecisionExhaustedError(
-                    required_precision=self._unramified_target(self.precision + 1),
-                    message=f"Row Nullity Violation! Physical variable at row {row} vanished completely.",
+                    f"Row Nullity Violation! Physical variable at row {row} vanished completely.",
                 )
 
     def asymptotic_growth(self) -> list[GrowthRate]:

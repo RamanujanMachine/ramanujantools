@@ -126,12 +126,9 @@ def test_nilpotent_ghost():
     precision = 3
 
     # Must explicitly trigger the Blindness Radar
-    with pytest.raises(PrecisionExhaustedError) as e:
+    with pytest.raises(PrecisionExhaustedError):
         reducer = Reducer.from_matrix(m.transpose(), precision=precision)
         reducer.canonical_fundamental_matrix()
-
-    # Strictly validate the mathematical jump requested
-    assert e.value.required_precision == precision + 2
 
 
 def test_row_nullity():
@@ -149,10 +146,8 @@ def test_row_nullity():
         [GrowthRate(), GrowthRate()],
     ]
 
-    with pytest.raises(PrecisionExhaustedError) as e:
+    with pytest.raises(PrecisionExhaustedError):
         reducer._check_cfm_validity(broken_cfm)
-
-    assert e.value.required_precision == 7  # precision + dim
 
 
 def test_input_trancation():
@@ -171,12 +166,10 @@ def test_input_trancation():
         ]
     )
 
-    with pytest.raises(PrecisionExhaustedError) as e:
+    with pytest.raises(PrecisionExhaustedError):
         from ramanujantools.asymptotics.reducer import Reducer
 
         Reducer.from_matrix(m, precision=3).canonical_fundamental_matrix()
-
-    assert e.value.required_precision >= 5
 
 
 def test_ramification_exact_expressions():

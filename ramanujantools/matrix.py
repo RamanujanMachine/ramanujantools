@@ -578,7 +578,7 @@ class Matrix(sp.Matrix):
         if precision is not None:
             return self._get_reducer_at_precision(precision, force=True)
 
-        var = sp.Symbol("n") if not self.free_symbols else list(self.free_symbols)[0]
+        var = n if not self.free_symbols else list(self.free_symbols)[0]
         U = self.companion_coboundary_matrix(var)
         cvm_matrix = self.coboundary(U, var)
 
@@ -606,9 +606,8 @@ class Matrix(sp.Matrix):
                 current_reducer = reducer
                 current_precision += step_size
 
-            except PrecisionExhaustedError as e:
-                required = getattr(e, "required_precision", current_precision + 1)
-                current_precision = max(current_precision + 1, required)
+            except PrecisionExhaustedError:
+                current_precision += 2 * self.rank()
                 last_expr_matrix = None
 
         return current_reducer
