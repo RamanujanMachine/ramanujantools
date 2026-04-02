@@ -468,12 +468,7 @@ class Matrix(sp.Matrix):
         Returns a matrix of the degrees of each cell in the matrix.
         For a rational function $f = \frac{p}{q}$, the degree is defined as $deg(f) = deg(p) - deg(q)$.
         """
-        if symbol is None:
-            if len(self.free_symbols) != 1:
-                raise ValueError(
-                    f"Must specify symbol when matrix has more than one free symbol, got {self.free_symbols}"
-                )
-            symbol = list(self.free_symbols)[0]
+        symbol = symbol or n
         return Matrix(
             self.rows,
             self.cols,
