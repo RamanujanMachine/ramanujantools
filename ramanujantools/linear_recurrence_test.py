@@ -228,3 +228,14 @@ def test_euler_gompertz_independent():
 
     limit = r.limit(200, 1)
     assert Matrix([[0, 0, 17], [-3, -2, 7]]) == limit.identify(constant(limit.mp))
+
+
+def test_fibonacci_asymptotics():
+    r = LinearRecurrence([-1, 1, 1])
+
+    expected_exprs = [
+        (sp.Rational(1, 2) + sp.sqrt(5) / 2) ** n,
+        (sp.Rational(1, 2) - sp.sqrt(5) / 2) ** n,
+    ]
+
+    assert expected_exprs == r.asymptotics()
