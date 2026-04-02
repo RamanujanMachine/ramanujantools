@@ -483,12 +483,14 @@ class Matrix(sp.Matrix):
             ],
         )
 
-    def jordan_form(self, calc_transform=True, **kwargs):
+    def jordan_form(
+        self, calc_transform=True, **kwargs
+    ) -> tuple[Matrix, Matrix] | Matrix:
         """
         Overloads SymPy's jordan_form to automatically sort the Jordan blocks
         in descending order based on the absolute magnitude of the eigenvalues.
         """
-        P, J = super().jordan_form(calc_transform=True, **kwargs)
+        P, J = super().jordan_form(calc_transform=calc_transform, **kwargs)
 
         dim = self.shape[0]
         starts = [i for i in range(dim) if i == 0 or J[i - 1, i] == 0]
