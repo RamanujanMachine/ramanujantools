@@ -51,7 +51,8 @@ def test_multiplication():
     assert C.coeffs[2] == Matrix.diag(28, 28)
 
 
-def test_inverse(precision=10):
+def test_inverse():
+    precision = 10
     matrices = generate_test_matrices()
     dim = matrices[0].shape[0]
     S = SeriesMatrix(matrices, p=1, precision=precision)
