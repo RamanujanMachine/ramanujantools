@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import sympy as sp
-from sympy.abc import n
+from sympy.abc import t, n
 
 from ramanujantools import Matrix
 
@@ -337,3 +337,32 @@ class SeriesMatrix:
             return k
 
         return None
+
+    @classmethod
+    def from_matrix(
+        cls, matrix: Matrix, var: sp.Symbol, p: int, precision: int
+    ) -> SeriesMatrix:
+        """
+        Converts a normalized symbolic matrix into a formal SeriesMatrix at infinity
+        by executing a formal Taylor expansion: substituting n = t^(-p) and extracting coefficients.
+        """
+        dim = matrix.shape[0]
+
+        if not matrix.free_symbols:
+            coeffs = [matrix] + [Matrix.zeros(dim, dim) for _ in range(precision - 1)]
+            return cls(coeffs, p=p, precision=precision)
+
+        M_t = matrix.subs({var: t ** (-p)})
+
+        expanded_matrix = M_t.applyfunc(
+            lambda x: sp.series(x, t, 0, precision).removeO()
+        )
+
+        coeffs = []
+        for i in range(precision):
+            coeff_matrix = expanded_matrix.applyfunc(lambda x: sp.expand(x).coeff(t, i))
+            if coeff_matrix.has(t) or coeff_matrix.has(var):
+                raise ValueError(f"Coefficient {i} failed to evaluate to a constant.")
+            coeffs.append(coeff_matrix)
+
+        return cls(coeffs, p=p, precision=precision)

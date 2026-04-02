@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from functools import cached_property
+from functools import cached_property, lru_cache
 import copy
 import itertools
 from tqdm import tqdm
@@ -59,6 +59,9 @@ class LinearRecurrence(Printable):
         Returns True iff two requrences are identical (even up to gcd).
         """
         return self.relation == other.relation
+
+    def __hash__(self) -> int:
+        return hash(self.recurrence_matrix)
 
     def __neg__(self) -> LinearRecurrence:
         return LinearRecurrence([-c for c in self.relation])
@@ -362,8 +365,112 @@ class LinearRecurrence(Printable):
         """
         return self.recurrence_matrix.kamidelta(depth)
 
-    def asymptotics(self, precision=None) -> list[sp.Expr]:
-        growth_grid = self.recurrence_matrix._asymptotic_growth_matrix(precision)
+    @lru_cache
+    def _get_reducer_at_precision(self, precision: int, force: bool = False):
+        """
+        Calculates physical bounds directly from the recurrence, normalizes the
+        companion matrix, and executes a targeted Birkhoff-Trjitzinsky reduction.
+        """
+        import sympy as sp
+        from ramanujantools.asymptotics import Reducer, PrecisionExhaustedError
+        from ramanujantools.asymptotics.series_matrix import SeriesMatrix
 
-        p_n_basis = [sol_growths[-1] for sol_growths in growth_grid]
+        transposed_matrix = self.recurrence_matrix.transpose()
+        factorial_power = max(transposed_matrix.degrees(n))
+        normalized_matrix = transposed_matrix / (n**factorial_power)
+        degrees = [d for d in normalized_matrix.degrees(n) if d != -sp.oo]
+        S = max(degrees) - min(degrees) if degrees else 1
+
+        poincare_bound = S * 2 + 1
+        negative_bound = -min(degrees, default=0) + 1
+        required_precision = max(poincare_bound, negative_bound)
+
+        if not force and precision < required_precision:
+            raise PrecisionExhaustedError(
+                f"Poincaré bound requires {required_precision} terms to prevent silent rational Taylor truncation."
+            )
+
+        series = SeriesMatrix.from_matrix(
+            matrix=normalized_matrix, var=n, p=1, precision=precision
+        )
+
+        reducer = Reducer(
+            series=series,
+            factorial_power=factorial_power,
+            precision=precision,
+            p=1,
+        )
+
+        reducer.reduce()
+        return reducer
+
+    @lru_cache
+    def _get_reducer(self, precision=None):
+        """Executes the precision backoff loop for the linear recurrence."""
+        from ramanujantools.asymptotics import PrecisionExhaustedError
+        import logging
+
+        logger = logging.getLogger(__name__)
+
+        if precision is not None:
+            return self._get_reducer_at_precision(precision, force=True)
+
+        dim = self.order()
+
+        # Calculate bounds directly from the recurrence polynomials!
+        degrees = [sp.degree(p, n) for p in self.polynomials if p != 0]
+        S = max(degrees) - min(degrees) if degrees else 1
+        max_precision = (dim**2) * max(S, 1) + dim
+
+        current_precision = dim
+        step_size = 2 * dim  # The 2 * rank heuristic jump
+        last_expr_matrix = None
+        current_reducer = None
+        consecutive_successes = 0
+
+        while current_precision <= max_precision:
+            try:
+                reducer = self._get_reducer_at_precision(current_precision, force=False)
+
+                growth_grid = reducer.canonical_growth_matrix()
+                expr_matrix = sp.Matrix(
+                    [[c.as_expr(n) for c in r] for r in growth_grid]
+                )
+
+                if last_expr_matrix is not None:
+                    diff = (expr_matrix - last_expr_matrix).applyfunc(sp.expand)
+                    if diff.is_zero_matrix:
+                        consecutive_successes += 1
+                        if consecutive_successes >= 2:
+                            return current_reducer
+                    else:
+                        consecutive_successes = 0
+
+                last_expr_matrix = expr_matrix
+                current_reducer = reducer
+                current_precision += step_size
+
+            except PrecisionExhaustedError as e:
+                logger.debug(
+                    f"STABILITY: {e} Jumping to {current_precision + step_size}."
+                )
+                current_precision += step_size
+                last_expr_matrix = None
+                consecutive_successes = 0
+
+        logger.warning(
+            f"Engine reached max_precision {max_precision} without 2 consecutive stable states."
+        )
+        return current_reducer
+
+    def asymptotics(self, precision=None) -> list[sp.Expr]:
+        """
+        Returns the formal basis of asymptotic solutions for the recurrence sequence p_n.
+        """
+        reducer = self._get_reducer(precision)
+
+        cvm_grid_T = reducer.canonical_growth_matrix()
+        cvm_grid = list(map(list, zip(*cvm_grid_T)))
+        p_n_basis = [sol_growths[-1] for sol_growths in cvm_grid]
+
         return [growth.as_expr(n) for growth in p_n_basis]

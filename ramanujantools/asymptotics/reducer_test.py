@@ -4,16 +4,33 @@ from sympy.abc import n
 
 from ramanujantools import Matrix
 from ramanujantools.asymptotics import GrowthRate, PrecisionExhaustedError, Reducer
+from ramanujantools.asymptotics.series_matrix import SeriesMatrix
 
 
 def asymptotic_expressions(asymptotic_growth: list[GrowthRate]) -> list[sp.Expr]:
     return [g.as_expr(n) if g is not None else sp.S.Zero for g in asymptotic_growth]
 
 
+def get_reducer(matrix: Matrix, precision: int = 5) -> Reducer:
+    var = n
+    degrees = [d for d in matrix.degrees(var) if d != -sp.oo]
+    factorial_power = max(degrees) if degrees else 0
+
+    normalized = matrix / (var**factorial_power)
+    series = SeriesMatrix.from_matrix(normalized, var=n, p=1, precision=precision)
+
+    return Reducer(
+        series=series,
+        factorial_power=factorial_power,
+        precision=precision,
+        p=1,
+    )
+
+
 def test_fibonacci():
     M = Matrix([[0, 1], [1, 1]])
 
-    exprs = asymptotic_expressions(Reducer.from_matrix(M).asymptotic_growth())
+    exprs = asymptotic_expressions(get_reducer(M).asymptotic_growth())
 
     expected_exprs = [
         (sp.Rational(1, 2) + sp.sqrt(5) / 2) ** n,
@@ -36,7 +53,7 @@ def test_tribonacci():
 
     M = Matrix([[0, 0, 1], [1, 0, 1], [0, 1, 1]])
 
-    growths = Reducer.from_matrix(M).asymptotic_growth()
+    growths = get_reducer(M).asymptotic_growth()
     assert len(growths) == 3
 
     actual_bases = [g.exp_base for g in growths]
@@ -56,9 +73,7 @@ def test_exponential_separation():
     U = Matrix.eye(2) + Matrix([[1, -2], [3, 1]]) / n
     M = M_canonical.coboundary(U)
 
-    exprs = asymptotic_expressions(
-        Reducer.from_matrix(M, precision=5).asymptotic_growth()
-    )
+    exprs = asymptotic_expressions(get_reducer(M, precision=5).asymptotic_growth())
 
     expected_exprs = [4**n * n**5, 2**n * n**3]
 
@@ -70,9 +85,7 @@ def test_newton_polygon_separation():
     U = Matrix([[1, n], [0, 1]])
     M = expected_canonical.coboundary(U)
 
-    exprs = asymptotic_expressions(
-        Reducer.from_matrix(M, precision=5).asymptotic_growth()
-    )
+    exprs = asymptotic_expressions(get_reducer(M, precision=5).asymptotic_growth())
 
     assert len(exprs) == 2
 
@@ -87,7 +100,7 @@ def test_ramified_scalar_peeling_no_block_degeneracy():
     """
     M = Matrix([[0, -(n - 1) / n], [1, 2]])
     exprs = asymptotic_expressions(
-        Reducer.from_matrix(M.transpose(), precision=4).asymptotic_growth()
+        get_reducer(M.transpose(), precision=4).asymptotic_growth()
     )
 
     expected_exprs = [
@@ -111,9 +124,9 @@ def test_ramified_scalar_peeling_no_block_degeneracy():
 def test_gauge_invariance(U):
     M = Matrix([[0, -(n - 1) / n], [1, 2]])
 
-    original_exprs = asymptotic_expressions(Reducer.from_matrix(M).asymptotic_growth())
+    original_exprs = asymptotic_expressions(get_reducer(M).asymptotic_growth())
     transformed_exprs = asymptotic_expressions(
-        Reducer.from_matrix(M.coboundary(U)).asymptotic_growth()
+        get_reducer(M.coboundary(U)).asymptotic_growth()
     )
 
     assert [sp.simplify(e) for e in original_exprs] == [
@@ -127,8 +140,7 @@ def test_nilpotent_ghost():
 
     # Must explicitly trigger the Blindness Radar
     with pytest.raises(PrecisionExhaustedError):
-        reducer = Reducer.from_matrix(m.transpose(), precision=precision)
-        reducer.canonical_fundamental_matrix()
+        get_reducer(m.transpose(), precision=precision).reduce()
 
 
 def test_row_nullity():
@@ -138,7 +150,7 @@ def test_row_nullity():
     We unit test the radar directly to ensure it guards the exit.
     """
     m = Matrix([[1, 0], [0, 1]])  # Dummy valid matrix
-    reducer = Reducer.from_matrix(m, precision=5)
+    reducer = get_reducer(m, precision=5)
 
     # Craft a physically impossible CFM where Variable 1 has completely vanished
     broken_cfm = [
@@ -167,9 +179,7 @@ def test_input_trancation():
     )
 
     with pytest.raises(PrecisionExhaustedError):
-        from ramanujantools.asymptotics.reducer import Reducer
-
-        Reducer.from_matrix(m, precision=3).canonical_fundamental_matrix()
+        get_reducer(m, precision=3).reduce()
 
 
 def test_ramification_exact_expressions():
@@ -178,9 +188,7 @@ def test_ramification_exact_expressions():
     ramification and extracts the sub-exponential roots.
     """
     M = Matrix([[0, 1], [1 / n, 0]])
-    exprs = asymptotic_expressions(
-        Reducer.from_matrix(M, precision=4).asymptotic_growth()
-    )
+    exprs = asymptotic_expressions(get_reducer(M, precision=4).asymptotic_growth())
 
     expected_exprs = [
         (-1) ** n * n ** sp.Rational(1, 4) / sp.sqrt(sp.factorial(n)),
@@ -195,25 +203,25 @@ def test_ramification_structural_mechanics():
     # f(n) = n^2 * a_(n-3)
 
     precision = 10
-    reducer = Reducer.from_matrix(m.transpose(), precision=precision)
-    cfm = reducer.canonical_fundamental_matrix()
+    reducer = get_reducer(m.transpose(), precision=precision)
+    grid = reducer.canonical_growth_matrix()
 
     # 1. Verify internal engine state mapped the branch correctly
     assert reducer.p == 3
 
-    # 2. Strict Mathematical Validation (No string checks)
-    # We traverse the SymPy expression tree looking for Rational exponents.
-    # The ramification must mathematically produce an exponent with a denominator of 3.
+    # 2. Strict Mathematical Validation (No string parsing needed anymore!)
+    # We just inspect the strongly-typed GrowthRate objects in the grid.
     found_fractional_power = False
 
-    for element in cfm:
-        # Extract all base-exponent pairs (e.g., n**(1/3) -> base=n, exp=1/3)
-        for power in element.as_expr(n).atoms(sp.Pow):
-            base, exp = power.as_base_exp()
-            if base == n and isinstance(exp, sp.Rational) and exp.q == 3:
+    for row in grid:
+        for cell in row:
+            if (
+                isinstance(cell.polynomial_degree, sp.Rational)
+                and cell.polynomial_degree.q == 3
+            ):
                 found_fractional_power = True
                 break
 
     assert found_fractional_power, (
-        "Failed to mathematically verify fractional ramification powers."
+        "Failed to mathematically verify fractional ramification powers in the GrowthRate objects."
     )

@@ -4,6 +4,7 @@ import logging
 from functools import lru_cache
 
 import sympy as sp
+from sympy.abc import t, n
 
 from ramanujantools import Matrix
 from ramanujantools.asymptotics import GrowthRate, SeriesMatrix
@@ -30,17 +31,14 @@ class Reducer:
     def __init__(
         self,
         series: SeriesMatrix,
-        var: sp.Symbol,
         factorial_power: int,
         precision: int,
         p: int,
     ) -> None:
         """
         Initializes the Reducer with a pre-conditioned formal power series.
-        Usually called internally by `Reducer.from_matrix()`.
         """
         self.M = series
-        self.var = var
         self.factorial_power = factorial_power
         self.precision = precision
         self.p = p
@@ -63,12 +61,11 @@ class Reducer:
             raise ValueError("Input matrix must depend on at most one variable.")
 
         p = 1
-        var = sp.Symbol("n") if len(free_syms) == 0 else free_syms[0]
-        factorial_power = max(matrix.degrees(var))
+        factorial_power = max(matrix.degrees(n))
 
-        normalized_matrix = matrix / (var**factorial_power)
+        normalized_matrix = matrix / (n**factorial_power)
 
-        degrees = [d for d in normalized_matrix.degrees(var) if d != -sp.oo]
+        degrees = [d for d in normalized_matrix.degrees(n) if d != -sp.oo]
         S = max(degrees) - min(degrees) if degrees else 1
         poincare_bound = S * 2 + 1
 
@@ -76,7 +73,7 @@ class Reducer:
             -min(
                 [
                     factorial_power
-                    for factorial_power in normalized_matrix.degrees(var)
+                    for factorial_power in normalized_matrix.degrees(n)
                     if factorial_power > -sp.oo
                 ],
                 default=0,
@@ -92,11 +89,10 @@ class Reducer:
             )
 
         logger.debug(f"FROM_MATRIX: Expanding Taylor Series to {precision=} ...")
-        series = normalized_matrix.to_series_matrix(var, p, precision)
+        series = SeriesMatrix.from_matrix(normalized_matrix, n, p, precision)
 
         return cls(
             series=series,
-            var=var,
             factorial_power=factorial_power,
             precision=precision,
             p=p,
@@ -207,7 +203,6 @@ class Reducer:
                     )
                     sub_reducer = Reducer(
                         series=sub_series,
-                        var=self.var,
                         factorial_power=self.factorial_power,
                         precision=self.precision,
                         p=self.p,
@@ -314,9 +309,8 @@ class Reducer:
             f"Remaining buffer: {self.S_total.precision - max_shift}"
         )
 
-        t = sp.Symbol("t", positive=True)
         S_sym = Matrix.diag(*[t ** (i * g) for i in range(self.dim)])
-        S_series = S_sym.to_series_matrix(self.var, self.p, self.S_total.precision)
+        S_series = SeriesMatrix.from_matrix(S_sym, n, self.p, self.S_total.precision)
 
         self.S_total = self.S_total * S_series
 
@@ -445,11 +439,6 @@ class Reducer:
                 )
             return [sol for child in self.children for sol in child.asymptotic_growth()]
 
-        factorial_power, n, t = (
-            self.factorial_power,
-            self.var,
-            sp.Symbol("t", positive=True),
-        )
         growths, log_power = [], 0
 
         for i in range(self.dim):
@@ -502,7 +491,7 @@ class Reducer:
                     sub_exp=sub_exp,
                     polynomial_degree=polynomial_degree,
                     log_power=log_power,
-                    factorial_power=factorial_power,
+                    factorial_power=self.factorial_power,
                 )
             )
 
@@ -597,4 +586,4 @@ class Reducer:
         This provides the final, human-readable fundamental solution set.
         """
         growth_matrix = self.canonical_growth_matrix()
-        return Matrix([[c.as_expr(self.var) for c in r] for r in growth_matrix])
+        return Matrix([[c.as_expr(n) for c in r] for r in growth_matrix])
