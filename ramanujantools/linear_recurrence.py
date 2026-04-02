@@ -363,7 +363,7 @@ class LinearRecurrence(Printable):
 
     def kamidelta(self, depth=20) -> list[mp.mpf]:
         r"""
-        Uses the Kamidelta alogrithm to predict possible delta values of the recurrence.
+        Uses the Kamidelta algorithm to predict possible delta values of the recurrence.
         Effectively calls kamidelta on `recurrence_matrix`.
 
         For more details, see `Matrix.kamidelta`

@@ -162,7 +162,7 @@ def test_row_nullity():
         reducer._check_cfm_validity(broken_cfm)
 
 
-def test_input_trancation():
+def test_input_truncation():
     """
     Tests if the strict boundary alarms catch an aggressive sub-diagonal shear starvation.
     The term n^-2 produces g=2. For a 5x5, max_shift = 8.
