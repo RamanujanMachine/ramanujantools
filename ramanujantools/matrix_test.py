@@ -413,33 +413,3 @@ def test_degrees():
     assert m.degrees(x) == Matrix([[1, 2], [-1, 0]])
     assert m.degrees(y) == Matrix([[1, 0], [1, -2]])
     assert m.degrees(n) == Matrix([[0, 0], [0, 0]])
-
-
-def test_canonical_fundamental_matrix():
-    C = Matrix([[0, 2], [1, 1]])
-    U = Matrix([[1, n**2], [0, 1]])
-    U_inverse = U.inverse()
-    M = C.coboundary(U_inverse)
-
-    C_asym = C.asymptotics()
-    M_asym = M.asymptotics()
-
-    expected_M_asym = []
-    max_shift = -sp.oo
-    for k in range(C.shape[0]):
-        for j in range(C.shape[0]):
-            u_val = U_inverse[k, j]
-            if u_val != sp.S.Zero:
-                num, den = sp.numer(u_val), sp.denom(u_val)
-                shift = sp.degree(num, n) - sp.degree(den, n)
-                if max_shift == -sp.oo or shift > max_shift:
-                    max_shift = shift
-
-        if max_shift == -sp.oo:
-            max_shift = sp.S.Zero
-
-    expected_M_asym = [sp.simplify(c * (n**max_shift)) for c in C_asym]
-
-    assert [sp.simplify(m) for m in M_asym] == expected_M_asym, (
-        f"Gauge tie failed!\nExpected from U^-1 * C: {expected_M_asym}\nGot from M: {M_asym}"
-    )

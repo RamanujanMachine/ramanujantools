@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sympy as sp
+from sympy.abc import t, n
 
 
 class GrowthRate:
@@ -178,4 +179,45 @@ class GrowthRate:
             sub_exp=sp.simplify(self.sub_exp),
             polynomial_degree=sp.simplify(self.polynomial_degree),
             log_power=self.log_power,
+        )
+
+    @classmethod
+    def from_taylor_coefficients(
+        cls, coeffs: list[sp.Expr], p: int, log_power: int = 0, factorial_power: int = 0
+    ) -> GrowthRate:
+        """
+        Calculates the exact asymptotic bounds of a formal product by extracting
+        the sub-exponential and polynomial degrees via a logarithmic Maclaurin expansion.
+        """
+        exp_base = sp.cancel(sp.expand(coeffs[0]))
+        if exp_base == sp.S.Zero:
+            return cls(exp_base=sp.S.Zero)
+
+        precision = len(coeffs)
+
+        x = sum(
+            (coeffs[k] / exp_base) * (t**k) for k in range(1, min(precision, p + 1))
+        )
+
+        # Maclaurin series of ln(1+x) up to O(t^(p+1))
+        log_series = sp.expand(
+            sum(((-1) ** (j + 1) / sp.Rational(j)) * (x**j) for j in range(1, p + 1))
+        )
+        sub_exp, poly_deg = sp.S.Zero, sp.S.Zero
+
+        for k in range(1, p + 1):
+            c_k = sp.cancel(sp.expand(log_series.coeff(t, k)))
+            if c_k != sp.S.Zero:
+                if k < p:
+                    power = 1 - sp.Rational(k, p)
+                    sub_exp += (c_k / power) * (n**power)
+                else:
+                    poly_deg = c_k
+
+        return cls(
+            exp_base=exp_base,
+            sub_exp=sub_exp,
+            polynomial_degree=poly_deg,
+            log_power=log_power,
+            factorial_power=factorial_power,
         )

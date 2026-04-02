@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-from functools import cached_property, lru_cache
+from typing import TYPE_CHECKING
+
 import copy
 import itertools
+from functools import cached_property, lru_cache
 from tqdm import tqdm
 
 import mpmath as mp
@@ -12,6 +14,9 @@ from sympy.printing.defaults import Printable
 
 from ramanujantools import Matrix, Limit, GenericPolynomial
 from ramanujantools.utils import batched, Batchable
+
+if TYPE_CHECKING:
+    from ramanujantools.asymptotics import Reducer
 
 
 def trim_trailing_zeros(sequence: list[int]) -> list[int]:
@@ -366,46 +371,26 @@ class LinearRecurrence(Printable):
         return self.recurrence_matrix.kamidelta(depth)
 
     @lru_cache
-    def _get_reducer_at_precision(self, precision: int, force: bool = False):
-        """
-        Calculates physical bounds directly from the recurrence, normalizes the
-        companion matrix, and executes a targeted Birkhoff-Trjitzinsky reduction.
-        """
-        import sympy as sp
-        from ramanujantools.asymptotics import Reducer, PrecisionExhaustedError
+    def _get_reducer_at_precision(self, precision: int, force: bool = False) -> Reducer:
+        """Pure reduction engine. No boundary logic; just executes the math."""
+        from ramanujantools.asymptotics import Reducer
         from ramanujantools.asymptotics.series_matrix import SeriesMatrix
 
-        transposed_matrix = self.recurrence_matrix.transpose()
-        factorial_power = max(transposed_matrix.degrees(n))
-        normalized_matrix = transposed_matrix / (n**factorial_power)
-        degrees = [d for d in normalized_matrix.degrees(n) if d != -sp.oo]
-        S = max(degrees) - min(degrees) if degrees else 1
-
-        poincare_bound = S * 2 + 1
-        negative_bound = -min(degrees, default=0) + 1
-        required_precision = max(poincare_bound, negative_bound)
-
-        if not force and precision < required_precision:
-            raise PrecisionExhaustedError(
-                f"Poincaré bound requires {required_precision} terms to prevent silent rational Taylor truncation."
-            )
+        matrix = self.recurrence_matrix.transpose()
+        factorial_power = max(matrix.degrees(n))
+        normalized_matrix = matrix / (n**factorial_power)
 
         series = SeriesMatrix.from_matrix(
             matrix=normalized_matrix, var=n, p=1, precision=precision
         )
-
         reducer = Reducer(
-            series=series,
-            factorial_power=factorial_power,
-            precision=precision,
-            p=1,
+            series=series, factorial_power=factorial_power, precision=precision, p=1
         )
-
         reducer.reduce()
         return reducer
 
     @lru_cache
-    def _get_reducer(self, precision=None):
+    def _get_reducer(self, precision=None) -> Reducer:
         """Executes the precision backoff loop for the linear recurrence."""
         from ramanujantools.asymptotics import PrecisionExhaustedError
         import logging
@@ -418,15 +403,15 @@ class LinearRecurrence(Printable):
         dim = self.order()
 
         # Calculate bounds directly from the recurrence polynomials!
-        degrees = [sp.degree(p, n) for p in self.polynomials if p != 0]
-        S = max(degrees) - min(degrees) if degrees else 1
+        degrees = [d for d in self.recurrence_matrix.degrees(n) if d != -sp.oo]
+        S = max(degrees) - min(degrees)
+        poincare_bound = S * 2 + 1
+        negative_bound = -min(degrees, default=0) + 1
+        current_precision = max(poincare_bound, negative_bound)
         max_precision = (dim**2) * max(S, 1) + dim
 
-        current_precision = dim
-        step_size = 2 * dim  # The 2 * rank heuristic jump
-        last_expr_matrix = None
-        current_reducer = None
-        consecutive_successes = 0
+        step_size = 2 * dim
+        last_expr_matrix, current_reducer, consecutive_successes = None, None, 0
 
         while current_precision <= max_precision:
             try:
@@ -468,9 +453,5 @@ class LinearRecurrence(Printable):
         Returns the formal basis of asymptotic solutions for the recurrence sequence p_n.
         """
         reducer = self._get_reducer(precision)
-
-        cvm_grid_T = reducer.canonical_growth_matrix()
-        cvm_grid = list(map(list, zip(*cvm_grid_T)))
-        p_n_basis = [sol_growths[-1] for sol_growths in cvm_grid]
-
-        return [growth.as_expr(n) for growth in p_n_basis]
+        cfm = reducer.canonical_fundamental_matrix().transpose()
+        return list(cfm.col(-1))

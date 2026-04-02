@@ -49,62 +49,6 @@ class Reducer:
         self._is_reduced = False
         self.children = []
 
-    @classmethod
-    def from_matrix(
-        cls, matrix: Matrix, precision: int = 5, force: bool = False
-    ) -> "Reducer":
-        if not matrix.is_square():
-            raise ValueError("Input matrix must be square.")
-
-        free_syms = list(matrix.free_symbols)
-        if len(free_syms) > 1:
-            raise ValueError("Input matrix must depend on at most one variable.")
-
-        p = 1
-        factorial_power = max(matrix.degrees(n))
-
-        normalized_matrix = matrix / (n**factorial_power)
-
-        degrees = [d for d in normalized_matrix.degrees(n) if d != -sp.oo]
-        S = max(degrees) - min(degrees) if degrees else 1
-        poincare_bound = S * 2 + 1
-
-        negative_bound = (
-            -min(
-                [
-                    factorial_power
-                    for factorial_power in normalized_matrix.degrees(n)
-                    if factorial_power > -sp.oo
-                ],
-                default=0,
-            )
-            * p
-            + 1
-        )
-
-        required_precision = max(poincare_bound, negative_bound)
-        if not force and precision < required_precision:
-            raise PrecisionExhaustedError(
-                "Encountered a silent rational Taylor truncation."
-            )
-
-        logger.debug(f"FROM_MATRIX: Expanding Taylor Series to {precision=} ...")
-        series = SeriesMatrix.from_matrix(normalized_matrix, n, p, precision)
-
-        return cls(
-            series=series,
-            factorial_power=factorial_power,
-            precision=precision,
-            p=p,
-        )
-
-    def _unramified_target(self, ramified_target: int | sp.Expr) -> int:
-        """
-        Converts a local ramified precision requirement back to the
-        global unramified scale for the top-level backoff loop.
-        """
-        return int(sp.ceiling(ramified_target / self.p))
-
     @staticmethod
     def _solve_sylvester(A: Matrix, B: Matrix, C: Matrix) -> Matrix:
         """Solves the Sylvester equation: A*X - X*B = C for X using Kronecker flattening."""
@@ -426,70 +370,36 @@ class Reducer:
     def asymptotic_growth(self) -> list[GrowthRate]:
         """
         Extracts the raw, unmapped asymptotic components of the internal canonical basis.
-        Returns a list of strongly-typed GrowthRate objects.
         """
         if not self._is_reduced:
             self.reduce()
 
         if self.children:
-            for i, child in enumerate(self.children):
-                logger.debug(
-                    f"CFM: Child {i} has precision {child.S_total.precision=}. "
-                    f"Is it identity? {child.S_total.coeffs[0].is_Identity}"
-                )
             return [sol for child in self.children for sol in child.asymptotic_growth()]
 
         growths, log_power = [], 0
 
         for i in range(self.dim):
-            exp_base = sp.cancel(sp.expand(self.M.coeffs[0][i, i]))
+            exp_base = self.M.coeffs[0][i, i]
             self._check_eigenvalue_blindness(exp_base)
 
-            is_jordan_link = False
-            if i > 0 and exp_base == sp.cancel(
-                sp.expand(self.M.coeffs[0][i - 1, i - 1])
-            ):
+            if i > 0 and exp_base == self.M.coeffs[0][i - 1, i - 1]:
                 is_jordan_link = any(
-                    sp.cancel(sp.expand(self.M.coeffs[k][i - 1, i])) != sp.S.Zero
+                    self.M.coeffs[k][i - 1, i] != sp.S.Zero
                     for k in range(self.precision)
                 )
-            log_power = log_power + 1 if is_jordan_link else 0
+                log_power = log_power + 1 if is_jordan_link else 0
+            else:
+                log_power = 0
 
-            x = sp.S.Zero
-            max_k = min(self.precision, self.p + 1)
-            for k in range(1, max_k):
-                x += (self.M.coeffs[k][i, i] / exp_base) * (t**k)
+            # Isolate the diagonal Taylor coefficients for this variable
+            diag_coeffs = [self.M.coeffs[k][i, i] for k in range(self.precision)]
 
-            log_series = sp.S.Zero
-            for j in range(1, self.p + 1):
-                log_series += ((-1) ** (j + 1) / sp.Rational(j)) * (x**j)
-
-            log_series = sp.expand(log_series)
-
-            sub_exp, polynomial_degree = sp.S.Zero, sp.S.Zero
-
-            for k in range(1, self.p + 1):
-                c_k = log_series.coeff(t, k)
-                if c_k == sp.S.Zero:
-                    continue
-
-                c_k = sp.cancel(sp.expand(c_k))
-
-                if k < self.p:
-                    power = 1 - sp.Rational(k, self.p)
-                    sub_exp += (c_k / power) * (n**power)
-                elif k == self.p:
-                    polynomial_degree = c_k
-
-                logger.debug(
-                    f"GROWTH: Variable {i=}, {k=}, {c_k=}, {exp_base=}, {x=}, {log_series=}, {polynomial_degree=}"
-                )
-
+            # Let GrowthRate parse its own math!
             growths.append(
-                GrowthRate(
-                    exp_base=exp_base,
-                    sub_exp=sub_exp,
-                    polynomial_degree=polynomial_degree,
+                GrowthRate.from_taylor_coefficients(
+                    coeffs=diag_coeffs,
+                    p=self.p,
                     log_power=log_power,
                     factorial_power=self.factorial_power,
                 )
@@ -524,58 +434,47 @@ class Reducer:
         if not self._is_reduced:
             self.reduce()
 
-        # 1. Base Grid Construction (Recursive Block Diagonal or Leaf Nodes)
+        base_grid = [[GrowthRate() for _ in range(self.dim)] for _ in range(self.dim)]
         if self.children:
-            base_grid = [
-                [GrowthRate() for _ in range(self.dim)] for _ in range(self.dim)
-            ]
             offset = 0
             for child in self.children:
-                c_grid = child.canonical_growth_matrix()  # RECURSIVE CALL
-                c_dim = child.dim
-                for r in range(c_dim):
-                    for c in range(c_dim):
-                        base_grid[offset + r][offset + c] = c_grid[r][c]
-                offset += c_dim
+                c_grid = child.canonical_growth_matrix()
+                for r, row in enumerate(c_grid):
+                    for c, val in enumerate(row):
+                        base_grid[offset + r][offset + c] = val
+                offset += child.dim
         else:
-            growths = self.asymptotic_growth()
-            base_grid = [
-                [GrowthRate() if r != c else growths[r] for c in range(self.dim)]
-                for r in range(self.dim)
+            for i, growth in enumerate(self.asymptotic_growth()):
+                base_grid[i][i] = growth
+
+        shift_matrix = [
+            [GrowthRate() for _ in range(self.dim)] for _ in range(self.dim)
+        ]
+        for r in range(self.dim):
+            for c in range(self.dim):
+                for k, mat in enumerate(self.S_total.coeffs):
+                    if mat[r, c] != sp.S.Zero:
+                        shift_matrix[r][c] = GrowthRate(
+                            exp_base=sp.S.One,
+                            polynomial_degree=-sp.Rational(k, self.p),
+                        )
+                        break
+
+        final_grid = [
+            [
+                sum(
+                    (shift_matrix[row][k] * base_grid[k][col] for k in range(self.dim)),
+                    start=GrowthRate(),
+                )
+                for col in range(self.dim)
             ]
-
-        # 2. Map the assembled block through the local gauge transformation S_total
-        final_grid = []
-        for row in range(self.dim):
-            final_row = []
-            for col in range(self.dim):
-                cell_growth = GrowthRate()
-
-                for k_idx in range(self.dim):
-                    base_cell = base_grid[k_idx][col]
-                    if base_cell.exp_base == sp.S.Zero:
-                        continue
-
-                    # Find the leading shift in S_total for this mapping
-                    for series_k in range(self.S_total.precision):
-                        coeff = self.S_total.coeffs[series_k][row, k_idx]
-                        if coeff != sp.S.Zero:
-                            shift_growth = GrowthRate(
-                                exp_base=sp.S.One,
-                                polynomial_degree=-sp.Rational(series_k, self.p),
-                            )
-                            cell_growth += shift_growth * base_cell
-                            break
-
-                final_row.append(cell_growth)
-            final_grid.append(final_row)
+            for row in range(self.dim)
+        ]
 
         sorted_indices = sorted(
             range(self.dim), key=lambda c: final_grid[-1][c], reverse=True
         )
-
-        for i in range(self.dim):
-            final_grid[i] = [final_grid[i][c] for c in sorted_indices]
+        final_grid = [[row[c] for c in sorted_indices] for row in final_grid]
 
         self._check_cfm_validity(final_grid)
         return final_grid

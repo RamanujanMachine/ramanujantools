@@ -75,11 +75,7 @@ class SeriesMatrix:
 
                 new_coeffs[i + j] += self.coeffs[i] * other.coeffs[j]
 
-        new_coeffs = [
-            c.applyfunc(lambda x: sp.cancel(sp.expand(x))) for c in new_coeffs
-        ]
-
-        return SeriesMatrix(new_coeffs, p=self.p, precision=out_precision)
+        return SeriesMatrix(new_coeffs, p=self.p, precision=out_precision).simplify()
 
     def inverse(self) -> SeriesMatrix:
         r"""
@@ -289,13 +285,13 @@ class SeriesMatrix:
         for k in range(output_precision):
             target_power = k - h
             if target_power in power_dict:
-                # Deflate immediately upon shifting.
-                # Bounding this loop skips sp.cancel on dead terms!
-                new_coeffs.append(power_dict[target_power].applyfunc(sp.cancel))
+                new_coeffs.append(power_dict[target_power])
             else:
                 new_coeffs.append(Matrix.zeros(*self.shape))
 
-        return SeriesMatrix(new_coeffs, p=self.p, precision=output_precision), h
+        return SeriesMatrix(
+            new_coeffs, p=self.p, precision=output_precision
+        ).simplify(), h
 
     def shift_leading_eigenvalue(self, lambda_val: sp.Expr) -> SeriesMatrix:
         """
@@ -337,6 +333,14 @@ class SeriesMatrix:
             return k
 
         return None
+
+    def simplify(self) -> SeriesMatrix:
+        def crush(x):
+            return sp.cancel(sp.expand(x))
+
+        new_coeffs = [c.applyfunc(crush) for c in self.coeffs]
+
+        return type(self)(new_coeffs, p=self.p, precision=self.precision)
 
     @classmethod
     def from_matrix(
