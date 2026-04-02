@@ -59,9 +59,9 @@ class LinearRecurrence(Printable):
         relation = [sp.factor(sp.simplify(p)) for p in relation]
         self.relation = trim_trailing_zeros(relation)
 
-    def __eq__(self, other: Matrix) -> bool:
+    def __eq__(self, other: LinearRecurrence) -> bool:
         """
-        Returns True iff two recurences are identical (even up to gcd).
+        Returns True iff two recurrences are identical (even up to gcd).
         """
         if not isinstance(other, LinearRecurrence):
             return NotImplemented
