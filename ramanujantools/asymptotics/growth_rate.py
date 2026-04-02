@@ -155,7 +155,13 @@ class GrowthRate:
         if cmp_D is not None:
             return cmp_D
 
-        return self.log_power > other.log_power
+        cmp_log = is_greater(self.log_power, other.log_power)
+        if cmp_log is not None:
+            return cmp_log
+
+        return sp.default_sort_key(self.as_expr(n)) > sp.default_sort_key(
+            other.as_expr(n)
+        )
 
     def __repr__(self) -> str:
         return (
