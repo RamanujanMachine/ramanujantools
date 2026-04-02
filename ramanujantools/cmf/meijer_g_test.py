@@ -1,4 +1,5 @@
 from pytest import approx
+import pickle
 
 import sympy as sp
 from sympy.abc import n, z
@@ -30,6 +31,24 @@ def test_gamma():
     assert limit.as_float() == approx(limit.mp.euler)
 
 
+def test_serialization():
+    original_meijer_g = MeijerG(p=3, n=2, q=1, m=1, z=-1)
+
+    serialized_data = pickle.dumps(original_meijer_g)
+    unpickled_meijer_g = pickle.loads(serialized_data)
+
+    assert isinstance(unpickled_meijer_g, MeijerG), "Object type mismatch after unpickling."
+    assert hasattr(unpickled_meijer_g, 'p'), 'expected to have attribute p'
+    assert hasattr(unpickled_meijer_g, 'q'), 'expected to have attribute q'
+    assert hasattr(unpickled_meijer_g, 'm'), 'expected to have attribute m'
+    assert hasattr(unpickled_meijer_g, 'n'), 'expected to have attribute n'
+    assert hasattr(unpickled_meijer_g, 'z'), 'expected to have attribute z'
+    assert unpickled_meijer_g.p == original_meijer_g.p, f"p mismatch: {unpickled_meijer_g.p} != {original_meijer_g.p}"
+    assert unpickled_meijer_g.q == original_meijer_g.q, f"q mismatch: {unpickled_meijer_g.q} != {original_meijer_g.q}"
+    assert unpickled_meijer_g.m == original_meijer_g.m, f"m mismatch: {unpickled_meijer_g.m} != {original_meijer_g.m}"
+    assert unpickled_meijer_g.n == original_meijer_g.n, f"n mismatch: {unpickled_meijer_g.n} != {original_meijer_g.n}"
+    assert unpickled_meijer_g.z == original_meijer_g.z, f"z mismatch: {unpickled_meijer_g.z} != {original_meijer_g.z}"
+    
 def test_asymptotics_fail1():
     cmf = MeijerG(3, 2, 2, 3, 1)
     a0, a1 = sp.symbols("a:2")

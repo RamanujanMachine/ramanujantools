@@ -1,4 +1,5 @@
 import pytest
+import pickle
 
 import sympy as sp
 from sympy.abc import n, z
@@ -247,3 +248,18 @@ def test_hardcoded_determinant_formula(p, q, z, axis):
     det = pFq_determinant_from_char_poly(p, q, z, axis)
     calc = pFq.determinant(p, q, z, axis)
     assert calc == det
+
+
+def test_pfq_serialization():
+    original_pfq = pFq(p=2, q=1, z=-1)
+
+    serialized_data = pickle.dumps(original_pfq)
+    unpickled_pfq = pickle.loads(serialized_data)
+
+    assert isinstance(unpickled_pfq, pFq), "Object type mismatch after unpickling."
+    assert hasattr(unpickled_pfq, 'p'), 'expected to have attribute p'
+    assert hasattr(unpickled_pfq, 'q'), 'expected to have attribute q'
+    assert hasattr(unpickled_pfq, 'z'), 'expected to have attribute z'
+    assert unpickled_pfq.p == original_pfq.p, f"p mismatch: {unpickled_pfq.p} != {original_pfq.p}"
+    assert unpickled_pfq.q == original_pfq.q, f"q mismatch: {unpickled_pfq.q} != {original_pfq.q}"
+    assert unpickled_pfq.z == original_pfq.z, f"z mismatch: {unpickled_pfq.z} != {original_pfq.z}"
