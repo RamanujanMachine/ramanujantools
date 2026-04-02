@@ -61,11 +61,6 @@ class SeriesMatrix:
                 "SeriesMatrix dimensions or ramification indices do not match."
             )
 
-        if self.p != other.p:
-            raise ValueError(
-                "SeriesMatrix ramification indices (p) must match for multiplication."
-            )
-
         # Mathematically, the product of O(t^A) and O(t^B) is valid up to O(t^min(A, B))
         out_precision = min(self.precision, other.precision)
         new_coeffs = [Matrix.zeros(*self.shape) for _ in range(out_precision)]
