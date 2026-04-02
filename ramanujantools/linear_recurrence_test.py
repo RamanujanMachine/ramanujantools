@@ -10,14 +10,14 @@ def f(c, index=n):
 
 
 def test_repr():
-    sp.expected = "LinearRecurrence([n, 1, 3 - n**2])"
-    r = eval(sp.expected)
-    assert sp.expected == repr(r)
+    expected = "LinearRecurrence([n, 1, 3 - n**2])"
+    r = eval(expected)
+    assert expected == repr(r)
 
 
 def test_relation():
-    sp.expected = [1, n, n**2, n**3 - 7, 13 * n - 12]
-    assert sp.expected == LinearRecurrence(sp.expected).relation
+    expected = [1, n, n**2, n**3 - 7, 13 * n - 12]
+    assert expected == LinearRecurrence(expected).relation
 
 
 def test_matrix():
@@ -174,10 +174,10 @@ def test_compose_solution_space_polynomials():
         initial_values,
         Matrix([solution[:shift]]),
     )
-    sp.expected = solution[shift:]
+    expected = solution[shift:]
     actual = rr.evaluate_solution(composed_initial_values, start + shift, end)
 
-    assert sp.expected == actual
+    assert expected == actual
 
 
 def test_fold_is_compose():
