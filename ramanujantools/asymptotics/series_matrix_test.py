@@ -87,9 +87,7 @@ def test_shift():
             if coeff_val != sp.S.Zero:
                 expected_coeffs[k] += C * coeff_val
 
-    assert shifted_S.coeffs == expected_coeffs, (
-        f"Shift output does not match expected at coefficient t^{k}"
-    )
+    assert shifted_S.coeffs == expected_coeffs
 
 
 def test_series_matrix_coboundary():
