@@ -244,14 +244,14 @@ class SeriesMatrix:
         return row_corrections
 
     def shear_coboundary(
-        self, g: sp.Rational | int, target_precision: int | None = None
+        self, shift: sp.Integer | int, target_precision: int | None = None
     ) -> tuple[SeriesMatrix, int]:
         """
         Applies a shearing transformation S(t) to the series to expose sub-exponential
-        growth, where $S(t) = diag(1, t^g, t^{2g}, \\dots)$.
+        growth, where $S(t) = diag(1, t^a, t^{2a}, \\dots)$ and $a$ is the shift parameter.
 
         Args:
-            g: The shear slope.
+            shift: Represents a in the above description.
             target_precision: If provided, truncates the resulting series to this length,
                               saving heavy CAS simplification on discarded tail terms.
 
@@ -259,7 +259,10 @@ class SeriesMatrix:
             A tuple containing the sheared SeriesMatrix and the integer `h` representing
             the overall degree shift (used to adjust the global factorial power).
         """
-        row_corrections = self._shear_row_corrections(g)
+        if not shift.is_integer:
+            raise ValueError(f"{shift=} must be an integer!")
+
+        row_corrections = self._shear_row_corrections(shift)
         power_dict = {}
 
         for m in range(self.precision):
@@ -269,13 +272,13 @@ class SeriesMatrix:
                     if val_M == sp.S.Zero:
                         continue
 
-                    shift = int((j - i) * g)
+                    current = (j - i) * shift
                     for c in range(self.precision):
                         val_C = row_corrections[i][c]
                         if val_C == sp.S.Zero:
                             continue
 
-                        power = m + c + shift
+                        power = m + c + current
                         if power not in power_dict:
                             power_dict[power] = Matrix.zeros(*self.shape)
                         power_dict[power][i, j] += val_C * val_M

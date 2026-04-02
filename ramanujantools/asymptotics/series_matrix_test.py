@@ -121,7 +121,7 @@ def test_series_matrix_shear_coboundary():
     ]
     M = SeriesMatrix(M_coeffs, p=1, precision=precision)
 
-    M_sheared, h = M.shear_coboundary(g=1)
+    M_sheared, h = M.shear_coboundary(shift=1)
 
     assert 0 == h
     assert Matrix([[1, 0], [1, 1]]) == M_sheared.coeffs[0]

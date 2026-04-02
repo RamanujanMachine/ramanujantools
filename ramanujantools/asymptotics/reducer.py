@@ -223,22 +223,24 @@ class Reducer:
         Used when the leading matrix is nilpotent, this shifts the polynomial degrees
         of the variables to expose the hidden sub-exponential growths.
         """
-        g = self._compute_shear_slope()
+        slope = self._compute_shear_slope()
 
-        if g == sp.S.Zero:
+        if slope == sp.S.Zero:
             self._check_eigenvalue_blindness(self.M.coeffs[0][0, 0])
             self._is_reduced = True
             return
 
-        if not g.is_integer:
-            g, b = g.as_numer_denom()
-            self.M, self.S_total = self.M.ramify(b), self.S_total.ramify(b)
-            self.p *= b
-            self.precision *= b
+        shift, ramification = slope.as_numer_denom()
+        self.M, self.S_total = (
+            self.M.ramify(ramification),
+            self.S_total.ramify(ramification),
+        )
+        self.p *= ramification
+        self.precision *= ramification
 
-        true_valid_precision, max_shift = self._check_shear_truncation(g)
+        true_valid_precision, max_shift = self._check_shear_truncation(shift)
 
-        logger.debug(f"SHEAR: Computed slope {g=}. Max shift: {max_shift=} terms.")
+        logger.debug(f"SHEAR: Computed shift {shift=}. Max shift: {max_shift=} terms.")
         if max_shift > 0:
             padded_coeffs = (
                 self.S_total.coeffs + [Matrix.zeros(self.dim, self.dim)] * max_shift
@@ -252,12 +254,12 @@ class Reducer:
             f"Remaining buffer: {self.S_total.precision - max_shift}"
         )
 
-        S_sym = Matrix.diag(*[t ** (i * g) for i in range(self.dim)])
+        S_sym = Matrix.diag(*[t ** (i * shift) for i in range(self.dim)])
         S_series = SeriesMatrix.from_matrix(S_sym, n, self.p, self.S_total.precision)
 
         self.S_total = self.S_total * S_series
 
-        self.M, h = self.M.shear_coboundary(g, true_valid_precision)
+        self.M, h = self.M.shear_coboundary(shift, true_valid_precision)
         self.precision = true_valid_precision
 
         if h != 0:
@@ -310,11 +312,11 @@ class Reducer:
 
         p1, p2 = lower_hull[0], lower_hull[1]
         steepest_slope = sp.Rational(p2[1] - p1[1], p2[0] - p1[0])
-        g = -steepest_slope
+        slope = -steepest_slope
 
         logger.debug(f"NEWTON: Lower hull points: {lower_hull}")
-        logger.debug(f"NEWTON: Computed slope {g=}")
-        return max(sp.S.Zero, g)
+        logger.debug(f"NEWTON: Computed {slope=}")
+        return max(sp.S.Zero, slope)
 
     def _check_eigenvalue_blindness(self, exp_base: sp.Expr) -> None:
         """
