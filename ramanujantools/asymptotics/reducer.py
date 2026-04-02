@@ -87,7 +87,6 @@ class Reducer:
         blocks.append((start_idx, self.dim, current_eval))
         return blocks
 
-    @lru_cache
     def reduce(self) -> Reducer:
         """
         The core Birkhoff-Trjitzinsky reduction loop.
