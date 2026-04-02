@@ -244,7 +244,7 @@ class SeriesMatrix:
         return row_corrections
 
     def shear_coboundary(
-        self, shift: sp.Integer | int, target_precision: int | None = None
+        self, shift: sp.Integer, target_precision: int | None = None
     ) -> tuple[SeriesMatrix, int]:
         """
         Applies a shearing transformation S(t) to the series to expose sub-exponential
