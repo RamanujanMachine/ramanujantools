@@ -51,11 +51,16 @@ class SeriesMatrix:
         new_coeffs = [self.coeffs[i] + other.coeffs[i] for i in range(new_precision)]
         return SeriesMatrix(new_coeffs, p=self.p, precision=new_precision)
 
-    def __mul__(self, other: "SeriesMatrix") -> "SeriesMatrix":
+    def __mul__(self, other: SeriesMatrix) -> SeriesMatrix:
         """
         Computes the Cauchy product of two Formal Power Series matrices.
         Automatically bounds the result to the lowest precision of the two operands.
         """
+        if self.shape != other.shape or self.p != other.p:
+            raise ValueError(
+                "SeriesMatrix dimensions or ramification indices do not match."
+            )
+
         if self.p != other.p:
             raise ValueError(
                 "SeriesMatrix ramification indices (p) must match for multiplication."
