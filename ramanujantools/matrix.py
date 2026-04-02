@@ -490,12 +490,19 @@ class Matrix(sp.Matrix):
         Overloads SymPy's jordan_form to automatically sort the Jordan blocks
         in descending order based on the absolute magnitude of the eigenvalues.
         """
-        P, J = super().jordan_form(calc_transform=calc_transform, **kwargs)
+        result = super().jordan_form(calc_transform=calc_transform, **kwargs)
+        if calc_transform:
+            P, J = result
+        else:
+            P, J = None, result
 
         dim = self.shape[0]
         starts = [i for i in range(dim) if i == 0 or J[i - 1, i] == 0]
         ends = starts[1:] + [dim]
-        blocks = [(J[s, s], P[:, s:e], J[s:e, s:e]) for s, e in zip(starts, ends)]
+        blocks = [
+            (J[s, s], P[:, s:e] if calc_transform else None, J[s:e, s:e])
+            for s, e in zip(starts, ends)
+        ]
 
         def sort_key(b):
             try:
