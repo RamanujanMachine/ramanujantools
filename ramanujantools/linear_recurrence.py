@@ -410,10 +410,11 @@ class LinearRecurrence(Printable):
         poincare_bound = S * 2 + 1
         negative_bound = -min(degrees, default=0) + 1
         current_precision = max(poincare_bound, negative_bound)
-        max_precision = (dim**2) * max(S, 1) + dim
 
         step_size = 2 * dim
-        last_expr_matrix, current_reducer, consecutive_successes = None, None, 0
+        max_precision = (dim**2) * max(S, 1) + dim + step_size
+
+        last_expr_matrix, current_reducer = None, None
 
         while current_precision <= max_precision:
             try:
@@ -427,11 +428,7 @@ class LinearRecurrence(Printable):
                 if last_expr_matrix is not None:
                     diff = (expr_matrix - last_expr_matrix).applyfunc(sp.expand)
                     if diff.is_zero_matrix:
-                        consecutive_successes += 1
-                        if consecutive_successes >= 2:
-                            return current_reducer
-                    else:
-                        consecutive_successes = 0
+                        return current_reducer
 
                 last_expr_matrix = expr_matrix
                 current_reducer = reducer
@@ -443,11 +440,7 @@ class LinearRecurrence(Printable):
                 )
                 current_precision += step_size
                 last_expr_matrix = None
-                consecutive_successes = 0
 
-        logger.warning(
-            f"Engine reached max_precision {max_precision} without 2 consecutive stable states."
-        )
         raise PrecisionExhaustedError(
             "Asymptotic stability could not be verified for this system. "
             f"Reached max_precision={max_precision} without 2 consecutive identical states. "
