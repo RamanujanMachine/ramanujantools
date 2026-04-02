@@ -169,7 +169,7 @@ class SeriesMatrix:
         Returns sympy.oo (infinity) for cells that are strictly zero.
         """
         rows, cols = self.shape
-        val_matrix = sp.zeros(rows, cols)
+        val_matrix = Matrix.zeros(rows, cols)
 
         for i in range(rows):
             for j in range(cols):
