@@ -448,7 +448,11 @@ class LinearRecurrence(Printable):
         logger.warning(
             f"Engine reached max_precision {max_precision} without 2 consecutive stable states."
         )
-        return current_reducer
+        raise PrecisionExhaustedError(
+            "Asymptotic stability could not be verified for this system. "
+            f"Reached max_precision={max_precision} without 2 consecutive identical states. "
+            "The system may be highly degenerate or require more initial terms."
+        )
 
     def asymptotics(self, precision=None) -> list[sp.Expr]:
         """
