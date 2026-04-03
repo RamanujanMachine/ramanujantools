@@ -17,7 +17,7 @@ To ensure both platforms are updated correctly, follow these three steps in orde
 ## Step 2: Commit, Tag, and Push
 **What to do:** When merged to master, create a git tag for that specific commit (the above merge), and push it to the main repository.
 
-Since we have not published a first official release (i.e, v1.0.0), just bump the patch version (eg. from v0.0.6 to v0.0.7).
+Since we have not published a first official release (i.e., v1.0.0), just bump the patch version (e.g. from v0.0.6 to v0.0.7). The tag must exactly match the version in `pyproject.toml` for the CD pipeline to work correctly.
 
 ```bash
 git checkout master
