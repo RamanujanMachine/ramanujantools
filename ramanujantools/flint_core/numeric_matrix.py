@@ -109,18 +109,26 @@ class NumericMatrix(fmpq_mat):
             step_matrices.append(fast_subs(position))
             position += trajectory
 
-        def _product_tree(lo, hi):
-            """Balanced divide-and-conquer product: step_matrices[lo] * … * step_matrices[hi]."""
-            span = hi - lo
+        # Below this range size, a sequential loop is faster than recursion.
+        SEQUENTIAL_THRESHOLD = 8
+
+        def _product_tree(first, last):
+            """Return step_matrices[first] * step_matrices[first+1] * … * step_matrices[last].
+
+            Uses balanced divide-and-conquer so that intermediate products stay
+            small, which is critical for FLINT rational matrices whose entry
+            sizes grow with each multiplication.
+            """
+            span = last - first
             if span == 0:
-                return step_matrices[lo]
-            if span <= 8:
-                result = step_matrices[lo]
-                for i in range(lo + 1, hi + 1):
+                return step_matrices[first]
+            if span <= SEQUENTIAL_THRESHOLD:
+                result = step_matrices[first]
+                for i in range(first + 1, last + 1):
                     result = result * step_matrices[i]
                 return result
-            mid = (lo + hi) >> 1
-            return _product_tree(lo, mid) * _product_tree(mid + 1, hi)
+            mid = (first + last) >> 1
+            return _product_tree(first, mid) * _product_tree(mid + 1, last)
 
         # Build results at each requested checkpoint.
         results = []
