@@ -3,14 +3,10 @@
 Run with: pytest matrix_benchmark.py --benchmark-only
 """
 
+import pytest
 from sympy.abc import n
 
 from ramanujantools import Matrix
-
-
-# ---------------------------------------------------------------------------
-# Shared test matrices
-# ---------------------------------------------------------------------------
 
 MATRICES = {
     "2x2_pcf": Matrix([[0, -(n**2)], [1, n + 1]]),
@@ -42,34 +38,18 @@ MATRICES = {
     ),
 }
 
+DEPTHS = [100, 500, 1000, 2000]
 
-# ---------------------------------------------------------------------------
-# pytest-benchmark tests (through the public Matrix API)
-# ---------------------------------------------------------------------------
 
 def walk_benchmark(matrix, trajectory, iterations, start):
     Matrix._walk_inner.cache_clear()
     return matrix.walk(trajectory, iterations, start)
 
 
-def test_walk_pcf_single_parameter_benchmark(benchmark):
-    benchmark(walk_benchmark, MATRICES["2x2_pcf"], {n: 1}, 1000, {n: 1})
-
-
-def test_walk_2x2_single_parameter_benchmark(benchmark):
-    benchmark(walk_benchmark, MATRICES["2x2_rational"], {n: 1}, 1000, {n: 1})
-
-
-def test_walk_3x3_single_parameter_benchmark(benchmark):
-    benchmark(walk_benchmark, MATRICES["3x3_rational"], {n: 1}, 1000, {n: 1})
-
-
-def test_walk_5x5_single_parameter_benchmark(benchmark):
-    benchmark(walk_benchmark, MATRICES["5x5_rational"], {n: 1}, 1000, {n: 1})
-
-
-def test_walk_5x5_polynomial_single_parameter_benchmark(benchmark):
-    benchmark(walk_benchmark, MATRICES["5x5_polynomial"], {n: 1}, 1000, {n: 1})
+@pytest.mark.parametrize("depth", DEPTHS, ids=[f"N={d}" for d in DEPTHS])
+@pytest.mark.parametrize("matrix_name", MATRICES.keys())
+def test_walk_benchmark(benchmark, matrix_name, depth):
+    benchmark(walk_benchmark, MATRICES[matrix_name], {n: 1}, depth, {n: 1})
 
 
 def test_as_companion_3x3_2f2_benchmark(benchmark):
