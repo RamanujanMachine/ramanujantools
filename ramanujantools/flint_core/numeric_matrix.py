@@ -98,16 +98,40 @@ class NumericMatrix(fmpq_mat):
         iterations: Batchable[int],
         start: Position,
     ) -> Batchable[NumericMatrix]:
-        results = []
-        position = start.copy()
+        N = iterations[-1]
         fast_subs = NumericMatrix.lambda_from_rt(matrix)
-        retval = NumericMatrix.eye(matrix.rows)
-        for depth in range(0, iterations[-1]):
-            if depth in iterations:
-                results.append(retval)
-            retval *= fast_subs(position)
+        dim = matrix.rows
+
+        # Pre-evaluate all per-step matrices into a flat list.
+        position = start.copy()
+        step_matrices = []
+        for _ in range(N):
+            step_matrices.append(fast_subs(position))
             position += trajectory
-        results.append(retval)  # Last matrix, for iterations[-1]
+
+        def _product_tree(lo, hi):
+            """Balanced divide-and-conquer product: step_matrices[lo] * … * step_matrices[hi]."""
+            span = hi - lo
+            if span == 0:
+                return step_matrices[lo]
+            if span <= 8:
+                result = step_matrices[lo]
+                for i in range(lo + 1, hi + 1):
+                    result = result * step_matrices[i]
+                return result
+            mid = (lo + hi) >> 1
+            return _product_tree(lo, mid) * _product_tree(mid + 1, hi)
+
+        # Build results at each requested checkpoint.
+        results = []
+        accumulated = NumericMatrix.eye(dim)
+        prev_depth = 0
+        for target in iterations:
+            if target > prev_depth:
+                segment = _product_tree(prev_depth, target - 1)
+                accumulated = accumulated * segment
+            results.append(NumericMatrix(accumulated))
+            prev_depth = target
         return results
 
     def to_rt(self) -> rt.Matrix:
