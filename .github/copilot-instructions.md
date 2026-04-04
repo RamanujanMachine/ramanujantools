@@ -30,6 +30,7 @@ arithmetic.
 - Benchmarks live in `matrix_benchmark.py` and run **strictly via pytest**, never as standalone scripts.
 - Every new public function needs at least one test (happy path + edge case).
 - Tests should exercise the public `Matrix` API, not internal classes directly, unless testing internal-only behavior.
+- Use `@pytest.mark.parametrize` to cover multiple inputs (e.g., different matrix sizes, depths, edge cases) in a single test function instead of duplicating test functions.
 
 ### Numeric precision
 - **Never use Python `float`** for mathematical verification. Use `mpmath.mpf`, `sympy.Rational`, or FLINT types.
@@ -41,6 +42,7 @@ arithmetic.
 - Extract magic numbers into named constants (e.g., `SEQUENTIAL_THRESHOLD = 8`).
 - Docstrings on public functions: one-line summary, parameters, return value.
 - No unnecessary abstractions for one-off operations.
+- **Minimal comments.** Do not add decorative section separators (`# -----`), redundant header comments, or obvious comments. Let the code speak for itself. A brief comment is fine when explaining *why*, not *what*.
 
 ### Performance
 - Profile before optimizing (`cProfile`, `timeit`).
