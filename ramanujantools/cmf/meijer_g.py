@@ -31,26 +31,20 @@ class MeijerG(DFinite):
 
     def __getstate__(self):
         state = super().__getstate__().copy()
-        state.update({
-            'm': self.m,
-            'n': self.n,
-            'p': self.p,
-            'q': self.q,
-            'z': self.z
-        })
+        state.update({"m": self.m, "n": self.n, "p": self.p, "q": self.q, "z": self.z})
         return state
 
     def __setstate__(self, state):
-        self.m = state['m']
-        self.n = state['n']
-        self.p = state['p']
-        self.q = state['q']
-        self.z = state['z']
-        del state['m']
-        del state['n']
-        del state['p']
-        del state['q']
-        del state['z']
+        self.m = state["m"]
+        self.n = state["n"]
+        self.p = state["p"]
+        self.q = state["q"]
+        self.z = state["z"]
+        del state["m"]
+        del state["n"]
+        del state["p"]
+        del state["q"]
+        del state["z"]
         super().__setstate__(state)
 
     @staticmethod
@@ -86,8 +80,8 @@ class MeijerG(DFinite):
         is_a = axis.name.startswith("a")
         index = int(axis.name[1:])
         if is_a:
-            sign = -1 if index > n else 1
+            sign = -1 if index >= n else 1
         else:
-            sign = 1 if index > m else -1
+            sign = 1 if index >= m else -1
         multiplier = axis - 1 if is_a else axis
         return (theta_matrix - multiplier * eye) * sign

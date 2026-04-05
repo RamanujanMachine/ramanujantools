@@ -7,6 +7,9 @@ from sympy.abc import n, z
 from ramanujantools import Position, Matrix, LinearRecurrence
 from ramanujantools.cmf import MeijerG
 
+a0, a1 = sp.symbols("a:2")
+b0, b1 = sp.symbols("b:2")
+
 
 def test_conserving():
     for _p in range(1, 3):
@@ -14,6 +17,12 @@ def test_conserving():
             for _n in range(_p):
                 for _m in range(_q):
                     MeijerG(_m, _n, _p, _q, z).validate_conserving()
+
+
+def test_m_n_sign():
+    cmf = MeijerG(1, 1, 2, 2)
+    assert cmf.M(a0).subs({a0: a1, a1: a0}) == -1 * cmf.M(a1)
+    assert cmf.M(b0).subs({b0: b1, b1: b0}) == -1 * cmf.M(b1)
 
 
 def test_gamma():
@@ -37,18 +46,31 @@ def test_serialization():
     serialized_data = pickle.dumps(original_meijer_g)
     unpickled_meijer_g = pickle.loads(serialized_data)
 
-    assert isinstance(unpickled_meijer_g, MeijerG), "Object type mismatch after unpickling."
-    assert hasattr(unpickled_meijer_g, 'p'), 'expected to have attribute p'
-    assert hasattr(unpickled_meijer_g, 'q'), 'expected to have attribute q'
-    assert hasattr(unpickled_meijer_g, 'm'), 'expected to have attribute m'
-    assert hasattr(unpickled_meijer_g, 'n'), 'expected to have attribute n'
-    assert hasattr(unpickled_meijer_g, 'z'), 'expected to have attribute z'
-    assert unpickled_meijer_g.p == original_meijer_g.p, f"p mismatch: {unpickled_meijer_g.p} != {original_meijer_g.p}"
-    assert unpickled_meijer_g.q == original_meijer_g.q, f"q mismatch: {unpickled_meijer_g.q} != {original_meijer_g.q}"
-    assert unpickled_meijer_g.m == original_meijer_g.m, f"m mismatch: {unpickled_meijer_g.m} != {original_meijer_g.m}"
-    assert unpickled_meijer_g.n == original_meijer_g.n, f"n mismatch: {unpickled_meijer_g.n} != {original_meijer_g.n}"
-    assert unpickled_meijer_g.z == original_meijer_g.z, f"z mismatch: {unpickled_meijer_g.z} != {original_meijer_g.z}"
-    
+    assert isinstance(unpickled_meijer_g, MeijerG), (
+        "Object type mismatch after unpickling."
+    )
+    assert hasattr(unpickled_meijer_g, "p"), "expected to have attribute p"
+    assert hasattr(unpickled_meijer_g, "q"), "expected to have attribute q"
+    assert hasattr(unpickled_meijer_g, "m"), "expected to have attribute m"
+    assert hasattr(unpickled_meijer_g, "n"), "expected to have attribute n"
+    assert hasattr(unpickled_meijer_g, "z"), "expected to have attribute z"
+    assert unpickled_meijer_g.p == original_meijer_g.p, (
+        f"p mismatch: {unpickled_meijer_g.p} != {original_meijer_g.p}"
+    )
+    assert unpickled_meijer_g.q == original_meijer_g.q, (
+        f"q mismatch: {unpickled_meijer_g.q} != {original_meijer_g.q}"
+    )
+    assert unpickled_meijer_g.m == original_meijer_g.m, (
+        f"m mismatch: {unpickled_meijer_g.m} != {original_meijer_g.m}"
+    )
+    assert unpickled_meijer_g.n == original_meijer_g.n, (
+        f"n mismatch: {unpickled_meijer_g.n} != {original_meijer_g.n}"
+    )
+    assert unpickled_meijer_g.z == original_meijer_g.z, (
+        f"z mismatch: {unpickled_meijer_g.z} != {original_meijer_g.z}"
+    )
+
+
 def test_asymptotics_fail1():
     cmf = MeijerG(3, 2, 2, 3, 1)
     a0, a1 = sp.symbols("a:2")
