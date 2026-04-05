@@ -98,16 +98,48 @@ class NumericMatrix(fmpq_mat):
         iterations: Batchable[int],
         start: Position,
     ) -> Batchable[NumericMatrix]:
-        results = []
-        position = start.copy()
+        N = iterations[-1]
         fast_subs = NumericMatrix.lambda_from_rt(matrix)
-        retval = NumericMatrix.eye(matrix.rows)
-        for depth in range(0, iterations[-1]):
-            if depth in iterations:
-                results.append(retval)
-            retval *= fast_subs(position)
+        dim = matrix.rows
+
+        # Pre-evaluate all per-step matrices into a flat list.
+        position = start.copy()
+        step_matrices = []
+        for _ in range(N):
+            step_matrices.append(fast_subs(position))
             position += trajectory
-        results.append(retval)  # Last matrix, for iterations[-1]
+
+        # Below this range size, a sequential loop is faster than recursion.
+        SEQUENTIAL_THRESHOLD = 8
+
+        def _product_tree(first, last):
+            """Return step_matrices[first] * step_matrices[first+1] * … * step_matrices[last].
+
+            Uses balanced divide-and-conquer so that intermediate products stay
+            small, which is critical for FLINT rational matrices whose entry
+            sizes grow with each multiplication.
+            """
+            span = last - first
+            if span == 0:
+                return step_matrices[first]
+            if span <= SEQUENTIAL_THRESHOLD:
+                result = step_matrices[first]
+                for i in range(first + 1, last + 1):
+                    result = result * step_matrices[i]
+                return result
+            mid = (first + last) >> 1
+            return _product_tree(first, mid) * _product_tree(mid + 1, last)
+
+        # Build results at each requested checkpoint.
+        results = []
+        accumulated = NumericMatrix.eye(dim)
+        prev_depth = 0
+        for target in iterations:
+            if target > prev_depth:
+                segment = _product_tree(prev_depth, target - 1)
+                accumulated = accumulated * segment
+            results.append(NumericMatrix(accumulated))
+            prev_depth = target
         return results
 
     def to_rt(self) -> rt.Matrix:

@@ -1,36 +1,24 @@
+"""Benchmarks for Matrix.walk().
+
+Run with: pytest matrix_benchmark.py --benchmark-only
+"""
+
+import pytest
 from sympy.abc import n
 
 from ramanujantools import Matrix
 
-
-def walk_benchmark(matrix, trajectory, iterations, start):
-    Matrix._walk_inner.cache_clear()
-    return matrix.walk(trajectory, iterations, start)
-
-
-def test_walk_pcf_single_parameter_benchmark(benchmark):
-    matrix = Matrix([[0, -(n**2)], [1, n + 1]])
-    benchmark(walk_benchmark, matrix, {n: 1}, 1000, {n: 1})
-
-
-def test_walk_2x2_single_parameter_benchmark(benchmark):
-    matrix = Matrix([[n**3 - 1, -(n**2)], [n**2 + 17, 1 / (n + 1)]])
-    benchmark(walk_benchmark, matrix, {n: 1}, 1000, {n: 1})
-
-
-def test_walk_3x3_single_parameter_benchmark(benchmark):
-    matrix = Matrix(
+MATRICES = {
+    "2x2_pcf": Matrix([[0, -(n**2)], [1, n + 1]]),
+    "2x2_rational": Matrix([[n**3 - 1, -(n**2)], [n**2 + 17, 1 / (n + 1)]]),
+    "3x3_rational": Matrix(
         [
             [n**3 - 1, -(n**2), 2],
             [n**2 + 17, n + 1, -(n**3)],
             [1 / (n + 2), 12 * n**2 + 13 * n + 14 * n, 19],
         ]
-    )
-    benchmark(walk_benchmark, matrix, {n: 1}, 1000, {n: 1})
-
-
-def test_walk_5x5_single_parameter_benchmark(benchmark):
-    matrix = Matrix(
+    ),
+    "5x5_rational": Matrix(
         [
             [n**3 - 1, -(n**2), 2, n, 1],
             [n**2 + 17, n + 1, -(n**3), 7, n**3 - 2],
@@ -38,12 +26,8 @@ def test_walk_5x5_single_parameter_benchmark(benchmark):
             [3 * n**3 - 2, n + 1, 1 / (n + 1), 7, n**2 - 1],
             [n, n**2, n**3, 1 - n, -n * (n - 7) + 3],
         ]
-    )
-    benchmark(walk_benchmark, matrix, {n: 1}, 1000, {n: 1})
-
-
-def test_walk_5x5_polynomial_single_parameter_benchmark(benchmark):
-    matrix = Matrix(
+    ),
+    "5x5_polynomial": Matrix(
         [
             [n**3 - 1, -(n**2), 2, n, 1],
             [n**2 + 17, n + 1, -(n**3), 7, n**3 - 2],
@@ -51,8 +35,21 @@ def test_walk_5x5_polynomial_single_parameter_benchmark(benchmark):
             [3 * n**3 - 2, n + 1, n + 1, 7, n**2 - 1],
             [n, n**2, n**3, 1 - n, -n * (n - 7) + 3],
         ]
-    )
-    benchmark(walk_benchmark, matrix, {n: 1}, 1000, {n: 1})
+    ),
+}
+
+DEPTHS = [100, 500, 1000, 2000]
+
+
+def walk_benchmark(matrix, trajectory, iterations, start):
+    Matrix._walk_inner.cache_clear()
+    return matrix.walk(trajectory, iterations, start)
+
+
+@pytest.mark.parametrize("depth", DEPTHS, ids=[f"N={d}" for d in DEPTHS])
+@pytest.mark.parametrize("matrix_name", MATRICES.keys())
+def test_walk_benchmark(benchmark, matrix_name, depth):
+    benchmark(walk_benchmark, MATRICES[matrix_name], {n: 1}, depth, {n: 1})
 
 
 def test_as_companion_3x3_2f2_benchmark(benchmark):
