@@ -424,18 +424,25 @@ class Matrix(sp.Matrix):
             deltas.append(sp.log(abs(lambdas[0]) / abs(lambdas[i])))
         return deltas
 
-    def gcd_slope(self, depth=20) -> mp.mpf:
+    def gcd_slope(
+            self,
+            depth=20,
+            initial_values: Matrix | None = None,
+            final_projection: Matrix | None = None
+    ) -> mp.mpf:
         r"""
         Attempts to perform a linear fit of $\bar{q} = \frac{q_n}{gcd(p_n, q_n)}$ as a function of $n$.
 
         Args:
             depth: The maximal value of $n$
+            initial_values: The initial values matrix, defaults to $e_1$ and $e_2$.
+            final_projection: The final projection matrix, defaults to $e_{-1}$ and $e_{-1}$.
         Returns:
             The slope of the lienar fit of $\bar{q}$.
         """
         depths = list(range(1, depth))
         q_reduced_list = []
-        limits = self.limit({n: 1}, depths, {n: 1})
+        limits = self.limit({n: 1}, depths, {n: 1}, initial_values, final_projection)
         for limit in limits:
             q_reduced_list.append(sp.log(limit.as_rational().q).evalf(30))
         fit = np.polyfit(
@@ -443,7 +450,12 @@ class Matrix(sp.Matrix):
         )
         return mp.mpf(fit[0])
 
-    def kamidelta(self, depth=20) -> list[mp.mpf]:
+    def kamidelta(
+            self,
+            depth=20,
+            initial_values: Matrix | None = None,
+            final_projection: Matrix | None = None
+    ) -> list[mp.mpf]:
         r"""
         Predicts the possible delta values of the integer sequence approximation that the matrix generates.
 
@@ -456,11 +468,13 @@ class Matrix(sp.Matrix):
 
         Args:
             depth: The maximal depth for the gcd slope fit.
+            initial_values: The initial values matrix, defaults to $e_1$ and $e_2$.
+            final_projection: The final projection matrix, defaults to $e_{-1}$ and $e_{-1}$.
         Returns:
             A list (of size N - 1) containing all predicted delta possibilities.
         """
         errors = self.errors()
-        slope = self.gcd_slope(depth)
+        slope = self.gcd_slope(depth, initial_values, final_projection)
         return [-1 + error / slope for error in errors]
 
     def degrees(self, symbol: sp.Symbol = None) -> Matrix:
