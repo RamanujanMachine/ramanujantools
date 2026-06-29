@@ -128,7 +128,7 @@ class pFq(DFinite):
         Returns the \theta derivative of an expression,
         which is defined as z * d/dz.
         """
-        return z * sp.Derivative(expr, z).simplify()
+        return z * sp.diff(expr, z)
 
     @staticmethod
     def state_vector(
