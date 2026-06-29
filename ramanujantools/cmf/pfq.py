@@ -37,20 +37,16 @@ class pFq(DFinite):
 
     def __getstate__(self):
         state = super().__getstate__().copy()
-        state.update({
-            'p': self.p,
-            'q': self.q,
-            'z': self.z
-        })
+        state.update({"p": self.p, "q": self.q, "z": self.z})
         return state
 
     def __setstate__(self, state):
-        self.p = state['p']
-        self.q = state['q']
-        self.z = state['z']
-        del state['p']
-        del state['q']
-        del state['z']
+        self.p = state["p"]
+        self.q = state["q"]
+        self.z = state["z"]
+        del state["p"]
+        del state["q"]
+        del state["z"]
         super().__setstate__(state)
 
     @staticmethod
