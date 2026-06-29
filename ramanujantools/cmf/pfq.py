@@ -153,14 +153,15 @@ class pFq(DFinite):
         )
 
     @staticmethod
-    def contiguous_relation(point, anchor, z) -> Matrix:
+    def contiguous_relation(point, anchor, z_eval) -> Matrix:
         a_point, b_point = point
         a_anchor, b_anchor = anchor
         p = len(a_point)
         q = len(b_point)
         start = Position.from_list(a_anchor, "x") | Position.from_list(b_anchor, "y")
         end = Position.from_list(a_point, "x") | Position.from_list(b_point, "y")
-        return pFq(p, q, z).work(start, end)
+        cmf = pFq(p, q)
+        return cmf.subs({z: z_eval}).work(start, end)
 
     @staticmethod
     def evaluate(
