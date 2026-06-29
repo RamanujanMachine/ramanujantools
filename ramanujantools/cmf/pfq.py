@@ -37,20 +37,16 @@ class pFq(DFinite):
 
     def __getstate__(self):
         state = super().__getstate__().copy()
-        state.update({
-            'p': self.p,
-            'q': self.q,
-            'z': self.z
-        })
+        state.update({"p": self.p, "q": self.q, "z": self.z})
         return state
 
     def __setstate__(self, state):
-        self.p = state['p']
-        self.q = state['q']
-        self.z = state['z']
-        del state['p']
-        del state['q']
-        del state['z']
+        self.p = state["p"]
+        self.q = state["q"]
+        self.z = state["z"]
+        del state["p"]
+        del state["q"]
+        del state["z"]
         super().__setstate__(state)
 
     @staticmethod
@@ -132,7 +128,7 @@ class pFq(DFinite):
         Returns the \theta derivative of an expression,
         which is defined as z * d/dz.
         """
-        return z * sp.Derivative(expr, z).simplify()
+        return z * sp.diff(expr, z)
 
     @staticmethod
     def state_vector(
@@ -157,14 +153,15 @@ class pFq(DFinite):
         )
 
     @staticmethod
-    def contiguous_relation(point, anchor, z) -> Matrix:
+    def contiguous_relation(point, anchor, z_eval) -> Matrix:
         a_point, b_point = point
         a_anchor, b_anchor = anchor
         p = len(a_point)
         q = len(b_point)
         start = Position.from_list(a_anchor, "x") | Position.from_list(b_anchor, "y")
         end = Position.from_list(a_point, "x") | Position.from_list(b_point, "y")
-        return pFq(p, q, z).work(start, end)
+        cmf = pFq(p, q)
+        return cmf.subs({z: z_eval}).work(start, end)
 
     @staticmethod
     def evaluate(
@@ -179,12 +176,8 @@ class pFq(DFinite):
         """
         a_values = [sp.S(value) for value in a_values]
         b_values = [sp.S(value) for value in b_values]
-        a_anchor = [
-            sp.sign(value) * (value - (value.floor() - 1)) for value in a_values
-        ]
-        b_anchor = [
-            sp.sign(value) * (value - (value.floor() - 2)) for value in b_values
-        ]
+        a_anchor = [sp.sign(value) * (value - value.floor() + 2) for value in a_values]
+        b_anchor = [sp.sign(value) * (value - value.floor() + 4) for value in b_values]
         vector = pFq.state_vector(a_anchor, b_anchor, z_eval)
         m = pFq.contiguous_relation((a_values, b_values), (a_anchor, b_anchor), z_eval)
         return (vector * m)[0]
