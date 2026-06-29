@@ -176,12 +176,8 @@ class pFq(DFinite):
         """
         a_values = [sp.S(value) for value in a_values]
         b_values = [sp.S(value) for value in b_values]
-        a_anchor = [
-            sp.sign(value) * (value - (value.floor() - 1)) for value in a_values
-        ]
-        b_anchor = [
-            sp.sign(value) * (value - (value.floor() - 2)) for value in b_values
-        ]
+        a_anchor = [sp.sign(value) * (value - value.floor() + 2) for value in a_values]
+        b_anchor = [sp.sign(value) * (value - value.floor() + 4) for value in b_values]
         vector = pFq.state_vector(a_anchor, b_anchor, z_eval)
         m = pFq.contiguous_relation((a_values, b_values), (a_anchor, b_anchor), z_eval)
         return (vector * m)[0]
