@@ -316,7 +316,7 @@ class CMF(Printable):
             return SymbolicMatrix.eye(self.rank(), ctx)
 
         axes = list(trajectory.keys())
-        all_paths = list(itertools.permutations(axes))
+        all_paths = itertools.permutations(axes)
 
         for axis_ordering in all_paths:
             try:
@@ -359,14 +359,12 @@ class CMF(Printable):
             try:
                 result = SymbolicMatrix.eye(self.rank(), ctx)
                 position = start.copy()
-                leftover_trajectory = trajectory.copy()
                 for multiplicity, diagonal in reversed(diagonal_combination):
                     result *= self._trajectory_matrix_inner(
                         diagonal, position, symbol
                     ).walk({symbol: 1}, multiplicity, {symbol: 0})
                     distance = multiplicity * diagonal
                     position += distance
-                    leftover_trajectory -= distance
                 return result
 
             except ZeroDivisionError:
