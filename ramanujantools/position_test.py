@@ -94,6 +94,18 @@ def test_free_symbols():
     assert {x, z} == Position({x: 1, y: z, z: x}).free_symbols()
 
 
+def test_diagonal_decomposition():
+    x0, x1, x2, x3, x4, x5, x6 = sp.symbols("x:7")
+    position = Position({x0: 0, x1: 2, x2: -2, x3: 2, x4: 4, x5: 7, x6: -8})
+    expected = [
+        (2, Position({x0: 0, x1: 1, x2: -1, x3: 1, x4: 1, x5: 1, x6: -1})),
+        (2, Position({x0: 0, x1: 0, x2: 0, x3: 0, x4: 1, x5: 1, x6: -1})),
+        (3, Position({x0: 0, x1: 0, x2: 0, x3: 0, x4: 0, x5: 1, x6: -1})),
+        (1, Position({x0: 0, x1: 0, x2: 0, x3: 0, x4: 0, x5: 0, x6: -1})),
+    ]
+    assert expected == position.diagonal_decomposition()
+
+
 def test_from_list():
     z0, z1, z2, z3 = sp.symbols("z:4")
     expected = Position({z0: 9, z1: 8, z2: 7, z3: 6})
