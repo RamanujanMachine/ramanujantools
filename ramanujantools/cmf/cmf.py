@@ -319,12 +319,11 @@ class CMF(Printable):
         all_paths = list(itertools.permutations(axes))
 
         for axis_ordering in all_paths:
-            axis_ordering = list(reversed(axis_ordering))
             try:
                 position = start.copy()
                 result = SymbolicMatrix.eye(self.rank(), ctx)
 
-                for axis in axis_ordering:
+                for axis in reversed(axis_ordering):
                     sign = trajectory[axis] >= 0
                     current = SymbolicMatrix.from_sympy(self.M(axis, sign), ctx).subs(
                         position
@@ -357,12 +356,11 @@ class CMF(Printable):
 
         all_diagonals = itertools.permutations(diagonals)
         for diagonal_combination in all_diagonals:
-            diagonal_combination = list(reversed(diagonal_combination))
             try:
                 result = SymbolicMatrix.eye(self.rank(), ctx)
                 position = start.copy()
                 leftover_trajectory = trajectory.copy()
-                for multiplicity, diagonal in diagonal_combination:
+                for multiplicity, diagonal in reversed(diagonal_combination):
                     result *= self._trajectory_matrix_inner(
                         diagonal, position, symbol
                     ).walk({symbol: 1}, int(multiplicity), {symbol: 0})
