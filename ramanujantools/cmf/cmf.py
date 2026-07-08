@@ -352,22 +352,23 @@ class CMF(Printable):
         if trajectory.longest() <= 1:
             return self._calculate_diagonal_matrix(trajectory, start, ctx)
 
-        result = SymbolicMatrix.eye(self.rank(), ctx)
         symbol = CMF.walk_symbol()
-        position = start.copy()
         diagonals = trajectory.diagonal_decomposition()
 
         all_diagonals = itertools.permutations(diagonals)
         for diagonal_combination in all_diagonals:
             diagonal_combination = list(reversed(diagonal_combination))
             try:
+                result = SymbolicMatrix.eye(self.rank(), ctx)
+                position = start.copy()
+                leftover_trajectory = trajectory.copy()
                 for multiplicity, diagonal in diagonal_combination:
                     result *= self._trajectory_matrix_inner(
                         diagonal, position, symbol
                     ).walk({symbol: 1}, int(multiplicity), {symbol: 0})
                     distance = multiplicity * diagonal
                     position += distance
-                    trajectory -= distance
+                    leftover_trajectory -= distance
                 return result
 
             except ZeroDivisionError:
