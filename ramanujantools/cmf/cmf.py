@@ -290,15 +290,29 @@ class CMF(Printable):
         )
         return flint_ctx(free_symbols, fmpz=start.is_polynomial())
 
-    def _calculate_diagonal_matrix_backtrack(
+    @lru_cache
+    def _calculate_diagonal_matrix(
         self, trajectory: Position, start: Position, ctx: FlintContext
     ) -> SymbolicMatrix:
         """
-        Inner function of an inner function. DO NOT USE DIRECTLY.
-        This iterative approach replaces backtracking to find a non-singular path.
-        It evaluates permutations of the trajectory axes in random order to avoid
-        getting stuck in localized DFS failure branches.
+        The manual calculation of trajectory matrix in the stopping condition.
+        You should probably use `trajectory_matrix` instead.
+
+        Assumes trajectory is a simple diagonal - all abs values are at most 1
+        Args:
+            trajectory: a dict containing the amount of steps in each direction.
+            start: a dict representing the starting point of the multiplication.
+        Returns:
+            A matrix that represents a single step in the desired trajectory
         """
+        if trajectory.longest() > 1:
+            raise ValueError(
+                f"Called _calculate_diagonal_matrix with a trajectory that is not a simple diagonal: {trajectory}"
+            )
+        trajectory = Position(
+            {axis: value for axis, value in trajectory.items() if value != 0}
+        )
+
         if trajectory.longest() == 0:
             return SymbolicMatrix.eye(self.rank(), ctx)
 
@@ -327,31 +341,6 @@ class CMF(Printable):
         raise ZeroDivisionError(
             "A singularity has occurred in every possible trajectory combination"
         )
-
-    @lru_cache
-    def _calculate_diagonal_matrix(
-        self, trajectory: Position, start: Position, ctx: FlintContext
-    ) -> SymbolicMatrix:
-        """
-        The manual calculation of trajectory matrix in the stopping condition.
-        You should probably use `trajectory_matrix` instead.
-
-        Assumes trajectory is a simple diagonal - all abs values are at most 1
-        Args:
-            trajectory: a dict containing the amount of steps in each direction.
-            start: a dict representing the starting point of the multiplication.
-        Returns:
-            A matrix that represents a single step in the desired trajectory
-        """
-        if trajectory.longest() > 1:
-            raise ValueError(
-                f"Called _calculate_diagonal_matrix with a trajectory that is not a simple diagonal: {trajectory}"
-            )
-        trajectory = Position(
-            {axis: value for axis, value in trajectory.items() if value != 0}
-        )
-
-        return self._calculate_diagonal_matrix_backtrack(trajectory, start, ctx)
 
     def _work_symbolic(
         self,
