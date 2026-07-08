@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import random
 import itertools
 from functools import lru_cache
 
@@ -317,16 +316,15 @@ class CMF(Printable):
             return SymbolicMatrix.eye(self.rank(), ctx)
 
         axes = list(trajectory.keys())
-        rng = random.Random(42)
         all_paths = list(itertools.permutations(axes))
-        rng.shuffle(all_paths)
 
-        for path in all_paths:
+        for axis_ordering in all_paths:
+            axis_ordering = list(reversed(axis_ordering))
             try:
                 position = start.copy()
                 result = SymbolicMatrix.eye(self.rank(), ctx)
 
-                for axis in path:
+                for axis in axis_ordering:
                     sign = trajectory[axis] >= 0
                     current = SymbolicMatrix.from_sympy(self.M(axis, sign), ctx).subs(
                         position
@@ -359,14 +357,9 @@ class CMF(Printable):
         position = start.copy()
         diagonals = trajectory.diagonal_decomposition()
 
-        rng = random.Random(42)
-        all_diagonals = list(itertools.permutations(diagonals))
-        rng.shuffle(all_diagonals)
-
-        rng = random.Random(42)
-        rng.shuffle(diagonals)
-
+        all_diagonals = itertools.permutations(diagonals)
         for diagonal_combination in all_diagonals:
+            diagonal_combination = list(reversed(diagonal_combination))
             try:
                 for multiplicity, diagonal in diagonal_combination:
                     result *= self._trajectory_matrix_inner(
