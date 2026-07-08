@@ -363,7 +363,7 @@ class CMF(Printable):
                 for multiplicity, diagonal in reversed(diagonal_combination):
                     result *= self._trajectory_matrix_inner(
                         diagonal, position, symbol
-                    ).walk({symbol: 1}, int(multiplicity), {symbol: 0})
+                    ).walk({symbol: 1}, multiplicity, {symbol: 0})
                     distance = multiplicity * diagonal
                     position += distance
                     leftover_trajectory -= distance
