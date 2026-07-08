@@ -120,7 +120,7 @@ class Position(dict[sp.Symbol, sp.Expr]):
         Returns a list of diagonal positions and their multiplier $(m_i, \mathbf{d}_i)$,
         such that the position is $\mathbf{p} = \sum_i m_i \cdot \mathbf{d}_i$.
         """
-        position = self
+        position = self.copy()
         retval = []
         while position.longest() > 0:
             depth = position.shortest()
