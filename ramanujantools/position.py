@@ -116,9 +116,9 @@ class Position(dict[sp.Symbol, sp.Expr]):
         return Position({key: self[key] for key in sorted(self.keys(), key=str)})
 
     def diagonal_decomposition(self) -> list[tuple[int, Position]]:
-        """
+        r"""
         Returns a list of diagonal positions and their multiplier $(m_i, \mathbf{d}_i)$,
-        such that the position is $\mathbf{p} = \sum_i m_i \cdot \mathbf{d}_i.
+        such that the position is $\mathbf{p} = \sum_i m_i \cdot \mathbf{d}_i$.
         """
         position = self
         retval = []
