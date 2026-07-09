@@ -1,7 +1,7 @@
 from __future__ import annotations
-from functools import lru_cache
 
 import itertools
+from functools import lru_cache
 
 import sympy as sp
 from sympy.abc import n
@@ -289,34 +289,6 @@ class CMF(Printable):
         )
         return flint_ctx(free_symbols, fmpz=start.is_polynomial())
 
-    def _calculate_diagonal_matrix_backtrack(
-        self, trajectory: Position, start: Position, ctx: FlintContext
-    ) -> SymbolicMatrix:
-        """
-        Inner function of an inner function. DO NOT USE DIRECTLY.
-        This is the backtracking hook used for `_calculate_diagonal_marix`.
-        It's used to look for a non-singular path towards the trajectroy matrix.
-        """
-        if trajectory.longest() == 0:
-            return SymbolicMatrix.eye(self.rank(), ctx)
-        for axis in sorted(trajectory.keys(), key=str):
-            try:
-                inner_trajectory = trajectory.copy()
-                position = start.copy()
-                sign = inner_trajectory[axis] >= 0
-                current = SymbolicMatrix.from_sympy(self.M(axis, sign), ctx).subs(
-                    position
-                )
-                position[axis] += inner_trajectory.pop(axis)
-                return current * self._calculate_diagonal_matrix_backtrack(
-                    inner_trajectory, position, ctx
-                )
-            except ZeroDivisionError:
-                continue
-        raise ZeroDivisionError(
-            "A singularity has occured in every possible trajectory combination"
-        )
-
     @lru_cache
     def _calculate_diagonal_matrix(
         self, trajectory: Position, start: Position, ctx: FlintContext
@@ -340,7 +312,32 @@ class CMF(Printable):
             {axis: value for axis, value in trajectory.items() if value != 0}
         )
 
-        return self._calculate_diagonal_matrix_backtrack(trajectory, start, ctx)
+        if trajectory.longest() == 0:
+            return SymbolicMatrix.eye(self.rank(), ctx)
+
+        axes = list(trajectory.keys())
+        all_paths = itertools.permutations(axes)
+
+        for axis_ordering in all_paths:
+            try:
+                position = start.copy()
+                result = SymbolicMatrix.eye(self.rank(), ctx)
+
+                for axis in reversed(axis_ordering):
+                    sign = trajectory[axis] >= 0
+                    current = SymbolicMatrix.from_sympy(self.M(axis, sign), ctx).subs(
+                        position
+                    )
+                    position[axis] += trajectory[axis]
+                    result *= current
+                return result
+
+            except ZeroDivisionError:
+                continue
+
+        raise ZeroDivisionError(
+            "A singularity has occurred in every possible trajectory combination"
+        )
 
     def _work_symbolic(
         self,
@@ -351,23 +348,31 @@ class CMF(Printable):
         Internal work logic. Do not use directly.
         """
         ctx = self.ctx(start)
-        # Stopping condition: l-infinity norm of trajectory is less than 1
         if trajectory.longest() <= 1:
             return self._calculate_diagonal_matrix(trajectory, start, ctx)
 
-        result = SymbolicMatrix.eye(self.rank(), ctx)
         symbol = CMF.walk_symbol()
-        depth = trajectory.shortest()
-        position = start.copy()
-        while depth > 0:
-            diagonal = trajectory.signs()
-            result *= self._trajectory_matrix_inner(diagonal, position, symbol).walk(
-                {symbol: 1}, int(depth), {symbol: 0}
-            )
-            position += depth * diagonal
-            trajectory -= depth * diagonal
-            depth = trajectory.shortest()
-        return result
+        diagonals = trajectory.diagonal_decomposition()
+
+        all_diagonals = itertools.permutations(diagonals)
+        for diagonal_combination in all_diagonals:
+            try:
+                result = SymbolicMatrix.eye(self.rank(), ctx)
+                position = start.copy()
+                for multiplicity, diagonal in reversed(diagonal_combination):
+                    result *= self._trajectory_matrix_inner(
+                        diagonal, position, symbol
+                    ).walk({symbol: 1}, multiplicity, {symbol: 0})
+                    distance = multiplicity * diagonal
+                    position += distance
+                return result
+
+            except ZeroDivisionError:
+                continue
+
+        raise ZeroDivisionError(
+            "A singularity has occurred in every possible trajectory combination"
+        )
 
     def _work_numeric(
         self,
@@ -378,7 +383,6 @@ class CMF(Printable):
         Internal work logic. Do not use directly.
         """
         ctx = self.ctx(start)
-        # Stopping condition: l-infinity norm of trajectory is less than 1
         if trajectory.longest() <= 1:
             matrix = self._calculate_diagonal_matrix(trajectory, start, ctx).factor()
             return NumericMatrix.lambda_from_rt(matrix)(start)

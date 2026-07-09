@@ -115,6 +115,24 @@ class Position(dict[sp.Symbol, sp.Expr]):
     def sorted(self) -> Position:
         return Position({key: self[key] for key in sorted(self.keys(), key=str)})
 
+    def diagonal_decomposition(self) -> list[tuple[int, Position]]:
+        r"""
+        Returns a list of diagonal positions and their multiplier $(m_i, \mathbf{d}_i)$,
+        such that the position is $\mathbf{p} = \sum_i m_i \cdot \mathbf{d}_i$.
+        """
+        if not self.is_integer():
+            raise ValueError(
+                "Position must be integer to perform diagonal decomposition."
+            )
+        position = self.copy()
+        retval = []
+        while position.longest() > 0:
+            depth = position.shortest()
+            diagonal = position.signs()
+            retval.append((int(depth), diagonal))
+            position -= depth * diagonal
+        return retval
+
     @staticmethod
     def from_list(values: list[sp.Expr], symbol: str) -> Position:
         """
