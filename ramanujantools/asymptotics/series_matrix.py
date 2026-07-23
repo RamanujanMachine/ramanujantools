@@ -2,8 +2,74 @@ from __future__ import annotations
 
 import sympy as sp
 from sympy.abc import t, n
+from sympy.polys.constructor import construct_domain
+from sympy.polys.matrices import DomainMatrix
 
 from ramanujantools import Matrix
+
+
+class _DomainSeriesMatrix:
+    """Internal series representation over one exact coefficient domain."""
+
+    def __init__(self, coefficients: list[DomainMatrix], p: int) -> None:
+        self.coeffs = coefficients
+        self.p = p
+        self.precision = len(coefficients)
+        self.shape = coefficients[0].shape
+        self.domain = coefficients[0].domain
+
+    def domain_matrix(self, rows: list[list]) -> DomainMatrix:
+        """Construct a dense matrix over this series' coefficient domain."""
+        shape = (len(rows), len(rows[0]) if rows else 0)
+        return DomainMatrix(rows, shape, self.domain, fmt="dense")
+
+    def monomial_coboundary(
+        self,
+        gauge_coefficient: DomainMatrix,
+        gauge_power: int,
+    ) -> _DomainSeriesMatrix:
+        r"""Apply a coboundary for ``G(t) = I + Y*t**m``."""
+        right_product = list(self.coeffs)
+        for index in range(gauge_power, self.precision):
+            right_product[index] = (
+                self.coeffs[index]
+                + self.coeffs[index - gauge_power] * gauge_coefficient
+            )
+
+        shifted_gauge_terms = []
+        shift_index = 0
+        while True:
+            power = gauge_power + self.p * shift_index
+            if power >= self.precision:
+                break
+            coefficient = sp.binomial(
+                -sp.Rational(gauge_power, self.p),
+                shift_index,
+            )
+            shifted_gauge_terms.append(
+                (power, self.domain.from_sympy(coefficient))
+            )
+            shift_index += 1
+
+        transformed = []
+        for index in range(self.precision):
+            coefficient = right_product[index]
+            for power, scalar in shifted_gauge_terms:
+                if power > index:
+                    break
+                correction = gauge_coefficient * transformed[index - power]
+                coefficient -= correction.scalarmul(scalar)
+            transformed.append(coefficient)
+
+        return type(self)(transformed, p=self.p)
+
+    def to_matrix(self) -> SeriesMatrix:
+        """Return the series with ordinary Matrix coefficients."""
+        return SeriesMatrix(
+            [Matrix(coefficient.to_Matrix()) for coefficient in self.coeffs],
+            p=self.p,
+            precision=self.precision,
+        )
 
 
 class SeriesMatrix:
@@ -41,6 +107,62 @@ class SeriesMatrix:
                 self.coeffs.append(coeffs[i])
             else:
                 self.coeffs.append(Matrix.zeros(*self.shape))
+
+    def to_domain(
+        self,
+        *matrices: Matrix,
+    ) -> tuple[list[DomainMatrix], _DomainSeriesMatrix]:
+        """Convert this series and related matrices to one exact number field."""
+        source_matrices = [*matrices, *self.coeffs]
+        entries = [
+            entry
+            for source_matrix in source_matrices
+            for entry in source_matrix
+        ]
+        domain, converted = construct_domain(
+            entries,
+            extension=True,
+            field=True,
+        )
+
+        is_supported_field = (
+            domain.is_QQ
+            or domain.is_GaussianField
+            or domain.is_AlgebraicField
+        )
+        if not domain.is_Exact or not is_supported_field:
+            raise ValueError(
+                "SeriesMatrix coefficients must belong to an exact "
+                f"algebraic number field, got {domain}"
+            )
+
+        domain_matrices = []
+        offset = 0
+        for source_matrix in source_matrices:
+            rows, columns = source_matrix.shape
+            size = rows * columns
+            matrix_entries = converted[offset:offset + size]
+            offset += size
+            domain_rows = [
+                matrix_entries[row * columns:(row + 1) * columns]
+                for row in range(rows)
+            ]
+            domain_matrices.append(
+                DomainMatrix(
+                    domain_rows,
+                    source_matrix.shape,
+                    domain,
+                    fmt="dense",
+                )
+            )
+
+        related_count = len(matrices)
+        related = domain_matrices[:related_count]
+        series = _DomainSeriesMatrix(
+            domain_matrices[related_count:],
+            p=self.p,
+        )
+        return related, series
 
     def __add__(self, other) -> SeriesMatrix:
         if self.shape != other.shape or self.p != other.p:
