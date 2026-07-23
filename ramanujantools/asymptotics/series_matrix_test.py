@@ -5,6 +5,11 @@ from ramanujantools import Matrix
 from ramanujantools.asymptotics import SeriesMatrix
 
 
+def assert_matrices_equal(actual: Matrix, expected: Matrix) -> None:
+    difference = (actual - expected).applyfunc(sp.simplify)
+    assert difference.is_zero_matrix
+
+
 def generate_test_matrices(seed=42, dim=4, count=8):
     random.seed(seed)
     matrices = []
@@ -107,6 +112,79 @@ def test_series_matrix_coboundary():
 
     assert M_cob.coeffs[0] == Matrix.eye(2)
     assert M_cob.coeffs[1] == Matrix.zeros(2, 2)
+
+
+def test_exact_domain_round_trip():
+    coefficients = [
+        Matrix([[1, sp.sqrt(3)], [sp.I, sp.Rational(2, 3)]]),
+        Matrix([[1 / (sp.sqrt(3) - sp.I), 0], [0, 1]]),
+    ]
+    series = SeriesMatrix(coefficients)
+
+    related, domain_series = series.to_domain()
+
+    assert related == []
+    assert domain_series.domain.is_AlgebraicField
+    for actual, expected in zip(domain_series.to_matrix().coeffs, coefficients):
+        assert_matrices_equal(actual, expected)
+
+
+def test_exact_rational_domain_uses_flint_matrices():
+    coefficients = [
+        Matrix([[1, sp.Rational(2, 3)], [4, 5]]),
+        Matrix([[0, 1], [2, 0]]),
+    ]
+
+    _, domain_series = SeriesMatrix(coefficients).to_domain()
+
+    assert domain_series.domain.is_QQ
+    assert type(domain_series.coeffs[0].rep).__name__ == "DFM"
+    assert domain_series.to_matrix().coeffs == coefficients
+
+
+def test_monomial_coboundary_matches_generic_coboundary():
+    coefficients = [
+        Matrix([[2, sp.sqrt(3)], [sp.I, 1]]),
+        Matrix([[0, 1], [2, 0]]),
+        Matrix([[1, 0], [0, -1]]),
+        Matrix([[sp.I, 2], [3, sp.sqrt(3)]]),
+        Matrix([[0, 0], [1, 0]]),
+        Matrix([[2, 1], [0, 3]]),
+    ]
+    gauge_coefficient = Matrix([[0, 1 + sp.I], [sp.sqrt(3), 0]])
+    gauge_power = 2
+    ramification = 2
+    precision = len(coefficients)
+    gauge_coefficients = (
+        [Matrix.eye(2)]
+        + [Matrix.zeros(2, 2)] * (gauge_power - 1)
+        + [gauge_coefficient]
+        + [Matrix.zeros(2, 2)] * (precision - gauge_power - 1)
+    )
+    expected = SeriesMatrix(
+        coefficients,
+        p=ramification,
+    ).coboundary(
+        SeriesMatrix(
+            gauge_coefficients,
+            p=ramification,
+        )
+    )
+
+    (domain_gauge,), domain_series = SeriesMatrix(
+        coefficients,
+        p=ramification,
+    ).to_domain(gauge_coefficient)
+    actual = domain_series.monomial_coboundary(
+        domain_gauge,
+        gauge_power,
+    ).to_matrix()
+
+    for actual_coefficient, expected_coefficient in zip(
+        actual.coeffs,
+        expected.coeffs,
+    ):
+        assert_matrices_equal(actual_coefficient, expected_coefficient)
 
 
 def test_series_matrix_shear_coboundary():

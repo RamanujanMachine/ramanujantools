@@ -27,6 +27,44 @@ def get_reducer(matrix: Matrix, precision: int = 5) -> Reducer:
     )
 
 
+def test_sylvester_solver():
+    A = Matrix([[1, 1], [0, 1]])
+    B = Matrix([[sp.sqrt(3), 0], [0, -sp.sqrt(3)]])
+    C = Matrix([[sp.I, 2], [3, 4]])
+    (B_domain, C_domain), domain_series = SeriesMatrix([A]).to_domain(B, C)
+    A_domain = domain_series.coeffs[0]
+
+    solution = Reducer._solve_sylvester(A_domain, B_domain, C_domain)
+    residual = A_domain * solution - solution * B_domain - C_domain
+
+    assert residual.is_zero_matrix
+
+
+def test_split_eliminates_cross_block_coefficients():
+    leading = Matrix.diag(sp.sqrt(2), -sp.sqrt(2))
+    coefficients = [
+        leading,
+        Matrix([[1, 1 + sp.sqrt(2)], [2, -1]]),
+        Matrix([[0, 3], [1 - sp.sqrt(2), 2]]),
+        Matrix([[1, 1], [2, 3]]),
+        Matrix([[2, 0], [1, -2]]),
+        Matrix([[0, 1], [0, 1]]),
+        Matrix([[1, 0], [1, 0]]),
+    ]
+    reducer = Reducer(
+        SeriesMatrix(coefficients),
+        factorial_power=0,
+        precision=len(coefficients),
+        p=1,
+    )
+
+    reducer.split(0, leading)
+
+    for coefficient in reducer.M.coeffs[1:]:
+        off_diagonal = coefficient - sp.diag(*coefficient.diagonal())
+        assert off_diagonal.is_zero_matrix
+
+
 def test_fibonacci():
     M = Matrix([[0, 1], [1, 1]])
 

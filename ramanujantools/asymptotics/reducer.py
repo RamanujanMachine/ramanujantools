@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import logging
-from functools import lru_cache
 
 import sympy as sp
 from sympy.abc import t, n
+from sympy.polys.matrices import DomainMatrix
 
 from ramanujantools import Matrix
 from ramanujantools.asymptotics import GrowthRate, SeriesMatrix
@@ -50,27 +50,53 @@ class Reducer:
         self.children = []
 
     @staticmethod
-    def _solve_sylvester(A: Matrix, B: Matrix, C: Matrix) -> Matrix:
-        """Solves the Sylvester equation: A*X - X*B = C for X using Kronecker flattening."""
+    def _solve_sylvester(
+        A: DomainMatrix,
+        B: DomainMatrix,
+        C: DomainMatrix,
+    ) -> DomainMatrix:
+        """Solve ``A*X - X*B = C`` over their exact coefficient field."""
         m, n = A.shape[0], B.shape[0]
-        sys_mat, C_vec = Matrix.zeros(m * n, m * n), Matrix.zeros(m * n, 1)
+        system_size = m * n
+        zero = A.domain.zero
+        system = [
+            [zero for _ in range(system_size)] for _ in range(system_size)
+        ]
+        right_hand_side = [[zero] for _ in range(system_size)]
+        A_rows, B_rows, C_rows = A.to_list(), B.to_list(), C.to_list()
 
         for j in range(n):
             for i in range(m):
-                row_idx = j * m + i
-                C_vec[row_idx, 0] = C[i, j]
+                row_index = j * m + i
+                right_hand_side[row_index][0] = C_rows[i][j]
                 for k in range(m):
-                    sys_mat[row_idx, j * m + k] += A[i, k]
+                    system[row_index][j * m + k] += A_rows[i][k]
                 for k in range(n):
-                    sys_mat[row_idx, k * m + i] -= B[k, j]
+                    system[row_index][k * m + i] -= B_rows[k][j]
 
-        vec_X = sys_mat.LUsolve(C_vec)
+        system_matrix = DomainMatrix(
+            system,
+            (system_size, system_size),
+            A.domain,
+            fmt="dense",
+        )
+        right_hand_side_matrix = DomainMatrix(
+            right_hand_side,
+            (system_size, 1),
+            A.domain,
+            fmt="dense",
+        )
+        solution = system_matrix.lu_solve(right_hand_side_matrix).to_list()
 
-        X = Matrix.zeros(m, n)
-        for j in range(n):
-            for i in range(m):
-                X[i, j] = vec_X[j * m + i, 0]
-        return X
+        solution_rows = [
+            [solution[j * m + i][0] for j in range(n)] for i in range(m)
+        ]
+        return DomainMatrix(
+            solution_rows,
+            (m, n),
+            A.domain,
+            fmt="dense",
+        )
 
     def _get_blocks(self, J_target: Matrix) -> list[tuple[int, int, sp.Expr]]:
         """Finds the boundaries (start_idx, end_idx, eigenvalue) of independent blocks."""
@@ -174,48 +200,59 @@ class Reducer:
 
         self._check_split_truncation(blocks)
 
-        for m in range(1, self.precision - k_target):
-            R_k, Y_mat, needs_gauge = (
-                self.M.coeffs[k_target + m],
-                Matrix.zeros(dim, dim),
-                False,
+        has_coupling = any(
+            not coefficient[s_i:e_i, s_j:e_j].is_zero_matrix
+            for coefficient in self.M.coeffs[k_target + 1:]
+            for s_i, e_i, eval_i in blocks
+            for s_j, e_j, eval_j in blocks
+            if eval_i != eval_j
+        )
+        if not has_coupling:
+            return
+
+        (J_domain,), domain_series = self.M.to_domain(J_target)
+        domain_blocks = []
+        for start, end, eigenvalue in blocks:
+            rows = list(range(start, end))
+            domain_blocks.append(
+                (rows, J_domain.extract(rows, rows), eigenvalue)
             )
 
-            for s_i, e_i, eval_i in blocks:
-                J_ii = J_target[s_i:e_i, s_i:e_i]
-                for s_j, e_j, eval_j in blocks:
+        for m in range(1, self.precision - k_target):
+            R_k = domain_series.coeffs[k_target + m]
+            zero = J_domain.domain.zero
+            Y_rows = [[zero for _ in range(dim)] for _ in range(dim)]
+            needs_gauge = False
+
+            for rows_i, J_ii, eval_i in domain_blocks:
+                for rows_j, J_jj, eval_j in domain_blocks:
                     if eval_i == eval_j:
                         continue
 
-                    J_jj, R_ij = J_target[s_j:e_j, s_j:e_j], R_k[s_i:e_i, s_j:e_j]
+                    R_ij = R_k.extract(rows_i, rows_j)
 
                     if not R_ij.is_zero_matrix:
                         needs_gauge = True
-                        Y_ij = self._solve_sylvester(J_ii, J_jj, -R_ij)
+                        Y_ij = self._solve_sylvester(
+                            J_ii,
+                            J_jj,
+                            -R_ij,
+                        )
+                        Y_ij_rows = Y_ij.to_list()
 
-                        for r in range(e_i - s_i):
-                            for c in range(e_j - s_j):
-                                Y_mat[s_i + r, s_j + c] = Y_ij[r, c]
+                        for row, target_row in enumerate(rows_i):
+                            for col, target_col in enumerate(rows_j):
+                                Y_rows[target_row][target_col] = Y_ij_rows[row][col]
 
             if needs_gauge:
-                Y_mat = Y_mat.applyfunc(lambda x: sp.cancel(sp.radsimp(sp.cancel(x))))
+                logger.debug(f"SPLIT: Solving DomainMatrix Sylvester at m={m} ...")
+                Y_domain = domain_series.domain_matrix(Y_rows)
+                domain_series = domain_series.monomial_coboundary(
+                    Y_domain,
+                    gauge_power=m,
+                )
 
-                logger.debug(f"SPLIT: Solving Sylvester at m={m} ...")
-                logger.debug(f"SPLIT: {J_ii=}")
-                logger.debug(f"SPLIT: {J_jj=}")
-                logger.debug(f"SPLIT: {R_ij=}")
-                logger.debug(f"SPLIT: {Y_ij=}")
-
-                padded_G_short = (
-                    [Matrix.eye(dim)] + [Matrix.zeros(dim, dim)] * (m - 1) + [Y_mat]
-                )
-                padded_G_short += [Matrix.zeros(dim, dim)] * (
-                    self.precision - len(padded_G_short)
-                )
-                G_short = SeriesMatrix(
-                    padded_G_short, p=self.p, precision=self.precision
-                )
-                self.M = self.M.coboundary(G_short)
+        self.M = domain_series.to_matrix()
 
     def shear(self) -> None:
         """
