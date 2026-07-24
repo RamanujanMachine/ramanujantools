@@ -31,7 +31,7 @@ def test_sylvester_solver():
     A = Matrix([[1, 1], [0, 1]])
     B = Matrix([[sp.sqrt(3), 0], [0, -sp.sqrt(3)]])
     C = Matrix([[sp.I, 2], [3, 4]])
-    (B_domain, C_domain), domain_series = SeriesMatrix([A]).to_domain(B, C)
+    (B_domain, C_domain), domain_series = SeriesMatrix([A])._to_domain(B, C)
     A_domain = domain_series.coeffs[0]
 
     solution = Reducer._solve_sylvester(A_domain, B_domain, C_domain)

@@ -121,7 +121,7 @@ def test_exact_domain_round_trip():
     ]
     series = SeriesMatrix(coefficients)
 
-    related, domain_series = series.to_domain()
+    related, domain_series = series._to_domain()
 
     assert related == []
     assert domain_series.domain.is_AlgebraicField
@@ -135,10 +135,11 @@ def test_exact_rational_domain_uses_flint_matrices():
         Matrix([[0, 1], [2, 0]]),
     ]
 
-    _, domain_series = SeriesMatrix(coefficients).to_domain()
+    _, domain_series = SeriesMatrix(coefficients)._to_domain()
 
     assert domain_series.domain.is_QQ
-    assert type(domain_series.coeffs[0].rep).__name__ == "DFM"
+    domain_matrix = domain_series.coeffs[0]
+    assert domain_matrix.rep is domain_matrix.to_dfm()
     assert domain_series.to_matrix().coeffs == coefficients
 
 
@@ -174,7 +175,7 @@ def test_monomial_coboundary_matches_generic_coboundary():
     (domain_gauge,), domain_series = SeriesMatrix(
         coefficients,
         p=ramification,
-    ).to_domain(gauge_coefficient)
+    )._to_domain(gauge_coefficient)
     actual = domain_series.monomial_coboundary(
         domain_gauge,
         gauge_power,

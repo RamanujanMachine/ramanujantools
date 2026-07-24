@@ -108,7 +108,7 @@ class SeriesMatrix:
             else:
                 self.coeffs.append(Matrix.zeros(*self.shape))
 
-    def to_domain(
+    def _to_domain(
         self,
         *matrices: Matrix,
     ) -> tuple[list[DomainMatrix], _DomainSeriesMatrix]:

@@ -56,8 +56,9 @@ class Reducer:
         C: DomainMatrix,
     ) -> DomainMatrix:
         """Solve ``A*X - X*B = C`` over their exact coefficient field."""
-        m, n = A.shape[0], B.shape[0]
-        system_size = m * n
+        a_order = A.shape[0]
+        b_order = B.shape[0]
+        system_size = a_order * b_order
         zero = A.domain.zero
         system = [
             [zero for _ in range(system_size)] for _ in range(system_size)
@@ -65,14 +66,14 @@ class Reducer:
         right_hand_side = [[zero] for _ in range(system_size)]
         A_rows, B_rows, C_rows = A.to_list(), B.to_list(), C.to_list()
 
-        for j in range(n):
-            for i in range(m):
-                row_index = j * m + i
+        for j in range(b_order):
+            for i in range(a_order):
+                row_index = j * a_order + i
                 right_hand_side[row_index][0] = C_rows[i][j]
-                for k in range(m):
-                    system[row_index][j * m + k] += A_rows[i][k]
-                for k in range(n):
-                    system[row_index][k * m + i] -= B_rows[k][j]
+                for k in range(a_order):
+                    system[row_index][j * a_order + k] += A_rows[i][k]
+                for k in range(b_order):
+                    system[row_index][k * a_order + i] -= B_rows[k][j]
 
         system_matrix = DomainMatrix(
             system,
@@ -89,11 +90,12 @@ class Reducer:
         solution = system_matrix.lu_solve(right_hand_side_matrix).to_list()
 
         solution_rows = [
-            [solution[j * m + i][0] for j in range(n)] for i in range(m)
+            [solution[j * a_order + i][0] for j in range(b_order)]
+            for i in range(a_order)
         ]
         return DomainMatrix(
             solution_rows,
-            (m, n),
+            (a_order, b_order),
             A.domain,
             fmt="dense",
         )
@@ -210,7 +212,7 @@ class Reducer:
         if not has_coupling:
             return
 
-        (J_domain,), domain_series = self.M.to_domain(J_target)
+        (J_domain,), domain_series = self.M._to_domain(J_target)
         domain_blocks = []
         for start, end, eigenvalue in blocks:
             rows = list(range(start, end))
