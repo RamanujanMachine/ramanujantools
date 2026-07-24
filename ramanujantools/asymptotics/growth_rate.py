@@ -139,25 +139,17 @@ class GrowthRate:
 
             return None
 
-        cmp_d = is_greater(self.factorial_power, other.factorial_power)
-        if cmp_d is not None:
-            return cmp_d
-
-        cmp_lam = is_greater(sp.Abs(self.exp_base), sp.Abs(other.exp_base))
-        if cmp_lam is not None:
-            return cmp_lam
-
-        cmp_Q = is_greater(self.sub_exp, other.sub_exp)
-        if cmp_Q is not None:
-            return cmp_Q
-
-        cmp_D = is_greater(self.polynomial_degree, other.polynomial_degree)
-        if cmp_D is not None:
-            return cmp_D
-
-        cmp_log = is_greater(self.log_power, other.log_power)
-        if cmp_log is not None:
-            return cmp_log
+        components = (
+            (self.factorial_power, other.factorial_power),
+            (sp.Abs(self.exp_base), sp.Abs(other.exp_base)),
+            (self.sub_exp, other.sub_exp),
+            (self.polynomial_degree, other.polynomial_degree),
+            (self.log_power, other.log_power),
+        )
+        for left, right in components:
+            comparison = is_greater(left, right)
+            if comparison is not None:
+                return comparison
 
         return sp.default_sort_key(self.as_expr(n)) > sp.default_sort_key(
             other.as_expr(n)

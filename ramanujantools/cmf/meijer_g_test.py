@@ -145,19 +145,26 @@ def test_asymptotics_euler_trajectory():
         * sp.exp(
             -sp.I
             * n ** (sp.Rational(1, 3))
-            * (6 * n ** (sp.Rational(1, 3)) + 1 - sp.sqrt(3) * sp.I)
-            / (sp.sqrt(3) - sp.I)
+            * (
+                3 * sp.sqrt(3) * n ** (sp.Rational(1, 3))
+                + 3 * sp.I * n ** (sp.Rational(1, 3))
+                + sp.sqrt(3)
+                - sp.I
+            )
+            / 2
         )
         * sp.factorial(n) ** 2,
         n ** (sp.Rational(16, 3))
         * sp.exp(
-            n ** (sp.Rational(1, 3))
+            sp.I
+            * n ** (sp.Rational(1, 3))
             * (
                 3 * sp.sqrt(3) * n ** (sp.Rational(1, 3))
-                + 3 * sp.I * n ** (sp.Rational(1, 3))
-                + 2 * sp.I
+                - 3 * sp.I * n ** (sp.Rational(1, 3))
+                + sp.sqrt(3)
+                + sp.I
             )
-            / (sp.sqrt(3) - sp.I)
+            / 2
         )
         * sp.factorial(n) ** 2,
         n ** (sp.Rational(16, 3))
