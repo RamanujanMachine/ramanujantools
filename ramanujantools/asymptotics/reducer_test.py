@@ -65,6 +65,28 @@ def test_split_eliminates_cross_block_coefficients():
         assert off_diagonal.is_zero_matrix
 
 
+def test_split_accumulates_gauge_transformation():
+    leading = Matrix.diag(1, 2)
+    original = SeriesMatrix(
+        [
+            leading,
+            Matrix([[0, 1], [0, 0]]),
+            Matrix.zeros(2, 2),
+        ]
+    )
+    reducer = Reducer(
+        original,
+        factorial_power=0,
+        precision=original.precision,
+        p=1,
+    )
+
+    reducer.split(0, leading)
+
+    reconstructed = original.coboundary(reducer.S_total)
+    assert reducer.M.coeffs == reconstructed.coeffs
+
+
 def test_fibonacci():
     M = Matrix([[0, 1], [1, 1]])
 

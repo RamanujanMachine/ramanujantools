@@ -1,7 +1,9 @@
+import pytest
 from sympy.abc import n
 import sympy as sp
 
 from ramanujantools import LinearRecurrence, Matrix
+from ramanujantools.asymptotics import GrowthRate, PrecisionExhaustedError
 from ramanujantools.pcf import PCF
 
 
@@ -239,3 +241,54 @@ def test_fibonacci_asymptotics():
     ]
 
     assert expected_exprs == r.asymptotics()
+
+
+def test_zero_asymptotic_basis_is_rejected():
+    with pytest.raises(PrecisionExhaustedError):
+        LinearRecurrence._validate_asymptotic_basis(
+            [GrowthRate(exp_base=1), GrowthRate()]
+        )
+
+
+def test_asymptotics_reconstructs_split_gauge():
+    r = LinearRecurrence(
+        [
+            -n**4 + 20 * n**3 + 25 * n**2 - 26 * n - 20,
+            2
+            * (n + 2)
+            * (
+                n**6
+                - 6 * n**5
+                - 263 * n**4
+                - 930 * n**3
+                - 689 * n**2
+                + 422 * n
+                + 332
+            ),
+            -(n + 2) ** 2
+            * (
+                n**8
+                + 20 * n**7
+                - 557 * n**6
+                - 4842 * n**5
+                - 14508 * n**4
+                - 19744 * n**3
+                - 11400 * n**2
+                - 1096 * n
+                + 712
+            ),
+            4
+            * (n + 1) ** 4
+            * (n + 2) ** 2
+            * (2 * n + 1) ** 2
+            * (n**4 - 16 * n**3 - 79 * n**2 - 80 * n + 2),
+        ]
+    )
+
+    expected = [
+        n ** sp.Rational(31, 4) * sp.exp(2 * sp.sqrt(n)) * sp.factorial(n) ** 3,
+        n ** sp.Rational(31, 4) * sp.exp(-2 * sp.sqrt(n)) * sp.factorial(n) ** 3,
+        16**n * n**5 * sp.factorial(n) ** 2,
+    ]
+
+    assert expected == r.asymptotics(precision=17)

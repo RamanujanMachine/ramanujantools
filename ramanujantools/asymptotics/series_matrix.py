@@ -23,18 +23,37 @@ class _DomainSeriesMatrix:
         shape = (len(rows), len(rows[0]) if rows else 0)
         return DomainMatrix(rows, shape, self.domain, fmt="dense")
 
+    def with_coefficients(
+        self,
+        coefficients: list[DomainMatrix],
+    ) -> _DomainSeriesMatrix:
+        """Construct a related series over the same domain and ramification."""
+        return type(self)(coefficients, p=self.p)
+
+    def right_multiply_monomial(
+        self,
+        gauge_coefficient: DomainMatrix,
+        gauge_power: int,
+    ) -> _DomainSeriesMatrix:
+        r"""Multiply this series by ``I + Y*t**m``."""
+        transformed = list(self.coeffs)
+        for index in range(gauge_power, self.precision):
+            transformed[index] = (
+                self.coeffs[index]
+                + self.coeffs[index - gauge_power] * gauge_coefficient
+            )
+        return type(self)(transformed, p=self.p)
+
     def monomial_coboundary(
         self,
         gauge_coefficient: DomainMatrix,
         gauge_power: int,
     ) -> _DomainSeriesMatrix:
         r"""Apply a coboundary for ``G(t) = I + Y*t**m``."""
-        right_product = list(self.coeffs)
-        for index in range(gauge_power, self.precision):
-            right_product[index] = (
-                self.coeffs[index]
-                + self.coeffs[index - gauge_power] * gauge_coefficient
-            )
+        right_product = self.right_multiply_monomial(
+            gauge_coefficient,
+            gauge_power,
+        ).coeffs
 
         shifted_gauge_terms = []
         shift_index = 0
