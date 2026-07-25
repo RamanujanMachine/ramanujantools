@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 import copy
 import itertools
+import logging
 from functools import cached_property, lru_cache
 from tqdm import tqdm
 
@@ -17,6 +18,8 @@ from ramanujantools.utils import batched, Batchable
 
 if TYPE_CHECKING:
     from ramanujantools.asymptotics import GrowthRate, Reducer
+
+logger = logging.getLogger(__name__)
 
 
 def trim_trailing_zeros(sequence: list[int]) -> list[int]:
@@ -375,8 +378,7 @@ class LinearRecurrence(Printable):
     @lru_cache
     def _get_reducer_at_precision(self, precision: int) -> Reducer:
         """Pure reduction engine. No boundary logic; just executes the math."""
-        from ramanujantools.asymptotics import Reducer
-        from ramanujantools.asymptotics.series_matrix import SeriesMatrix
+        from ramanujantools.asymptotics import Reducer, SeriesMatrix
 
         matrix = self.recurrence_matrix.transpose()
         factorial_power = max(matrix.degrees(n))
@@ -395,9 +397,6 @@ class LinearRecurrence(Printable):
     def _get_reducer(self, precision=None) -> Reducer:
         """Executes the precision backoff loop for the linear recurrence."""
         from ramanujantools.asymptotics import PrecisionExhaustedError
-        import logging
-
-        logger = logging.getLogger(__name__)
 
         if precision is not None:
             return self._get_reducer_at_precision(precision)
