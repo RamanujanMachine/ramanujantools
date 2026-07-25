@@ -84,8 +84,7 @@ def test_split_accumulates_gauge_transformation():
     reducer.split(0, leading)
 
     reconstructed = original.coboundary(reducer.S_total)
-    for actual, expected in zip(reducer.M.coeffs, reconstructed.coeffs):
-        assert actual == expected
+    assert reducer.M.coeffs == reconstructed.coeffs
 
 
 def test_fibonacci():
