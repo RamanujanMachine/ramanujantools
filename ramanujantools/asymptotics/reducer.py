@@ -212,7 +212,14 @@ class Reducer:
         if not has_coupling:
             return
 
-        (J_domain,), domain_series = self.M._to_domain(J_target)
+        related, domain_series = self.M._to_domain(
+            J_target,
+            *self.S_total.coeffs,
+        )
+        J_domain, *domain_s_total_coefficients = related
+        domain_s_total = domain_series.with_coefficients(
+            domain_s_total_coefficients
+        )
         domain_blocks = []
         for start, end, eigenvalue in blocks:
             rows = list(range(start, end))
@@ -253,8 +260,13 @@ class Reducer:
                     Y_domain,
                     gauge_power=m,
                 )
+                domain_s_total = domain_s_total.right_multiply_monomial(
+                    Y_domain,
+                    gauge_power=m,
+                )
 
         self.M = domain_series.to_matrix()
+        self.S_total = domain_s_total.to_matrix()
 
     def shear(self) -> None:
         """

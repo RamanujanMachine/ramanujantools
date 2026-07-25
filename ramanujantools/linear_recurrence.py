@@ -16,7 +16,7 @@ from ramanujantools import Matrix, Limit, GenericPolynomial
 from ramanujantools.utils import batched, Batchable
 
 if TYPE_CHECKING:
-    from ramanujantools.asymptotics import Reducer
+    from ramanujantools.asymptotics import GrowthRate, Reducer
 
 
 def trim_trailing_zeros(sequence: list[int]) -> list[int]:
@@ -421,6 +421,7 @@ class LinearRecurrence(Printable):
                 reducer = self._get_reducer_at_precision(current_precision)
 
                 growth_grid = reducer.canonical_growth_matrix()
+                self._validate_asymptotic_basis(growth_grid[-1])
                 expr_matrix = sp.Matrix(
                     [[c.as_expr(n) for c in r] for r in growth_grid]
                 )
@@ -447,10 +448,21 @@ class LinearRecurrence(Printable):
             "The system may be highly degenerate or require more initial terms."
         )
 
+    @staticmethod
+    def _validate_asymptotic_basis(growths: list[GrowthRate]) -> None:
+        """Reject zero elements in a scalar recurrence's formal basis."""
+        from ramanujantools.asymptotics import PrecisionExhaustedError
+
+        if any(growth.exp_base == sp.S.Zero for growth in growths):
+            raise PrecisionExhaustedError(
+                "Asymptotic reconstruction produced a zero scalar solution."
+            )
+
     def asymptotics(self, precision=None) -> list[sp.Expr]:
         """
         Returns the formal basis of asymptotic solutions for the recurrence sequence p_n.
         """
         reducer = self._get_reducer(precision)
-        cfm = reducer.canonical_fundamental_matrix().transpose()
-        return list(cfm.col(-1))
+        growths = reducer.canonical_growth_matrix()[-1]
+        self._validate_asymptotic_basis(growths)
+        return [growth.as_expr(n) for growth in growths]
