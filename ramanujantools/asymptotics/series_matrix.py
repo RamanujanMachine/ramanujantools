@@ -8,6 +8,78 @@ from sympy.polys.matrices import DomainMatrix
 from ramanujantools import Matrix
 
 
+def _rational_series_coefficients(
+    expression: sp.Expr,
+    variable: sp.Symbol,
+    precision: int,
+    *,
+    at_infinity: bool = False,
+    ramification: int = 1,
+) -> list[sp.Expr]:
+    """Return exact coefficients of a truncated rational series."""
+    if expression == sp.S.Zero:
+        return [sp.S.Zero] * precision
+
+    numerator, denominator = sp.cancel(expression).as_numer_denom()
+    if numerator == sp.S.Zero:
+        return [sp.S.Zero] * precision
+
+    numerator_poly = sp.Poly(numerator, variable, extension=True)
+    denominator_poly = sp.Poly(denominator, variable, extension=True)
+
+    if at_infinity:
+        valuation = denominator_poly.degree() - numerator_poly.degree()
+        numerator_coefficients = numerator_poly.all_coeffs()
+        denominator_coefficients = denominator_poly.all_coeffs()
+    else:
+        numerator_valuation = min(power[0] for power in numerator_poly.as_dict())
+        denominator_valuation = min(
+            power[0] for power in denominator_poly.as_dict()
+        )
+        valuation = numerator_valuation - denominator_valuation
+        numerator_coefficients = [
+            numerator_poly.nth(power)
+            for power in range(
+                numerator_valuation,
+                numerator_poly.degree() + 1,
+            )
+        ]
+        denominator_coefficients = [
+            denominator_poly.nth(power)
+            for power in range(
+                denominator_valuation,
+                denominator_poly.degree() + 1,
+            )
+        ]
+
+    term_count = max(
+        0,
+        (precision - ramification * valuation + ramification - 1) // ramification,
+    )
+    quotient = []
+    for index in range(term_count):
+        coefficient = (
+            numerator_coefficients[index]
+            if index < len(numerator_coefficients)
+            else sp.S.Zero
+        )
+        coefficient -= sum(
+            denominator_coefficients[offset] * quotient[index - offset]
+            for offset in range(
+                1,
+                min(index, len(denominator_coefficients) - 1) + 1,
+            )
+        )
+        quotient.append(coefficient / denominator_coefficients[0])
+
+    result = [sp.S.Zero] * precision
+    for index, coefficient in enumerate(quotient):
+        power = ramification * (valuation + index)
+        if power >= 0:
+            result[power] = coefficient
+    return result
+
+
 class _DomainSeriesMatrix:
     """Internal series representation over one exact coefficient domain."""
 
@@ -500,17 +572,31 @@ class SeriesMatrix:
             coeffs = [matrix] + [Matrix.zeros(dim, dim) for _ in range(precision - 1)]
             return cls(coeffs, p=p, precision=precision)
 
-        M_t = matrix.subs({var: t ** (-p)})
+        at_infinity = var in matrix.free_symbols
+        series_variable = var if at_infinity else t
+        series_ramification = p if at_infinity else 1
+        rows, columns = matrix.shape
+        series_entries = [
+            [
+                _rational_series_coefficients(
+                    matrix[row, column],
+                    series_variable,
+                    precision,
+                    at_infinity=at_infinity,
+                    ramification=series_ramification,
+                )
+                for column in range(columns)
+            ]
+            for row in range(rows)
+        ]
 
-        expanded_matrix = M_t.applyfunc(
-            lambda x: sp.series(x, t, 0, precision).removeO()
-        )
-
-        coeffs = []
-        for i in range(precision):
-            coeff_matrix = expanded_matrix.applyfunc(lambda x: sp.expand(x).coeff(t, i))
-            if coeff_matrix.has(t) or coeff_matrix.has(var):
-                raise ValueError(f"Coefficient {i} failed to evaluate to a constant.")
-            coeffs.append(coeff_matrix)
+        coeffs = [
+            Matrix(
+                rows,
+                columns,
+                lambda row, column: series_entries[row][column][index],
+            )
+            for index in range(precision)
+        ]
 
         return cls(coeffs, p=p, precision=precision)
