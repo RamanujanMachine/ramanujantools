@@ -1,8 +1,13 @@
-import sympy as sp
 import random
+
+import pytest
+import sympy as sp
 
 from ramanujantools import Matrix
 from ramanujantools.asymptotics import SeriesMatrix
+from ramanujantools.asymptotics.series_matrix import (
+    _rational_series_coefficients,
+)
 
 
 def assert_matrices_equal(actual: Matrix, expected: Matrix) -> None:
@@ -19,6 +24,70 @@ def generate_test_matrices(seed=42, dim=4, count=8):
             mat = mat + 20 * Matrix.eye(dim)
         matrices.append(mat)
     return matrices
+
+
+def test_rational_series_coefficients_match_sympy():
+    t = sp.Symbol("t")
+    a = sp.Symbol("a")
+    expressions = [
+        sp.S.Zero,
+        sp.S(3),
+        t**-2 + 2 / t + 3 + 4 * t,
+        (1 + t) / (1 - t),
+        (t**-3 + 2) / (t**-2 - t**-1),
+        1 / (1 - sp.sqrt(2) * t),
+        (a + t) / (1 - a * t),
+    ]
+
+    for expression in expressions:
+        expanded = sp.series(expression, t, 0, 8).removeO()
+        expected = [sp.expand(expanded).coeff(t, power) for power in range(8)]
+        actual = _rational_series_coefficients(expression, t, precision=8)
+        assert all(
+            sp.simplify(actual_coefficient - expected_coefficient) == 0
+            for actual_coefficient, expected_coefficient in zip(actual, expected)
+        )
+
+
+def test_from_matrix_matches_sympy_series():
+    n, t = sp.symbols("n t")
+    matrix = Matrix(
+        [
+            [(n + 1) / (n - 2), n**-2],
+            [1 / (n**2 + n + 1), sp.sqrt(2) * (n - 1) / (n + 1)],
+        ]
+    )
+
+    for ramification in [1, 3]:
+        precision = 10
+        actual = SeriesMatrix.from_matrix(
+            matrix,
+            var=n,
+            p=ramification,
+            precision=precision,
+        )
+        substituted = matrix.subs({n: t ** (-ramification)})
+        expected_series = substituted.applyfunc(
+            lambda entry: sp.series(entry, t, 0, precision).removeO()
+        )
+        expected = [
+            expected_series.applyfunc(lambda entry: sp.expand(entry).coeff(t, power))
+            for power in range(precision)
+        ]
+
+        assert actual.coeffs == expected
+
+
+def test_from_matrix_rejects_non_rational_entries():
+    n = sp.Symbol("n")
+
+    with pytest.raises(ValueError, match="Expected a rational function"):
+        SeriesMatrix.from_matrix(
+            Matrix([[sp.exp(1 / n)]]),
+            var=n,
+            p=1,
+            precision=4,
+        )
 
 
 def test_construction():
