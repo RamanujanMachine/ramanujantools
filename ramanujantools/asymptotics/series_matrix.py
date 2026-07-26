@@ -4,6 +4,7 @@ import sympy as sp
 from sympy.abc import t, n
 from sympy.polys.constructor import construct_domain
 from sympy.polys.matrices import DomainMatrix
+from sympy.polys.polyerrors import PolynomialError
 
 from ramanujantools import Matrix
 
@@ -16,16 +17,21 @@ def _rational_series_coefficients(
     at_infinity: bool = False,
     ramification: int = 1,
 ) -> list[sp.Expr]:
-    """Return exact coefficients of a truncated rational series."""
+    """Return exact coefficients of a truncated rational-function series."""
     if expression == sp.S.Zero:
         return [sp.S.Zero] * precision
 
-    numerator, denominator = sp.cancel(expression).as_numer_denom()
-    if numerator == sp.S.Zero:
-        return [sp.S.Zero] * precision
+    try:
+        numerator, denominator = sp.cancel(expression).as_numer_denom()
+        if numerator == sp.S.Zero:
+            return [sp.S.Zero] * precision
 
-    numerator_poly = sp.Poly(numerator, variable, extension=True)
-    denominator_poly = sp.Poly(denominator, variable, extension=True)
+        numerator_poly = sp.Poly(numerator, variable, extension=True)
+        denominator_poly = sp.Poly(denominator, variable, extension=True)
+    except PolynomialError as error:
+        raise ValueError(
+            f"Expected a rational function in {variable}, got {expression}."
+        ) from error
 
     if at_infinity:
         valuation = denominator_poly.degree() - numerator_poly.degree()
@@ -563,8 +569,12 @@ class SeriesMatrix:
         cls, matrix: Matrix, var: sp.Symbol, p: int, precision: int
     ) -> SeriesMatrix:
         """
-        Converts a normalized symbolic matrix into a formal SeriesMatrix at infinity
-        by executing a formal Taylor expansion: substituting n = t^(-p) and extracting coefficients.
+        Converts a normalized rational-function matrix into a formal SeriesMatrix
+        at infinity by substituting n = t^(-p) and extracting coefficients.
+
+        Raises:
+            ValueError: If a matrix entry is not a rational function in the
+                expansion variable.
         """
         dim = matrix.shape[0]
 

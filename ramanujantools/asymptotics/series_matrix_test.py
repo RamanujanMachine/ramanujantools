@@ -1,5 +1,7 @@
-import sympy as sp
 import random
+
+import pytest
+import sympy as sp
 
 from ramanujantools import Matrix
 from ramanujantools.asymptotics import SeriesMatrix
@@ -69,13 +71,23 @@ def test_from_matrix_matches_sympy_series():
             lambda entry: sp.series(entry, t, 0, precision).removeO()
         )
         expected = [
-            expected_series.applyfunc(
-                lambda entry: sp.expand(entry).coeff(t, power)
-            )
+            expected_series.applyfunc(lambda entry: sp.expand(entry).coeff(t, power))
             for power in range(precision)
         ]
 
         assert actual.coeffs == expected
+
+
+def test_from_matrix_rejects_non_rational_entries():
+    n = sp.Symbol("n")
+
+    with pytest.raises(ValueError, match="Expected a rational function"):
+        SeriesMatrix.from_matrix(
+            Matrix([[sp.exp(1 / n)]]),
+            var=n,
+            p=1,
+            precision=4,
+        )
 
 
 def test_construction():
