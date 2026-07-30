@@ -10,7 +10,7 @@ from sympy.abc import n
 
 from ramanujantools import Position
 from ramanujantools.utils import batched, Batchable
-from ramanujantools.flint_core import flint_ctx, SymbolicMatrix, NumericMatrix
+from ramanujantools.flint_core import flint_ctx, NumericMatrix, SymbolicMatrix
 
 if TYPE_CHECKING:
     from ramanujantools import Limit
@@ -190,20 +190,18 @@ class Matrix(sp.Matrix):
         ).factor()
 
     @lru_cache
+    def _companionization(self, symbol: sp.Symbol = n):
+        ctx = flint_ctx(self.free_symbols.union({symbol}), fmpz=True)
+        return SymbolicMatrix.from_sympy(self, ctx).companionize(symbol)
+
+    @lru_cache
     def companion_coboundary_matrix(self, symbol: sp.Symbol = n) -> Matrix:
         r"""
         Constructs a new matrix U such that `self.coboundary(U)` is a companion matrix.
         """
-        if not (self.is_square()):
+        if not self.is_square():
             raise ValueError("Only square matrices can have a coboundary relation")
-        N = self.rows
-        free_symbols = self.free_symbols.union({symbol})
-        ctx = flint_ctx(free_symbols, fmpz=True)
-        flint_self = SymbolicMatrix.from_sympy(self, ctx)
-        vectors = [SymbolicMatrix.from_sympy(Matrix(N, 1, [1] + (N - 1) * [0]), ctx)]
-        for _ in range(1, N):
-            vectors.append(flint_self * vectors[-1].subs({symbol: symbol + 1}))
-        return Matrix.hstack(*[vector.factor() for vector in vectors]).factor()
+        return self._companionization(symbol).coboundary
 
     @staticmethod
     def companion_form(values: list[sp.Expr]) -> Matrix:
@@ -239,17 +237,10 @@ class Matrix(sp.Matrix):
             raise ValueError(
                 f"Companionization symbol must be in matrix! matrix={self}, symbol={symbol}"
             )
-        U = self.companion_coboundary_matrix(symbol)
-        try:
-            return self.coboundary(U, symbol)
-        except ValueError:
-            rank = U.rank()
-            symbols = sp.symbols(f"c:{rank}")
-            variables = Matrix(symbols + (-1,))
-            truncated = U[:, : rank + 1]
-            solutions = sp.solve(truncated * variables, symbols)
-            elements = [solutions[symbol] for symbol in symbols]
-            return Matrix.companion_form(elements)
+        if not self.is_square():
+            raise ValueError("Only square matrices can be converted to companion form")
+
+        return self._companionization(symbol).companion
 
     @lru_cache
     def _walk_inner(

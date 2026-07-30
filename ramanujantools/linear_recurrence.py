@@ -49,17 +49,12 @@ class LinearRecurrence(Printable):
             1. A list of the coefficients of the recurrence [a_0(n), ..., a_N(n)]
             2. A matrix which is companionized and used as the recurrence sequence
         """
-        if recurrence is None:
-            relation = []
-        elif isinstance(recurrence, Matrix):
-            recurrence_matrix = recurrence.as_companion()
-            col = recurrence_matrix.col(-1)
-            lead = col.denominator_lcm
-            coeffs = [sp.simplify(p * lead) for p in reversed(col)]
-            relation = [-lead] + coeffs
+        if isinstance(recurrence, Matrix):
+            relation = recurrence._companionization(n).recurrence
         else:
-            relation = recurrence
-        relation = [sp.factor(sp.simplify(p)) for p in relation]
+            relation = [
+                sp.factor(sp.simplify(coefficient)) for coefficient in recurrence or []
+            ]
         self.relation = trim_trailing_zeros(relation)
 
     def __eq__(self, other: LinearRecurrence) -> bool:

@@ -174,7 +174,9 @@ def test_as_companion():
     )
 
     companion = m.as_companion()
+    coboundary = m.companion_coboundary_matrix()
     assert companion.is_companion()
+    assert coboundary * companion == m * coboundary.subs({n: n + 1})
 
 
 def test_as_companion_smaller_recursion():
@@ -191,14 +193,32 @@ def test_as_companion_smaller_recursion():
     companion = m.as_companion()
     assert companion.is_companion()
     assert 2 == companion.rows
+    assert 2 == m._companionization(n).rank
+    coboundary = m.companion_coboundary_matrix()[:, : companion.rows]
+    assert coboundary * companion == m * coboundary.subs({n: n + 1})
     # This is Apery's PCF
     assert PCF(34 * n**3 + 51 * n**2 + 27 * n + 5, -(n**6)) == PCF(companion)
 
 
+def test_as_companion_rank_one():
+    assert Matrix([[n + 1]]) == Matrix([[n + 1]]).as_companion()
+    matrix = Matrix.diag(n + 1, n + 2)
+    assert 1 == matrix._companionization(n).rank
+    assert Matrix([[n + 1]]) == matrix.as_companion()
+
+
+def test_companion_rank_uses_multiple_specializations():
+    matrix = Matrix([[1, 0], [n - 1, 1]])
+    assert 2 == matrix._companionization(n).rank
+
+
 def test_companion_coboundary_two_variables():
     m = Matrix([[1, x, 2 * y], [3, x * y, 5 * y], [x - 7, (x + y) ** 2 + 1, y - 3]])
-    assert m.coboundary(m.companion_coboundary_matrix(x), x).is_companion()
-    assert m.coboundary(m.companion_coboundary_matrix(y), y).is_companion()
+    for symbol in (x, y):
+        coboundary = m.companion_coboundary_matrix(symbol)
+        companion = m.as_companion(symbol)
+        assert companion.is_companion()
+        assert coboundary * companion == m * coboundary.subs({symbol: symbol + 1})
 
 
 def test_walk_0():
