@@ -119,6 +119,28 @@ def test_trajectory_matrix_4f3_huge(benchmark):
     )
 
 
+def test_trajectory_matrix_8f7_brown_zudilin(benchmark):
+    x = sp.symbols("x:8")
+    y = sp.symbols("y:7")
+    cmf = pFq(8, 7, 1)
+    start = Position(
+        dict(zip(x, (5, 2, 2, 2, 2, 2, 2, 2))) | dict(zip(y, (4, 4, 4, 4, 4, 4, 4)))
+    )
+    trajectory = Position(
+        dict(zip(x, (42, 17, 16, 15, 14, 13, 12, 11)))
+        | dict(zip(y, (24, 25, 26, 27, 28, 29, 30)))
+    )
+    matrix = benchmark.pedantic(
+        cmf.trajectory_matrix,
+        setup=lambda: cmf._calculate_diagonal_matrix.cache_clear(),
+        args=(trajectory, start),
+        # This stress case takes about 17 seconds, so one cold run is intentional.
+        rounds=1,
+        iterations=1,
+    )
+    assert matrix.shape == (7, 7)
+
+
 def test_trajectory_matrix_adversarial_shards(benchmark):
     cmf = pFq(4, 3, 1)
     start = Position({x0: 1, x1: 1, x2: 1, x3: 1, y0: 2, y1: 2, y2: 3})
