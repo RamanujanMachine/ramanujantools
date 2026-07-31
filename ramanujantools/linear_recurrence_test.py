@@ -203,7 +203,6 @@ def test_gamma():
     # from https://arxiv.org/abs/1010.1420
     m = Matrix([[0, -(n**2), 0], [1, 2 * n + 2, 0], [0, -(n - 1) / (n + 1), 1]])
     r = LinearRecurrence(m)
-    assert sp.expand(r.relation[0]) == -(n**2) - n + 2
     assert r == LinearRecurrence(
         [
             -(n - 1) * (n + 2),
