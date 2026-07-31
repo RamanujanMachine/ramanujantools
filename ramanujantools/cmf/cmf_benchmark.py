@@ -135,16 +135,13 @@ def test_trajectory_matrix_4f3_huge(benchmark):
 
 
 def test_trajectory_matrix_8f7_brown_zudilin(benchmark):
-    x = sp.symbols("x:8")
-    y = sp.symbols("y:7")
     cmf = pFq(8, 7, 1)
-    start = Position(
-        dict(zip(x, (5, 2, 2, 2, 2, 2, 2, 2))) | dict(zip(y, (4, 4, 4, 4, 4, 4, 4)))
+    start = Position.from_list([5, 2, 2, 2, 2, 2, 2, 2], "x") | Position.from_list(
+        [4, 4, 4, 4, 4, 4, 4], "y"
     )
-    trajectory = Position(
-        dict(zip(x, (42, 17, 16, 15, 14, 13, 12, 11)))
-        | dict(zip(y, (24, 25, 26, 27, 28, 29, 30)))
-    )
+    trajectory = Position.from_list(
+        [42, 17, 16, 15, 14, 13, 12, 11], "x"
+    ) | Position.from_list([24, 25, 26, 27, 28, 29, 30], "y")
     matrix = benchmark.pedantic(
         cmf.trajectory_matrix,
         setup=lambda: cmf._calculate_diagonal_matrix.cache_clear(),
