@@ -252,6 +252,31 @@ class SymbolicMatrix:
         """Apply an invertible integer shift without recomputing matrix content."""
         return self._subs({symbol: symbol + amount}, normalize=False)
 
+    def inverse(self) -> SymbolicMatrix:
+        """Return the exact inverse using fraction-free FLINT elimination."""
+        if self.rows() != self.cols():
+            raise ValueError("Only square matrices can be inverted")
+        size = self.rows()
+        if size == 0:
+            return SymbolicMatrix._from_polynomials(
+                0, 0, [], self.scalar.inv(), normalize=False
+            )
+
+        coefficients = [
+            self.polynomials[row * size : (row + 1) * size]
+            for row in range(size)
+        ]
+        numerators, denominator = _bareiss_inverse(coefficients)
+        polynomials = [
+            numerators[row][column]
+            for row in range(size)
+            for column in range(size)
+        ]
+        scalar = self.scalar.inv() / denominator
+        return SymbolicMatrix._from_polynomials(
+            size, size, polynomials, scalar, normalize=True
+        )
+
     def _subs(self, substitutions: dict, normalize: bool) -> SymbolicMatrix:
         composition = _flint_composition(self.ctx, substitutions)
         return SymbolicMatrix._from_polynomials(
@@ -377,6 +402,58 @@ class SymbolicMatrix:
             )
             return _CompanionData(self, symbol, columns, coefficients, scalar_shifts)
         raise ValueError("Could not find a shifted-Krylov companion relation")
+
+
+def _bareiss_inverse(coefficients) -> tuple[list[list], object]:
+    """Invert a polynomial matrix with one fraction-free elimination."""
+    size = len(coefficients)
+    if size == 0:
+        raise ValueError("Cannot invert an empty matrix")
+    one = coefficients[0][0] ** 0
+    zero = one - one
+    values = [
+        [*row, *(one if index == column else zero for column in range(size))]
+        for index, row in enumerate(coefficients)
+    ]
+
+    previous_pivot = one
+    for k in range(size - 1):
+        pivot_row = next(
+            (row for row in range(k, size) if values[row][k] != 0),
+            None,
+        )
+        if pivot_row is None:
+            raise ZeroDivisionError("Singular polynomial matrix")
+        if pivot_row != k:
+            values[k], values[pivot_row] = values[pivot_row], values[k]
+
+        pivot = values[k][k]
+        for row in range(k + 1, size):
+            multiplier = values[row][k]
+            for column in range(k + 1, 2 * size):
+                numerator = pivot * values[row][column] - multiplier * values[k][column]
+                values[row][column], remainder = divmod(numerator, previous_pivot)
+                if remainder != 0:
+                    raise ArithmeticError("Non-exact Bareiss elimination")
+            values[row][k] = zero
+        previous_pivot = pivot
+
+    denominator = values[-1][size - 1]
+    if denominator == 0:
+        raise ZeroDivisionError("Singular polynomial matrix")
+    result = [[zero] * size for _ in range(size)]
+    for rhs in range(size):
+        column = [zero] * size
+        for row in reversed(range(size)):
+            value = values[row][size + rhs] * denominator
+            for index in range(row + 1, size):
+                value -= values[row][index] * column[index]
+            column[row], remainder = divmod(value, values[row][row])
+            if remainder != 0:
+                raise ArithmeticError("Non-exact Bareiss back-substitution")
+        for row in range(size):
+            result[row][rhs] = column[row]
+    return result, denominator
 
 
 def _bareiss_solve(coefficients, rhs) -> tuple[list, object]:
