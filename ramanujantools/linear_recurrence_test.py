@@ -22,6 +22,17 @@ def test_relation():
     assert expected == LinearRecurrence(expected).relation
 
 
+def test_equality_is_projective():
+    recurrence = LinearRecurrence([n - 1, (n + 1) * (n - 1), n**2 - 1])
+    equivalent = LinearRecurrence(
+        [-2 * (n - 1), -2 * (n**2 - 1), -2 * (n - 1) * (n + 1)]
+    )
+
+    assert recurrence == equivalent
+    assert hash(recurrence) == hash(equivalent)
+    assert recurrence != LinearRecurrence([n - 1, n**2 - 1, n**2 + n])
+
+
 def test_matrix():
     relation = [-1, n, n + 1]
     assert Matrix([[0, n + 1], [1, n]]) == LinearRecurrence(relation).recurrence_matrix
@@ -192,6 +203,15 @@ def test_gamma():
     # from https://arxiv.org/abs/1010.1420
     m = Matrix([[0, -(n**2), 0], [1, 2 * n + 2, 0], [0, -(n - 1) / (n + 1), 1]])
     r = LinearRecurrence(m)
+    assert sp.expand(r.relation[0]) == -(n**2) - n + 2
+    assert r == LinearRecurrence(
+        [
+            -(n - 1) * (n + 2),
+            2 * n**3 + 7 * n**2 + n - 8,
+            -((n + 1) ** 2) * (n**2 + 3 * n - 2),
+            n**3 * (n + 1),
+        ]
+    )
     assert [] == r.unfold()
     lim = r.limit(1000, 2)
     assert Matrix([[3, 12, 59], [6, 21, 102]]) == lim.identify(lim.mp.euler)

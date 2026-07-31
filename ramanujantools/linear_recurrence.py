@@ -63,10 +63,34 @@ class LinearRecurrence(Printable):
         """
         if not isinstance(other, LinearRecurrence):
             return NotImplemented
-        return self.relation == other.relation
+        if self.relation == other.relation:
+            return True
+        if len(self.relation) != len(other.relation):
+            return False
+
+        pivot = next(
+            (
+                index
+                for index, (left, right) in enumerate(
+                    zip(self.relation, other.relation)
+                )
+                if left != 0 or right != 0
+            ),
+            None,
+        )
+        if pivot is None:
+            return True
+        left_scale = self.relation[pivot]
+        right_scale = other.relation[pivot]
+        if left_scale == 0 or right_scale == 0:
+            return False
+        return all(
+            sp.cancel(left * right_scale - right * left_scale) == 0
+            for left, right in zip(self.relation, other.relation)
+        )
 
     def __hash__(self) -> int:
-        return hash(self.recurrence_matrix)
+        return hash(tuple(coefficient == 0 for coefficient in self.relation))
 
     def __neg__(self) -> LinearRecurrence:
         return LinearRecurrence([-c for c in self.relation])

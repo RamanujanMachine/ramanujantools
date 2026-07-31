@@ -587,6 +587,8 @@ class _CompanionData:
             _polynomial_lcm,
             (coefficient.denominator for coefficient in self.coefficients),
         )
+        if denominator.leading_coefficient() < 0:
+            denominator = -denominator
         relation = [-self._to_sympy(denominator)]
         for coefficient in reversed(self.coefficients):
             numerator = self._coefficient_numerator_to_sympy(coefficient)

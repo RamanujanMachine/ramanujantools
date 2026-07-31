@@ -5,7 +5,7 @@ from unittest.mock import patch
 import sympy as sp
 from sympy.abc import x, y, n
 
-from ramanujantools import Matrix, Limit, simplify
+from ramanujantools import LinearRecurrence, Matrix, Limit, simplify
 from ramanujantools.pcf import PCF
 from ramanujantools.cmf import pFq
 
@@ -219,6 +219,30 @@ def test_companion_rank_does_not_specialize_parameters():
 
     assert 2 == matrix._companionization(x).rank
     assert coboundary * companion == matrix * coboundary.subs({x: x + 1})
+
+
+def test_companion_nonconsecutive_pivots_and_common_scalar():
+    matrix = Matrix.zeros(4)
+    active_rows = (0, 2)
+    active_block = Matrix([[n + 1, n**2 + 1], [n - 1, 2 * n + 3]])
+    for row, target_row in enumerate(active_rows):
+        for column, target_column in enumerate(active_rows):
+            matrix[target_row, target_column] = active_block[row, column]
+    matrix[1, 1] = n + 5
+    matrix[3, 3] = n + 7
+    scalar = (2 * n + 1) * (3 * n + 2) / ((n + 5) * (n + 7))
+    matrix = Matrix(scalar * matrix)
+
+    companionization = matrix._companionization(n)
+    companion = companionization.companion
+    basis = companionization.coboundary[:, : companionization.rank]
+
+    assert 2 == companionization.rank
+    assert any(
+        coefficient.scalar_shifts for coefficient in companionization.coefficients
+    )
+    assert basis * companion == matrix * basis.subs({n: n + 1})
+    assert LinearRecurrence(matrix).recurrence_matrix == companion
 
 
 def test_companion_coboundary_two_variables():
