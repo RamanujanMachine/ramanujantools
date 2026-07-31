@@ -207,9 +207,18 @@ def test_as_companion_rank_one():
     assert Matrix([[n + 1]]) == matrix.as_companion()
 
 
-def test_companion_rank_uses_multiple_specializations():
+def test_companion_rank_uses_exact_residual():
     matrix = Matrix([[1, 0], [n - 1, 1]])
     assert 2 == matrix._companionization(n).rank
+
+
+def test_companion_rank_does_not_specialize_parameters():
+    matrix = Matrix([[1, 0], [y - x - 22, 1]])
+    companion = matrix.as_companion(x)
+    coboundary = matrix.companion_coboundary_matrix(x)
+
+    assert 2 == matrix._companionization(x).rank
+    assert coboundary * companion == matrix * coboundary.subs({x: x + 1})
 
 
 def test_companion_coboundary_two_variables():

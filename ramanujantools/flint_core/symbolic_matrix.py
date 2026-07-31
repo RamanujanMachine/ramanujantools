@@ -330,11 +330,7 @@ class SymbolicMatrix:
         results.append(matrix)  # Last matrix, for iterations[-1]
         return results
 
-    def companionize(
-        self,
-        symbol: sp.Symbol,
-        sample_points: tuple[int, ...] = (1, 2, 3, 5, 7, 11, 13, 17),
-    ) -> _CompanionData:
+    def companionize(self, symbol: sp.Symbol) -> _CompanionData:
         """Find and certify the minimal shifted-Krylov dependency."""
         dimension = self.rows()
         one = self.ctx.constant(1)
@@ -351,13 +347,18 @@ class SymbolicMatrix:
         convert = (
             _fmpz_mpoly_to_fmpz_poly if univariate else lambda polynomial: polynomial
         )
+        pivot_rows = (0,)
         for rank in range(1, dimension + 1):
             columns.append(self * columns[-1].shift(symbol, 1))
-            pivot_rows = _dependency_pivots(columns, symbol, sample_points)
-            if pivot_rows is None:
-                continue
-            dependency = _primitive_dependency(columns, pivot_rows, convert)
+            dependency, witness_row = _primitive_dependency(
+                columns, pivot_rows, convert
+            )
             if dependency is None:
+                if witness_row is None:
+                    raise ArithmeticError(
+                        "Independent Krylov column has no nonzero residual"
+                    )
+                pivot_rows += (witness_row,)
                 continue
             scalar_shifts = (
                 tuple(
@@ -429,48 +430,12 @@ def _divide_factors(polynomial, factors):
     return polynomial
 
 
-def _dependency_pivots(
-    columns: list[SymbolicMatrix],
-    symbol: sp.Symbol,
-    sample_points: tuple[int, ...],
-) -> tuple[int, ...] | None:
-    """Return candidate pivot rows unless a sample proves independence."""
-    basis = columns[:-1]
-    dimension = basis[0].rows()
-    rank = len(basis)
-    generators = basis[0].ctx.gens()
-    dependent_pivots = None
-
-    for point in sample_points:
-        values = [
-            point if str(generator) == str(symbol) else point + 11 * (index + 1)
-            for index, generator in enumerate(generators)
-        ]
-        specialized = [
-            [flint.fmpq(column.polynomials[row](*values)) for column in columns]
-            for row in range(dimension)
-        ]
-        specialized_basis = flint.fmpq_mat([row[:-1] for row in specialized])
-        reduced, specialized_rank = specialized_basis.transpose().rref()
-        if specialized_rank != rank:
-            continue
-
-        pivot_rows = tuple(
-            next(column for column in range(dimension) if reduced[row, column] != 0)
-            for row in range(rank)
-        )
-
-        if flint.fmpq_mat(specialized).rank() > rank:
-            return None
-        dependent_pivots = pivot_rows
-    return dependent_pivots
-
-
 def _primitive_dependency(
     columns: list[SymbolicMatrix],
     pivot_rows: tuple[int, ...],
     convert,
-) -> tuple[tuple, object] | None:
+) -> tuple[tuple[tuple, object] | None, int | None]:
+    """Return an exact dependency or a residual row certifying independence."""
     basis, target = columns[:-1], columns[-1]
     rank = len(basis)
     primitive_columns = [
@@ -516,8 +481,8 @@ def _primitive_dependency(
             zero,
         )
         if left != primitive_target[row] * denominator:
-            return None
-    return tuple(numerators), denominator
+            return None, row
+    return (tuple(numerators), denominator), None
 
 
 def _original_coefficients(
