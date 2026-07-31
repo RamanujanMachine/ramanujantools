@@ -53,6 +53,13 @@ def test_inverse_rational_entries():
     assert symbolic.inverse().to_rt(factor=True) == matrix.inverse()
 
 
+def test_inverse_multivariable():
+    x, y = sp.symbols("x y")
+    matrix = Matrix([[x + y, x], [y, x + 2 * y]])
+
+    assert flintify(matrix).inverse().to_rt(factor=True) == matrix.inverse()
+
+
 def test_inverse_singular():
     symbolic = flintify(Matrix([[1, n], [n, n**2]]))
 

@@ -139,6 +139,10 @@ class Matrix(sp.Matrix):
         """
         Inverts the matrix.
         """
+        if self.free_symbols:
+            return SymbolicMatrix.from_sympy(
+                self, flint_ctx(self.free_symbols, fmpz=True)
+            ).inverse().to_rt()
         return self.inv()
 
     @lru_cache
@@ -182,7 +186,7 @@ class Matrix(sp.Matrix):
         free_symbols = self.free_symbols.union(U.free_symbols).union({symbol})
         ctx = flint_ctx(free_symbols, fmpz=True)
         return (
-            SymbolicMatrix.from_sympy(U.inverse(), ctx)
+            SymbolicMatrix.from_sympy(U, ctx).inverse()
             * SymbolicMatrix.from_sympy(self, ctx)
             * SymbolicMatrix.from_sympy(
                 U.subs({symbol: symbol + (1 if sign else -1)}), ctx
