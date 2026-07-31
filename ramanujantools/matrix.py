@@ -139,7 +139,11 @@ class Matrix(sp.Matrix):
         """
         Inverts the matrix.
         """
-        if self.free_symbols:
+        # Small symbolic systems benefit from the FLINT backend.  Large
+        # multivariable CMF construction matrices are deliberately left on
+        # SymPy: converting and fraction-free eliminating them costs more
+        # than the inverse itself and regresses CMF construction benchmarks.
+        if self.free_symbols and len(self.free_symbols) <= 2:
             return SymbolicMatrix.from_sympy(
                 self, flint_ctx(self.free_symbols, fmpz=True)
             ).inverse().to_rt()
