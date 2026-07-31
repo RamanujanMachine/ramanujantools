@@ -41,23 +41,27 @@ def test_mul_scalar():
 def test_inverse():
     matrix = Matrix([[n + 1, n], [1, 2 * n + 3]])
     symbolic = flintify(matrix)
+    expected = Matrix(sp.Matrix(matrix).inv())
 
-    assert symbolic.inverse().to_rt(factor=True) == matrix.inverse()
+    assert symbolic.inverse().to_rt(factor=True) == expected
     assert (symbolic * symbolic.inverse()).to_rt(factor=True) == Matrix.eye(2)
 
 
 def test_inverse_rational_entries():
     matrix = Matrix([[1 / (n + 1), n], [1, 2]])
     symbolic = flintify(matrix)
+    expected = Matrix(sp.Matrix(matrix).inv())
 
-    assert symbolic.inverse().to_rt(factor=True) == matrix.inverse()
+    assert symbolic.inverse().to_rt(factor=True) == expected
 
 
 def test_inverse_multivariable():
     x, y = sp.symbols("x y")
     matrix = Matrix([[x + y, x], [y, x + 2 * y]])
+    determinant = x**2 + 2 * x * y + 2 * y**2
+    expected = Matrix([[x + 2 * y, -x], [-y, x + y]]) / determinant
 
-    assert flintify(matrix).inverse().to_rt(factor=True) == matrix.inverse()
+    assert flintify(matrix).inverse().to_rt(factor=True) == expected
 
 
 def test_inverse_singular():
