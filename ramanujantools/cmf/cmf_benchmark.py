@@ -1,3 +1,5 @@
+import hashlib
+
 import sympy as sp
 
 from ramanujantools import Position
@@ -7,6 +9,19 @@ a0, a1 = sp.symbols("a:2")
 b0, b1 = sp.symbols("b:2")
 x0, x1, x2, x3 = sp.symbols("x:4")
 y0, y1, y2, y3 = sp.symbols("y:4")
+
+
+def _projective_digest(matrix):
+    primes = (1_000_000_007, 1_000_000_009, 1_000_000_021)
+    signature = []
+    for prime in primes:
+        values = [
+            int(value.p) % prime * pow(int(value.q) % prime, -1, prime) % prime
+            for value in map(sp.Rational, matrix)
+        ]
+        inverse = pow(next(value for value in values if value), -1, prime)
+        signature.extend(value * inverse % prime for value in values)
+    return hashlib.sha256(repr(signature).encode()).hexdigest()[:20]
 
 
 def test_trajectory_matrix_simple(benchmark):
@@ -116,6 +131,28 @@ def test_trajectory_matrix_4f3_huge(benchmark):
         cmf.trajectory_matrix,
         setup=lambda: cmf._calculate_diagonal_matrix.cache_clear(),
         args=(trajectory, start),
+    )
+
+
+def test_trajectory_matrix_8f7_brown_zudilin(benchmark):
+    cmf = pFq(8, 7, 1)
+    start = Position.from_list([5, 2, 2, 2, 2, 2, 2, 2], "x") | Position.from_list(
+        [4, 4, 4, 4, 4, 4, 4], "y"
+    )
+    trajectory = Position.from_list(
+        [42, 17, 16, 15, 14, 13, 12, 11], "x"
+    ) | Position.from_list([24, 25, 26, 27, 28, 29, 30], "y")
+    matrix = benchmark.pedantic(
+        cmf.trajectory_matrix,
+        setup=lambda: cmf._calculate_diagonal_matrix.cache_clear(),
+        args=(trajectory, start),
+        # This stress case takes about 17 seconds, so one cold run is intentional.
+        rounds=1,
+        iterations=1,
+    )
+    assert matrix.shape == (7, 7)
+    assert _projective_digest(matrix.subs({sp.Symbol("n"): 19})) == (
+        "b7d20de90ae236128244"
     )
 
 

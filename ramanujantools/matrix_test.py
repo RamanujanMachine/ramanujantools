@@ -5,7 +5,7 @@ from unittest.mock import patch
 import sympy as sp
 from sympy.abc import x, y, n
 
-from ramanujantools import Matrix, Limit, simplify
+from ramanujantools import LinearRecurrence, Matrix, Limit, simplify
 from ramanujantools.pcf import PCF
 from ramanujantools.cmf import pFq
 
@@ -174,7 +174,9 @@ def test_as_companion():
     )
 
     companion = m.as_companion()
+    coboundary = m.companion_coboundary_matrix()
     assert companion.is_companion()
+    assert coboundary * companion == m * coboundary.subs({n: n + 1})
 
 
 def test_as_companion_smaller_recursion():
@@ -191,14 +193,65 @@ def test_as_companion_smaller_recursion():
     companion = m.as_companion()
     assert companion.is_companion()
     assert 2 == companion.rows
+    assert 2 == m._companionization(n).rank
+    coboundary = m.companion_coboundary_matrix()[:, : companion.rows]
+    assert coboundary * companion == m * coboundary.subs({n: n + 1})
     # This is Apery's PCF
     assert PCF(34 * n**3 + 51 * n**2 + 27 * n + 5, -(n**6)) == PCF(companion)
 
 
+def test_as_companion_rank_one():
+    assert Matrix([[n + 1]]) == Matrix([[n + 1]]).as_companion()
+    matrix = Matrix.diag(n + 1, n + 2)
+    assert 1 == matrix._companionization(n).rank
+    assert Matrix([[n + 1]]) == matrix.as_companion()
+
+
+def test_companion_rank_uses_exact_residual():
+    matrix = Matrix([[1, 0], [n - 1, 1]])
+    assert 2 == matrix._companionization(n).rank
+
+
+def test_companion_rank_does_not_specialize_parameters():
+    matrix = Matrix([[1, 0], [y - x - 22, 1]])
+    companion = matrix.as_companion(x)
+    coboundary = matrix.companion_coboundary_matrix(x)
+
+    assert 2 == matrix._companionization(x).rank
+    assert coboundary * companion == matrix * coboundary.subs({x: x + 1})
+
+
+def test_companion_nonconsecutive_pivots_and_common_scalar():
+    matrix = Matrix.zeros(4)
+    active_rows = (0, 2)
+    active_block = Matrix([[n + 1, n**2 + 1], [n - 1, 2 * n + 3]])
+    for row, target_row in enumerate(active_rows):
+        for column, target_column in enumerate(active_rows):
+            matrix[target_row, target_column] = active_block[row, column]
+    matrix[1, 1] = n + 5
+    matrix[3, 3] = n + 7
+    scalar = (2 * n + 1) * (3 * n + 2) / ((n + 5) * (n + 7))
+    matrix = Matrix(scalar * matrix)
+
+    companionization = matrix._companionization(n)
+    companion = companionization.companion
+    basis = companionization.coboundary[:, : companionization.rank]
+
+    assert 2 == companionization.rank
+    assert any(
+        coefficient.scalar_shifts for coefficient in companionization.coefficients
+    )
+    assert basis * companion == matrix * basis.subs({n: n + 1})
+    assert LinearRecurrence(matrix).recurrence_matrix == companion
+
+
 def test_companion_coboundary_two_variables():
     m = Matrix([[1, x, 2 * y], [3, x * y, 5 * y], [x - 7, (x + y) ** 2 + 1, y - 3]])
-    assert m.coboundary(m.companion_coboundary_matrix(x), x).is_companion()
-    assert m.coboundary(m.companion_coboundary_matrix(y), y).is_companion()
+    for symbol in (x, y):
+        coboundary = m.companion_coboundary_matrix(symbol)
+        companion = m.as_companion(symbol)
+        assert companion.is_companion()
+        assert coboundary * companion == m * coboundary.subs({symbol: symbol + 1})
 
 
 def test_walk_0():

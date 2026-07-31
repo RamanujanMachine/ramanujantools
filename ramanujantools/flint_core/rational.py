@@ -1,16 +1,58 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 import math
 import flint
 import sympy as sp
 
 from ramanujantools import Position
-from ramanujantools.flint_core import (
+from ramanujantools.flint_core.context import (
     FlintPoly,
     FlintContext,
-    flint_from_sympy,
+    _flint_composition,
+    flint_converter,
     flint_to_sympy,
 )
+
+
+def _divisible_pair(left, right):
+    if not all(
+        isinstance(value, flint.fmpz_poly) and value != 0 for value in (left, right)
+    ):
+        return None
+    larger, smaller = (
+        (left, right) if left.degree() >= right.degree() else (right, left)
+    )
+    return (larger, smaller) if divmod(larger, smaller)[1] == 0 else None
+
+
+def _polynomial_gcd(left, right):
+    pair = _divisible_pair(left, right)
+    return pair[1] if pair else left.gcd(right)
+
+
+def _polynomial_lcm(left, right):
+    if left == right:
+        return left
+    pair = _divisible_pair(left, right)
+    if pair:
+        return pair[0]
+    return left * (right / left.gcd(right))
+
+
+@dataclass(frozen=True)
+class _PolynomialFraction:
+    numerator: object
+    denominator: object
+    scalar_shifts: tuple[int, ...] = ()
+
+    def __mul__(self, other: _PolynomialFraction) -> _PolynomialFraction:
+        left_common = _polynomial_gcd(self.numerator, other.denominator)
+        right_common = _polynomial_gcd(other.numerator, self.denominator)
+        return _PolynomialFraction(
+            (self.numerator / left_common) * (other.numerator / right_common),
+            (self.denominator / right_common) * (other.denominator / left_common),
+        )
 
 
 class FlintRational:
@@ -23,7 +65,7 @@ class FlintRational:
         self, numerator: FlintPoly, denominator: FlintPoly, ctx: FlintContext
     ) -> FlintRational:
         self.is_integer = isinstance(numerator, flint.fmpz_mpoly)
-        gcd = numerator.gcd(denominator)
+        gcd = _polynomial_gcd(numerator, denominator)
         if not self.is_integer:
             content = FlintRational.fmpq_gcd(numerator.coeffs() + denominator.coeffs())
             gcd *= content
@@ -32,7 +74,11 @@ class FlintRational:
         self.ctx = ctx
 
     @staticmethod
-    def from_sympy(rational: sp.Expr, ctx: FlintContext) -> FlintRational:
+    def from_sympy(
+        rational: sp.Expr,
+        ctx: FlintContext,
+        convert=None,
+    ) -> FlintRational:
         r"""
         Converts a rational function given as a sympy expression to a FlintRational.
         Args:
@@ -41,12 +87,13 @@ class FlintRational:
         Returns:
             A FlintRational object representing the `rational` value
         """
-        numerator, denominator = rational.as_numer_denom()
-        return FlintRational(
-            flint_from_sympy(numerator, ctx),
-            flint_from_sympy(denominator, ctx),
-            ctx,
-        )
+        convert = convert or flint_converter(ctx)
+        numerator, denominator = sp.fraction(rational, exact=True)
+        try:
+            numerator, denominator = convert(numerator), convert(denominator)
+        except (sp.PolynomialError, TypeError):
+            numerator, denominator = map(convert, rational.as_numer_denom())
+        return FlintRational(numerator, denominator, ctx)
 
     @staticmethod
     def fmpq_gcd(numbers: list[flint.fmpq]) -> flint.fmpz:
@@ -84,11 +131,11 @@ class FlintRational:
 
     def __mul__(self, other) -> FlintRational:
         if isinstance(other, FlintRational):
-            numerator = self.numerator * other.numerator
-            denominator = self.denominator * other.denominator
-            return FlintRational(numerator, denominator, self.ctx)
-        else:
-            return FlintRational(self.numerator * other, self.denominator, self.ctx)
+            left = _PolynomialFraction(self.numerator, self.denominator)
+            right = _PolynomialFraction(other.numerator, other.denominator)
+            product = left * right
+            return FlintRational(product.numerator, product.denominator, self.ctx)
+        return FlintRational(self.numerator * other, self.denominator, self.ctx)
 
     def __rmul__(self, other) -> FlintRational:
         return self * other
@@ -114,16 +161,8 @@ class FlintRational:
         """
         Substitutes symbols in self.
         """
-        substitutions = Position(
-            {str(key): value for key, value in substitutions.items()}
-        )
-        composition = []
-        for gen in self.ctx.gens():
-            if str(gen) in substitutions:
-                value = flint_from_sympy(substitutions[str(gen)], self.ctx)
-            else:
-                value = gen
-            composition.append(value)
+        substitutions = Position(substitutions)
+        composition = _flint_composition(self.ctx, substitutions)
         content = (
             1
             if self.is_integer
@@ -139,4 +178,11 @@ class FlintRational:
         """
         Factors self and returns it as a sp.Expr
         """
-        return flint_to_sympy(self.numerator) / flint_to_sympy(self.denominator)
+        return self.to_sympy()
+
+    def to_sympy(self, factor: bool = True) -> sp.Expr:
+        """Convert to SymPy, optionally without irreducible factorization."""
+        return flint_to_sympy(self.numerator, factor=factor) / flint_to_sympy(
+            self.denominator,
+            factor=factor,
+        )
