@@ -7,6 +7,8 @@ import numpy as np
 import mpmath as mp
 import sympy as sp
 from sympy.abc import n
+from sympy.matrices.exceptions import NonInvertibleMatrixError, NonSquareMatrixError
+from sympy.polys.matrices.exceptions import DMNonInvertibleMatrixError
 
 from ramanujantools import Position
 from ramanujantools.utils import batched, Batchable
@@ -139,10 +141,19 @@ class Matrix(sp.Matrix):
         """
         Inverts the matrix.
         """
+        if not self.is_square():
+            raise NonSquareMatrixError("A Matrix must be square to invert.")
         if self.free_symbols:
-            return SymbolicMatrix.from_sympy(
-                self, flint_ctx(self.free_symbols, fmpz=True)
-            ).inverse().to_rt()
+            domain_matrix = self.to_DM()
+            try:
+                numerator, denominator = domain_matrix.inv_den(method="rref")
+                return Matrix(numerator.to_Matrix()) / numerator.domain.to_sympy(
+                    denominator
+                )
+            except DMNonInvertibleMatrixError as error:
+                raise NonInvertibleMatrixError(
+                    "Matrix det == 0; not invertible."
+                ) from error
         return self.inv()
 
     @lru_cache
@@ -186,7 +197,7 @@ class Matrix(sp.Matrix):
         free_symbols = self.free_symbols.union(U.free_symbols).union({symbol})
         ctx = flint_ctx(free_symbols, fmpz=True)
         return (
-            SymbolicMatrix.from_sympy(U, ctx).inverse()
+            SymbolicMatrix.from_sympy(U.inverse(), ctx)
             * SymbolicMatrix.from_sympy(self, ctx)
             * SymbolicMatrix.from_sympy(
                 U.subs({symbol: symbol + (1 if sign else -1)}), ctx
@@ -420,10 +431,10 @@ class Matrix(sp.Matrix):
         return deltas
 
     def gcd_slope(
-            self,
-            depth=20,
-            initial_values: Matrix | None = None,
-            final_projection: Matrix | None = None
+        self,
+        depth=20,
+        initial_values: Matrix | None = None,
+        final_projection: Matrix | None = None,
     ) -> mp.mpf:
         r"""
         Attempts to perform a linear fit of $\bar{q} = \frac{q_n}{gcd(p_n, q_n)}$ as a function of $n$.
@@ -446,10 +457,10 @@ class Matrix(sp.Matrix):
         return mp.mpf(fit[0])
 
     def kamidelta(
-            self,
-            depth=20,
-            initial_values: Matrix | None = None,
-            final_projection: Matrix | None = None
+        self,
+        depth=20,
+        initial_values: Matrix | None = None,
+        final_projection: Matrix | None = None,
     ) -> list[mp.mpf]:
         r"""
         Predicts the possible delta values of the integer sequence approximation that the matrix generates.
