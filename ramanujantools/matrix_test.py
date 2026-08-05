@@ -1,9 +1,10 @@
-from pytest import approx
+from pytest import approx, raises
 
 from unittest.mock import patch
 
 import sympy as sp
 from sympy.abc import x, y, n
+from sympy.matrices.exceptions import NonInvertibleMatrixError, NonSquareMatrixError
 
 from ramanujantools import LinearRecurrence, Matrix, Limit, simplify
 from ramanujantools.pcf import PCF
@@ -105,7 +106,7 @@ def test_factor_numeric():
     assert matrix.applyfunc(sp.factor) == matrix.factor()
 
 
-def test_inverse():
+def test_inverse_numeric():
     a = 5
     b = 2
     c = 3
@@ -113,6 +114,34 @@ def test_inverse():
     m = Matrix([[a, b], [c, d]])
     expected = Matrix([[d, -b], [-c, a]]) / (a * d - b * c)
     assert expected == m.inverse()
+
+
+def test_inverse_multivariable():
+    matrix = Matrix([[x + y, x], [y, x + 2 * y]])
+    determinant = x**2 + 2 * x * y + 2 * y**2
+    expected = Matrix([[x + 2 * y, -x], [-y, x + y]]) / determinant
+
+    assert matrix.inverse().factor() == expected
+
+
+def test_inverse_singular():
+    matrix = Matrix([[1, n], [n, n**2]])
+
+    with raises(
+        NonInvertibleMatrixError,
+        match=r"Matrix det == 0; not invertible\.",
+    ):
+        matrix.inverse()
+
+
+def test_inverse_non_square():
+    matrix = Matrix([[x, 1]])
+
+    with raises(
+        NonSquareMatrixError,
+        match=r"A Matrix must be square to invert\.",
+    ):
+        matrix.inverse()
 
 
 def test_singular_points_nonvariable():
