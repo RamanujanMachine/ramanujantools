@@ -49,7 +49,7 @@ MATRICES = {
     ),
 }
 
-DEPTHS = [100, 500, 1000, 2000]
+DEPTHS = [10, 100, 500, 1000, 2000]
 COMPANION_MATRICES = {
     **MATRICES,
     "8x8_rank4": Matrix.diag(

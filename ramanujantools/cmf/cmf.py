@@ -325,9 +325,7 @@ class CMF(Printable):
 
                 for axis in reversed(axis_ordering):
                     sign = trajectory[axis] >= 0
-                    current = SymbolicMatrix.from_sympy(self.M(axis, sign), ctx).subs(
-                        position
-                    )
+                    current = self._step_matrix(axis, sign, position, ctx)
                     position[axis] += trajectory[axis]
                     result *= current
                 return result
@@ -338,6 +336,15 @@ class CMF(Printable):
         raise ZeroDivisionError(
             "A singularity has occurred in every possible trajectory combination"
         )
+
+    def _step_matrix(
+        self, axis: sp.Symbol, sign: bool, position: Position, ctx: FlintContext
+    ) -> SymbolicMatrix:
+        """
+        Returns `M(axis, sign)` substituted at `position`, as a SymbolicMatrix over `ctx`.
+        Subclasses with a faster native representation may override it.
+        """
+        return SymbolicMatrix.from_sympy(self.M(axis, sign), ctx).subs(position)
 
     def _work_symbolic(
         self,

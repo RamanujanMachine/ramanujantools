@@ -85,3 +85,40 @@ class MeijerG(DFinite):
             sign = 1 if index >= m else -1
         multiplier = axis - 1 if is_a else axis
         return (theta_matrix - multiplier * eye) * sign
+
+    @staticmethod
+    def determinant(m: int, n: int, p: int, q: int, z: sp.Expr, axis: sp.Symbol):
+        r"""
+        Returns the determinant of an axis (basis) matrix in factored form, without computing ``det()``.
+
+        Let $P(\theta)$ be the differential equation, $C$ the companion matrix of the monic $P$,
+        $s=\pm1$ the axis sign of `construct_matrix` and $d=\deg P$.
+        Substituting the contiguous relation of the axis into $P$ gives the characteristic polynomial of the shift:
+
+        - b axes: $M_b = s (C - b I)$, so $\det M_b = (-s)^d \cdot \frac{P}{LC(P)}(\theta=b)$.
+        - a axes: the matrix is the inverse of $s (C - (a-1) I)$ with $a \to a+1$, so
+          $\det M_a = 1 / \left[(-s)^d \cdot \frac{P}{LC(P)}\Big|_{a \to a+1}(\theta=a)\right]$.
+          The shift also applies to the leading coefficient (relevant when $z=\pm1$ cancels the top coefficient).
+
+        :param axis: an $a_i$ or $b_j$ symbol of the CMF.
+        :raises ValueError: if axis is not an a/b axis of the CMF.
+        """
+        name = axis.name
+        if not (
+            name[:1] in ("a", "b")
+            and name[1:].isdigit()
+            and int(name[1:]) < (p if name[0] == "a" else q)
+        ):
+            raise ValueError(f"not a Meijer-G axis: {axis}")
+        index = int(name[1:])
+        if name.startswith("a"):
+            sign = -1 if index >= n else 1
+        else:
+            sign = 1 if index >= m else -1
+        P = MeijerG.differential_equation(m, n, p, q, z)
+        monic = P.as_expr() / P.LC()
+        factor = (-sign) ** P.degree()
+        if name.startswith("b"):
+            return sp.factor(factor * monic.subs(theta, axis))
+        lowered = monic.subs(axis, axis + 1).subs(theta, axis)
+        return sp.factor(1 / (factor * lowered))
