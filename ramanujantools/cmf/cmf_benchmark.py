@@ -2,7 +2,7 @@ import hashlib
 
 import sympy as sp
 
-from ramanujantools import Position
+from ramanujantools import Matrix, Position
 from ramanujantools.cmf import CMF, e, pFq
 
 a0, a1 = sp.symbols("a:2")
@@ -185,3 +185,15 @@ def test_sub_cmf_3f3(benchmark):
         b1: Position({x0: 1, x1: 0, x2: 0, y0: 1, y1: 0, y2: 0}),
     }
     benchmark(CMF.sub_cmf, cmf, basis)
+
+
+def test_walk_4f3_deep(benchmark):
+    cmf = pFq(4, 3, 1)
+    start = Position({x0: -4, x1: 2, x2: 2, x3: 2, y0: 1, y1: -1, y2: 1})
+    trajectory = Position({x0: -31, x1: 64, x2: 64, x3: 64, y0: 0, y1: 0, y2: 56})
+    benchmark.pedantic(
+        CMF.walk,
+        setup=Matrix._walk_inner.cache_clear,
+        args=(cmf, trajectory, [900, 950, 1000], start),
+        rounds=3,
+    )

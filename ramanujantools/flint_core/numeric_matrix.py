@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Callable
 
 import sympy as sp
-from flint import fmpq_mat, fmpq
+from flint import fmpq_mat, fmpq, fmpq_poly
 
 import ramanujantools as rt
 from ramanujantools import Position
@@ -91,6 +91,81 @@ class NumericMatrix(fmpq_mat):
         return flint_lambdify(matrix)
 
     @staticmethod
+    def walk_step_lambda(
+        matrix: rt.Matrix, trajectory: Position, start: Position
+    ) -> Callable[[int], NumericMatrix]:
+        r"""
+        Returns a function that evaluates `matrix` at step $k$ of a walk, i.e at `start + k * trajectory`.
+
+        Each entry is converted once to a numerator and denominator `fmpq_poly` in $k$, evaluated by FLINT.
+        Denominators are never reduced, so a step is singular exactly when `matrix` is singular at that point.
+
+        Args:
+            matrix: The matrix to evaluate. Its entries must be rational functions in the keys of `start`.
+            trajectory: The trajectory of a single step in the walk. Values must be rational numbers.
+            start: The starting point of the walk. Values must be rational numbers.
+        Returns:
+            A function that receives a step index $k$ and returns `matrix` at `start + k * trajectory`
+            as a NumericMatrix. It raises ZeroDivisionError if `matrix` is singular at that point.
+        Raises:
+            NotImplementedError: If an entry of `matrix` is not a rational function in the keys of `start`.
+            ValueError: If a value of `start` or `trajectory` is not a rational number.
+        """
+
+        def to_fmpq(value) -> fmpq:
+            value = sp.sympify(value)
+            if not value.is_Rational:
+                raise ValueError(f"Walk positions must be rational numbers, got {value}")
+            return fmpq(int(value.p), int(value.q))
+
+        subs = {
+            key: fmpq_poly([to_fmpq(value), to_fmpq(trajectory.get(key, 0))])
+            for key, value in start.items()
+        }
+        one = fmpq_poly([1])
+        # Nested denominators vanish from the result, but still raise in `lambda_from_rt`
+        guards = []
+
+        def convert(expr) -> tuple[fmpq_poly, fmpq_poly]:
+            if isinstance(expr, sp.Rational):
+                return fmpq_poly([fmpq(int(expr.p), int(expr.q))]), one
+            if isinstance(expr, sp.Symbol) and expr in subs:
+                return subs[expr], one
+            if isinstance(expr, (sp.Add, sp.Mul)):
+                numerator, denominator = convert(expr.args[0])
+                for arg_numerator, arg_denominator in map(convert, expr.args[1:]):
+                    if expr.is_Add:
+                        numerator = (
+                            numerator * arg_denominator + arg_numerator * denominator
+                        )
+                    else:
+                        numerator = numerator * arg_numerator
+                    denominator = denominator * arg_denominator
+                return numerator, denominator
+            if isinstance(expr, sp.Pow) and expr.exp.is_Integer:
+                numerator, denominator = convert(expr.base)
+                exponent = int(expr.exp)
+                if exponent >= 0:
+                    return numerator**exponent, denominator**exponent
+                if denominator != 1:
+                    guards.append(denominator)
+                return denominator ** (-exponent), numerator ** (-exponent)
+            raise NotImplementedError(f"Unsupported expression: {expr}")
+
+        entries = [convert(expr) for expr in matrix]
+        rows, cols = matrix.shape
+
+        def step(k: int) -> NumericMatrix:
+            if any(guard(k) == 0 for guard in guards):
+                raise ZeroDivisionError("Nested denominator vanishes")
+            values = [
+                numerator(k) / denominator(k) for numerator, denominator in entries
+            ]
+            return NumericMatrix(rows, cols, values)
+
+        return step
+
+    @staticmethod
     @batched("iterations")
     def walk(
         matrix: rt.Matrix,
@@ -98,16 +173,15 @@ class NumericMatrix(fmpq_mat):
         iterations: Batchable[int],
         start: Position,
     ) -> Batchable[NumericMatrix]:
+        """
+        Walks as described in `rt.Matrix.walk`, evaluating each step with `walk_step_lambda`.
+        """
         N = iterations[-1]
-        fast_subs = NumericMatrix.lambda_from_rt(matrix)
         dim = matrix.rows
 
         # Pre-evaluate all per-step matrices into a flat list.
-        position = start.copy()
-        step_matrices = []
-        for _ in range(N):
-            step_matrices.append(fast_subs(position))
-            position += trajectory
+        step = NumericMatrix.walk_step_lambda(matrix, trajectory, start)
+        step_matrices = [step(k) for k in range(N)]
 
         # Below this range size, a sequential loop is faster than recursion.
         SEQUENTIAL_THRESHOLD = 8

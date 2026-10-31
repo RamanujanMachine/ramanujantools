@@ -1,3 +1,4 @@
+import pytest
 from pytest import raises
 
 import sympy as sp
@@ -395,3 +396,19 @@ def test_pickle_state():
         _ = loaded_cmf.M(x0, sign=False)
     except AttributeError as e:
         assert False, f"Failed to access negative matrix after unpickling: {e}"
+
+
+@pytest.mark.parametrize(
+    "p, q, z, trajectory, start",
+    [
+        (2, 1, -1, [1, -2, 2], [4, -6, -5]),
+        (3, 2, 1, [-4, -2, 1, 1, -3], [4, 1, -5, 0, -6]),
+        (4, 3, 1, [0, 5, -3, 3, -4, -1, -3], [1, 3, 4, 1, -2, -6, -1]),
+    ],
+)
+def test_walk_singular_trajectory(p, q, z, trajectory, start):
+    axes = pFq.x_axes(p) + pFq.y_axes(q)
+    trajectory = Position(dict(zip(axes, trajectory)))
+    start = Position(dict(zip(axes, start)))
+    with raises(ZeroDivisionError):
+        pFq(p, q, z).walk(trajectory, 1000, start)

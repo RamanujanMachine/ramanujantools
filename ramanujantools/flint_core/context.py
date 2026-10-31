@@ -30,15 +30,17 @@ def _flint_composition(ctx: FlintContext, substitutions: dict) -> list[FlintPoly
     substitutions = {str(key): value for key, value in substitutions.items()}
     return [
         generator
-        if str(generator) not in substitutions
-        else flint_from_sympy(substitutions[str(generator)], ctx)
-        for generator in ctx.gens()
+        if name not in substitutions
+        else flint_from_sympy(substitutions[name], ctx)
+        for name, generator in zip(ctx.names(), ctx.gens())
     ]
 
 
 def flint_converter(ctx: FlintContext):
     """Build a cached, non-expanding SymPy-expression converter."""
-    generators = {sp.Symbol(str(generator)): generator for generator in ctx.gens()}
+    generators = {
+        sp.Symbol(name): generator for name, generator in zip(ctx.names(), ctx.gens())
+    }
 
     @cache
     def convert(expression: sp.Expr) -> FlintPoly:
@@ -99,8 +101,7 @@ def _fmpz_mpoly_to_fmpz_poly(poly: flint.fmpz_mpoly) -> flint.fmpz_poly:
 
 
 def _flint_polynomial_to_sympy(poly) -> sp.Expr:
-    gens = poly.context().gens()
-    symbols = [sp.Symbol(str(gen)) for gen in gens]
+    symbols = [sp.Symbol(name) for name in poly.context().names()]
     if len(symbols) == 1 and isinstance(poly, flint.fmpz_mpoly):
         return _fmpz_poly_to_sympy(_fmpz_mpoly_to_fmpz_poly(poly), symbols[0])
 

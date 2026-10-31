@@ -1,5 +1,6 @@
 from pytest import approx
 import pickle
+import pytest
 
 import sympy as sp
 from sympy.abc import n, z
@@ -173,3 +174,29 @@ def test_asymptotics_euler_trajectory():
     ]
     actual = r.asymptotics(precision=12)
     assert expected == actual
+
+
+@pytest.mark.parametrize(
+    "m, n, p, q, z, axis",
+    [
+        (1, 1, 2, 2, z, a0),
+        (1, 1, 2, 2, z, a1),
+        (1, 1, 2, 2, z, b0),
+        (1, 1, 2, 2, z, b1),
+        (2, 1, 2, 2, 1, a0),
+        (1, 2, 2, 2, 1, b1),
+        (1, 0, 2, 2, -1, a1),
+        (2, 2, 3, 3, z, b0),
+    ],
+)
+def test_determinant(m, n, p, q, z, axis):
+    """Tests the closed-form MeijerG.determinant against the actual matrix determinant."""
+    cmf = MeijerG(m, n, p, q, z)
+    assert sp.factor(cmf.matrices[axis].det()) == MeijerG.determinant(
+        m, n, p, q, z, axis
+    )
+
+
+def test_determinant_invalid_axis():
+    with pytest.raises(ValueError):
+        MeijerG.determinant(1, 1, 2, 2, z, sp.Symbol("x0"))
