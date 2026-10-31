@@ -3,7 +3,6 @@ from .d_finite import DFinite
 from .ffbar import FFbar
 from .pfq import pFq
 from .meijer_g import MeijerG
-from .kdf import KdF
 
 from .known_cmfs import (
     e,
@@ -26,7 +25,6 @@ __all__ = [
     "FFbar",
     "pFq",
     "MeijerG",
-    "KdF",
     "e",
     "pi",
     "symmetric_pi",
