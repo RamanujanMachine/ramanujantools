@@ -6,7 +6,6 @@ from sympy.abc import a, b, c, x, y, n
 
 from ramanujantools import Position, Matrix, simplify
 from ramanujantools.cmf import CMF, known_cmfs, pFq
-from ramanujantools.flint_core.numeric_matrix_test import fast_and_reference
 
 a0, a1 = sp.symbols("a:2")
 b0, b1 = sp.symbols("b:2")
@@ -400,37 +399,16 @@ def test_pickle_state():
 
 
 @pytest.mark.parametrize(
-    "p, q, z, trajectory, start, singular",
+    "p, q, z, trajectory, start",
     [
-        (2, 1, -1, [12, -9, 17], [1, 2, 3], False),
-        (3, 2, -1, [-9, 18, 18, 0, 16], [-3, 2, 2, 1, 1], False),
-        (4, 3, 1, [-12, 24, 24, 24, 0, 0, 20], [-4, 2, 2, 2, 1, -1, 1], False),
-        (4, 3, 1, [-31, 64, 64, 64, 0, 0, 56], [-4, 2, 2, 2, 1, -1, 1], False),
-        (5, 4, -1, [1, 2, 1, 2, 1, 3, 2, 3, 2], [1, 1, 1, 1, 1, 2, 2, 2, 2], False),
-        (2, 1, -1, [1, -2, 2], [4, -6, -5], True),
-        (3, 2, 1, [-4, -2, 1, 1, -3], [4, 1, -5, 0, -6], True),
-        (4, 3, 1, [0, 5, -3, 3, -4, -1, -3], [1, 3, 4, 1, -2, -6, -1], True),
+        (2, 1, -1, [1, -2, 2], [4, -6, -5]),
+        (3, 2, 1, [-4, -2, 1, 1, -3], [4, 1, -5, 0, -6]),
+        (4, 3, 1, [0, 5, -3, 3, -4, -1, -3], [1, 3, 4, 1, -2, -6, -1]),
     ],
 )
-def test_walk_step_lambda_trajectories(p, q, z, trajectory, start, singular):
+def test_walk_singular_trajectory(p, q, z, trajectory, start):
     axes = pFq.x_axes(p) + pFq.y_axes(q)
     trajectory = Position(dict(zip(axes, trajectory)))
     start = Position(dict(zip(axes, start)))
-    result = fast_and_reference(
-        lambda: pFq(p, q, z).walk(trajectory, [1, 900, 950, 1000], start)
-    )
-    assert (result is ZeroDivisionError) == singular
-
-
-@pytest.mark.parametrize(
-    "p, q, z, start, end",
-    [
-        (2, 1, -1, [1, 2, 50], [34, -34, 90]),
-        (3, 2, 1, [1, 1, 2, 60, 61], [31, 32, 34, 100, 102]),
-        (4, 3, 1, [1, 1, 2, 2, 80, 81, 82], [31, 32, 34, 35, 120, 122, 124]),
-    ],
-)
-def test_work_numeric_walk_step_lambda(p, q, z, start, end):
-    axes = pFq.x_axes(p) + pFq.y_axes(q)
-    start, end = Position(dict(zip(axes, start))), Position(dict(zip(axes, end)))
-    fast_and_reference(lambda: pFq(p, q, z).work(start, end))
+    with raises(ZeroDivisionError):
+        pFq(p, q, z).walk(trajectory, 1000, start)

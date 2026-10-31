@@ -11,9 +11,6 @@ from ramanujantools.utils import batched, Batchable
 
 
 class NumericMatrix(fmpq_mat):
-    # Below this walk depth, converting the matrix for `walk_step_lambda` costs more than it saves.
-    FAST_WALK_MIN_DEPTH = 32
-
     @staticmethod
     def eye(N: int):
         """
@@ -96,20 +93,33 @@ class NumericMatrix(fmpq_mat):
     @staticmethod
     def walk_step_lambda(
         matrix: rt.Matrix, trajectory: Position, start: Position
-    ) -> Callable:
+    ) -> Callable[[int], NumericMatrix]:
+        r"""
+        Returns a function that evaluates `matrix` at step $k$ of a walk, i.e at `start + k * trajectory`.
+
+        Each entry is converted once to a numerator and denominator `fmpq_poly` in $k$, evaluated by FLINT.
+        Denominators are never reduced, so a step is singular exactly when `matrix` is singular at that point.
+
+        Args:
+            matrix: The matrix to evaluate. Its entries must be rational functions in the keys of `start`.
+            trajectory: The trajectory of a single step in the walk. Values must be rational numbers.
+            start: The starting point of the walk. Values must be rational numbers.
+        Returns:
+            A function that receives a step index $k$ and returns `matrix` at `start + k * trajectory`
+            as a NumericMatrix. It raises ZeroDivisionError if `matrix` is singular at that point.
+        Raises:
+            NotImplementedError: If an entry of `matrix` is not a rational function in the keys of `start`.
+            ValueError: If a value of `start` or `trajectory` is not a rational number.
         """
-        Returns a function that evaluates the matrix at step k of a walk, i.e at `start + k * trajectory`,
-        and returns it as a NumericMatrix. Equivalent to `lambda_from_rt`, but faster:
-        each entry is converted once to a numerator and denominator `fmpq_poly` in k, evaluated by FLINT.
-        Denominators are never reduced, so a step raises ZeroDivisionError exactly when `lambda_from_rt` does.
-        Raises NotImplementedError for anything else, including positions that are not python ints.
-        """
-        if any(
-            type(value) is not int for value in [*start.values(), *trajectory.values()]
-        ):
-            raise NotImplementedError("Positions must be python ints")
+
+        def to_fmpq(value) -> fmpq:
+            value = sp.sympify(value)
+            if not value.is_Rational:
+                raise ValueError(f"Walk positions must be rational numbers, got {value}")
+            return fmpq(int(value.p), int(value.q))
+
         subs = {
-            key: fmpq_poly([value, trajectory.get(key, 0)])
+            key: fmpq_poly([to_fmpq(value), to_fmpq(trajectory.get(key, 0))])
             for key, value in start.items()
         }
         one = fmpq_poly([1])
@@ -164,28 +174,14 @@ class NumericMatrix(fmpq_mat):
         start: Position,
     ) -> Batchable[NumericMatrix]:
         """
-        Walks as described in `rt.Matrix.walk`. Steps are evaluated with `walk_step_lambda` when possible,
-        and with `lambda_from_rt` for short walks or unsupported matrices.
+        Walks as described in `rt.Matrix.walk`, evaluating each step with `walk_step_lambda`.
         """
         N = iterations[-1]
         dim = matrix.rows
 
         # Pre-evaluate all per-step matrices into a flat list.
-        step = None
-        if N >= NumericMatrix.FAST_WALK_MIN_DEPTH:
-            try:
-                step = NumericMatrix.walk_step_lambda(matrix, trajectory, start)
-            except NotImplementedError:
-                pass
-        if step is not None:
-            step_matrices = [step(k) for k in range(N)]
-        else:
-            fast_subs = NumericMatrix.lambda_from_rt(matrix)
-            position = start.copy()
-            step_matrices = []
-            for _ in range(N):
-                step_matrices.append(fast_subs(position))
-                position += trajectory
+        step = NumericMatrix.walk_step_lambda(matrix, trajectory, start)
+        step_matrices = [step(k) for k in range(N)]
 
         # Below this range size, a sequential loop is faster than recursion.
         SEQUENTIAL_THRESHOLD = 8
