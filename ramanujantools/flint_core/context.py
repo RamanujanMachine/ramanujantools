@@ -28,8 +28,6 @@ def flint_from_sympy(poly: sp.Expr, ctx: FlintContext) -> FlintPoly:
 def _flint_composition(ctx: FlintContext, substitutions: dict) -> list[FlintPoly]:
     """Build FLINT compose arguments for a symbolic substitution."""
     substitutions = {str(key): value for key, value in substitutions.items()}
-    # Generator names come from ``ctx.names()``, never ``str(generator)``:
-    # python-flint <= 0.9.0 leaks the C string of every mpoly ``str()``.
     return [
         generator
         if name not in substitutions
